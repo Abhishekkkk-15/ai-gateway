@@ -52,7 +52,7 @@ export function KeysPage() {
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyRpm, setNewKeyRpm] = useState<number | ''>('');
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
-  const [codeTab, setCodeTab] = useState<'python' | 'node' | 'curl'>('python');
+  const [codeTab, setCodeTab] = useState<'python' | 'node' | 'rust' | 'curl'>('python');
 
   const { data, isLoading } = useQuery({
     queryKey: ['gateway-keys'],
@@ -145,6 +145,54 @@ const stream = await client.chat.completions.create({
 
 for await (const chunk of stream) {
   process.stdout.write(chunk.choices[0]?.delta?.content || '');
+}`;
+    }
+    if (codeTab === 'rust') {
+      return `// Add dependencies in Cargo.toml:
+// async-openai = "0.27"
+// tokio = { version = "1", features = ["full"] }
+// futures = "0.3"
+
+use async_openai::{
+    config::OpenAIConfig,
+    types::{ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs},
+    Client,
+};
+use futures::StreamExt;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Route requests to the AI Gateway with custom base URL and gateway key
+    let config = OpenAIConfig::new()
+        .with_api_base("${window.location.origin}/v1")
+        .with_api_key("${testKeyPrefix}");
+
+    let client = Client::with_config(config);
+
+    let request = CreateChatCompletionRequestArgs::default()
+        .model("groq/llama-3.3-70b-versatile")
+        .messages([ChatCompletionRequestUserMessageArgs::default()
+            .content("Hello via AI Gateway!")
+            .build()?
+            .into()])
+        .build()?;
+
+    let mut stream = client.chat().create_stream(request).await?;
+
+    while let Some(result) = stream.next().await {
+        match result {
+            Ok(response) => {
+                for choice in response.choices {
+                    if let Some(content) = choice.delta.content {
+                        print!("{content}");
+                    }
+                }
+            }
+            Err(err) => eprintln!("Error: {err}"),
+        }
+    }
+
+    Ok(())
 }`;
     }
     return `curl ${window.location.origin}/v1/chat/completions \\
@@ -300,9 +348,9 @@ for await (const chunk of stream) {
               </div>
             </div>
 
-            <Tabs value={codeTab} onValueChange={(val) => setCodeTab(val as 'python' | 'node' | 'curl')} className="self-start sm:self-auto">
+            <Tabs value={codeTab} onValueChange={(val) => setCodeTab(val as 'python' | 'node' | 'rust' | 'curl')} className="self-start sm:self-auto">
               <TabsList className="h-8">
-                {(['python', 'node', 'curl'] as const).map((tab) => (
+                {(['python', 'node', 'rust', 'curl'] as const).map((tab) => (
                   <TabsTrigger key={tab} value={tab} className="text-xs font-mono uppercase h-7 px-3">
                     {tab}
                   </TabsTrigger>

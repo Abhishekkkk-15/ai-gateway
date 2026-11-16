@@ -4,6 +4,7 @@ import Prism from 'prismjs';
 import 'prismjs/components/prism-python.js';
 import 'prismjs/components/prism-javascript.js';
 import 'prismjs/components/prism-typescript.js';
+import 'prismjs/components/prism-rust.js';
 import 'prismjs/components/prism-bash.js';
 import 'prismjs/components/prism-json.js';
 
@@ -51,15 +52,17 @@ export const CodeBlock = React.forwardRef<HTMLDivElement, CodeBlockProps>(
       const grammar =
         normalizedLang === 'python' || normalizedLang === 'py'
           ? Prism.languages.python
-          : normalizedLang === 'node' || normalizedLang === 'javascript' || normalizedLang === 'js'
-            ? Prism.languages.javascript
-            : normalizedLang === 'typescript' || normalizedLang === 'ts'
-              ? Prism.languages.typescript
-              : normalizedLang === 'curl' || normalizedLang === 'bash' || normalizedLang === 'sh' || normalizedLang === 'shell'
-                ? Prism.languages.bash
-                : normalizedLang === 'json'
-                  ? Prism.languages.json
-                  : Prism.languages.javascript;
+          : normalizedLang === 'rust' || normalizedLang === 'rs'
+            ? Prism.languages.rust
+            : normalizedLang === 'node' || normalizedLang === 'javascript' || normalizedLang === 'js'
+              ? Prism.languages.javascript
+              : normalizedLang === 'typescript' || normalizedLang === 'ts'
+                ? Prism.languages.typescript
+                : normalizedLang === 'curl' || normalizedLang === 'bash' || normalizedLang === 'sh' || normalizedLang === 'shell'
+                  ? Prism.languages.bash
+                  : normalizedLang === 'json'
+                    ? Prism.languages.json
+                    : Prism.languages.javascript;
 
       const langToUse = grammar ? normalizedLang : 'javascript';
       const effectiveGrammar = grammar || Prism.languages.javascript;
