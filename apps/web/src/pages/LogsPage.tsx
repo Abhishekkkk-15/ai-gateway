@@ -128,17 +128,14 @@ export function LogsPage() {
             <h1 className="text-2xl font-bold tracking-tight">Request Telemetry &amp; Logs</h1>
             <Badge
               variant="outline"
-              className="gap-1.5 text-[11px] font-mono border-emerald-500/30 text-emerald-500 bg-emerald-500/10"
+              className="gap-1.5 text-[11px] font-mono border-border"
             >
-              <span className="relative flex size-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
-              </span>
-              Live Polling (5s)
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              Live (5s)
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Non-blocking asynchronous request metrics captured from Neon Serverless Postgres.
+            Request metrics, upstream latencies, status codes, and TTFT distributions.
           </p>
         </div>
 

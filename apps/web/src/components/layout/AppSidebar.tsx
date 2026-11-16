@@ -73,8 +73,8 @@ export function AppSidebar({
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-bold tracking-tight">AI Gateway</span>
                   <span className="truncate text-[11px] text-muted-foreground flex items-center gap-1.5">
-                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Hot-Path Active</span>
+                    <span className="size-1.5 rounded-full bg-emerald-500" />
+                    <span>Online</span>
                   </span>
                 </div>
               </NavLink>
@@ -146,7 +146,7 @@ export function AppSidebar({
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">{username}</span>
                       <span className="truncate text-xs text-muted-foreground">
-                        Gateway Operator
+                        Administrator
                       </span>
                     </div>
                   </div>

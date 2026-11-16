@@ -94,7 +94,7 @@ export function OverviewPage({
       ? Math.round(validTtftLogs.reduce((acc, l) => acc + (l.ttftMs || 0), 0) / validTtftLogs.length)
       : 0;
 
-  // Build chart timeline data from real logs (or fallback to clean progression)
+  // Build chart timeline data from real logs (empty if none)
   const chartData =
     logs.length > 0
       ? [...logs].reverse().map((log, idx) => ({
@@ -108,22 +108,16 @@ export function OverviewPage({
           ttft: log.ttftMs || 0,
           status: log.statusCode,
         }))
-      : [
-          { index: 1, time: '10:00', latency: 45, ttft: 20 },
-          { index: 2, time: '10:05', latency: 62, ttft: 28 },
-          { index: 3, time: '10:10', latency: 38, ttft: 18 },
-          { index: 4, time: '10:15', latency: 50, ttft: 22 },
-          { index: 5, time: '10:20', latency: 40, ttft: 19 },
-        ];
+      : [];
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
-      {/* Top Banner / Welcome */}
+      {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">System Telemetry &amp; Gateway Overview</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Real-time multi-provider routing metrics, latency distributions, and live model availability.
+            Request metrics, latency distributions, and active provider status.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -152,7 +146,7 @@ export function OverviewPage({
         <Card className="border-border/80 shadow-sm hover:border-border transition-colors">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Invocations
+              Total Requests
             </CardTitle>
             <Activity className="size-4 text-muted-foreground" />
           </CardHeader>
@@ -162,12 +156,8 @@ export function OverviewPage({
             ) : (
               <div className="text-2xl font-bold tracking-tight">{totalRequests}</div>
             )}
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              <span className="text-emerald-500 font-semibold inline-flex items-center gap-0.5">
-                <TrendingUp className="size-3" />
-                100%
-              </span>
-              <span>asynchronous logging</span>
+            <p className="text-xs text-muted-foreground mt-1">
+              {totalRequests === 1 ? '1 request recorded' : `${totalRequests} requests recorded`}
             </p>
           </CardContent>
         </Card>
@@ -191,9 +181,8 @@ export function OverviewPage({
                 </span>
               </div>
             )}
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              <span className="text-primary font-semibold">Zero-DB</span>
-              <span>in-memory lookup</span>
+            <p className="text-xs text-muted-foreground mt-1">
+              <span>{enabledModels.length} active in routing table</span>
             </p>
           </CardContent>
         </Card>
@@ -217,12 +206,8 @@ export function OverviewPage({
                 </span>
               </div>
             )}
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              <span className="text-emerald-500 font-semibold inline-flex items-center gap-0.5">
-                <CheckCircle2 className="size-3" />
-                Hot-Path
-              </span>
-              <span>pool routing</span>
+            <p className="text-xs text-muted-foreground mt-1">
+              <span>{enabledProviders.length} active upstream providers</span>
             </p>
           </CardContent>
         </Card>
@@ -233,7 +218,7 @@ export function OverviewPage({
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Avg TTFT / Latency
             </CardTitle>
-            <Zap className="size-4 text-amber-500" />
+            <Timer className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {isLoadingLogs ? (
@@ -246,12 +231,8 @@ export function OverviewPage({
                 </span>
               </div>
             )}
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              <span className="text-amber-500 font-semibold inline-flex items-center gap-0.5">
-                <Timer className="size-3" />
-                P95 Target
-              </span>
-              <span>&lt; 150ms TTFT</span>
+            <p className="text-xs text-muted-foreground mt-1">
+              <span>{validTtftLogs.length} streaming responses</span>
             </p>
           </CardContent>
         </Card>
@@ -261,9 +242,9 @@ export function OverviewPage({
       <Card className="border-border/80 shadow-sm">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 gap-4">
           <div>
-            <CardTitle className="text-base font-semibold">Inference Latency &amp; TTFT Distribution</CardTitle>
+            <CardTitle className="text-base font-semibold">Latency &amp; TTFT Distribution</CardTitle>
             <CardDescription>
-              Chronological streaming performance across upstream AI providers
+              Chronological streaming performance across upstream providers
             </CardDescription>
           </div>
           <Tabs value={metricTab} onValueChange={(val) => setMetricTab(val as 'latency' | 'volume')}>
@@ -278,67 +259,77 @@ export function OverviewPage({
           </Tabs>
         </CardHeader>
         <CardContent>
-          <div className="h-[280px] w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="latencyGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="ttftGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
-                <XAxis
-                  dataKey="time"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(val) => `${val}ms`}
-                />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const data = payload[0].payload;
-                      return (
-                        <div className="rounded-lg border border-border bg-popover p-2.5 shadow-md text-xs font-mono">
-                          <p className="font-semibold text-foreground mb-1">{data.time}</p>
-                          <p className="text-emerald-500">Total Latency: {data.latency}ms</p>
-                          <p className="text-amber-500">TTFT: {data.ttft}ms</p>
-                          {data.status && (
-                            <p className="text-muted-foreground mt-0.5">Status: {data.status}</p>
-                          )}
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey={metricTab === 'latency' ? 'latency' : 'ttft'}
-                  stroke={metricTab === 'latency' ? '#10b981' : '#f59e0b'}
-                  strokeWidth={2}
-                  fill={metricTab === 'latency' ? 'url(#latencyGradient)' : 'url(#ttftGradient)'}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {chartData.length === 0 ? (
+            <div className="h-[280px] w-full flex flex-col items-center justify-center text-center p-6 border border-dashed rounded-lg border-border/60">
+              <Activity className="size-8 text-muted-foreground/30 mb-2" />
+              <p className="text-sm font-medium text-foreground">No telemetry recorded yet</p>
+              <p className="text-xs text-muted-foreground max-w-sm mt-1">
+                Requests processed by the gateway will display real-time latency and TTFT metrics here.
+              </p>
+            </div>
+          ) : (
+            <div className="h-[280px] w-full pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="latencyGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                    </linearGradient>
+                    <linearGradient id="ttftGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+                  <XAxis
+                    dataKey="time"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(val) => `${val}ms`}
+                  />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="rounded-lg border border-border bg-popover p-2.5 shadow-md text-xs font-mono">
+                            <p className="font-semibold text-foreground mb-1">{data.time}</p>
+                            <p className="text-emerald-500">Total Latency: {data.latency}ms</p>
+                            <p className="text-amber-500">TTFT: {data.ttft}ms</p>
+                            {data.status && (
+                              <p className="text-muted-foreground mt-0.5">Status: {data.status}</p>
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey={metricTab === 'latency' ? 'latency' : 'ttft'}
+                    stroke={metricTab === 'latency' ? '#10b981' : '#f59e0b'}
+                    strokeWidth={2}
+                    fill={metricTab === 'latency' ? 'url(#latencyGradient)' : 'url(#ttftGradient)'}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex items-center justify-between border-t border-border/60 py-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5 font-mono">
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Telemetry queue: 0 dropped, 100% written</span>
+            <span className="size-2 rounded-full bg-emerald-500" />
+            <span>Batched telemetry logging active</span>
           </div>
           <Button
             variant="ghost"

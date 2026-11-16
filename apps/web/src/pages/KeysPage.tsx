@@ -211,7 +211,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Generate and manage access tokens for client applications. All requests route through the Zero-DB memory lookup.
+            Generate and manage access tokens for client applications and upstream SDK access.
           </p>
         </div>
 

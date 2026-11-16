@@ -131,7 +131,7 @@ export function ProvidersPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">AI Model Providers</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage upstream providers, secure AES-256-GCM credentials, and synchronize model catalogs.
+            Manage upstream providers, credentials, and synchronized model catalogs.
           </p>
         </div>
         <Button
@@ -220,7 +220,7 @@ export function ProvidersPage() {
                       {hasKey && (
                         <span className="text-[10px] text-emerald-500 flex items-center gap-1 font-mono">
                           <ShieldCheck className="size-3" />
-                          <span>Encrypted (AES-GCM)</span>
+                          <span>Encrypted</span>
                         </span>
                       )}
                     </div>

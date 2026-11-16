@@ -5,7 +5,7 @@ import { Separator } from '../ui/separator.js';
 import { Badge } from '../ui/badge.js';
 import { Button } from '../ui/button.js';
 import { ThemeToggle } from '../ThemeToggle.js';
-import { ExternalLink, Zap } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 
 const ROUTE_TITLES: Record<string, string> = {
   '/overview': 'Overview & Telemetry',
@@ -45,7 +45,7 @@ export function SiteHeader({
             variant="outline"
             className="hidden sm:flex items-center gap-1.5 py-0.5 text-[11px] font-mono border-border bg-card"
           >
-            <Zap className="size-3 text-amber-500 fill-amber-500/20" />
+            <span className="size-1.5 rounded-full bg-emerald-500" />
             <span>{loadedModelsCount} Models Live</span>
           </Badge>
 

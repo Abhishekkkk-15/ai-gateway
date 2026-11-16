@@ -30,7 +30,6 @@ import {
   Zap,
   Send,
   RotateCcw,
-  Sparkles,
   Bot,
   User,
   Copy,
@@ -52,9 +51,9 @@ import {
 } from 'lucide-react';
 
 const PROMPT_SUGGESTIONS = [
-  'Explain the benefits of an in-memory routing cache in 3 concise bullet points.',
-  'Write a TypeScript function to calculate Exponential Moving Average (EMA).',
-  'What are the core differences between SSE streaming and WebSockets for LLMs?',
+  'State your model name and capabilities.',
+  'Write a Python snippet to call this gateway with the OpenAI SDK.',
+  'Explain how Server-Sent Events work compared to standard HTTP chunking.',
 ];
 
 const PRESET_VOICES = [
@@ -106,7 +105,7 @@ export function PlaygroundPage() {
 
   // Chat conversation state
   const [prompt, setPrompt] = useState(
-    'Explain the benefits of an in-memory routing cache in 3 concise bullet points.'
+    'State your model name and capabilities.'
   );
   const [userMessage, setUserMessage] = useState<string | null>(null);
   const [assistantOutput, setAssistantOutput] = useState('');
@@ -120,7 +119,7 @@ export function PlaygroundPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // TTS state
-  const [ttsText, setTtsText] = useState('Welcome to the high-performance AI API Gateway.');
+  const [ttsText, setTtsText] = useState('Testing gateway audio synthesis.');
   const [ttsModel, setTtsModel] = useState('eleven_flash_v2_5');
   const [selectedVoice, setSelectedVoice] = useState('21m00Tcm4TlvDq8ikWAM');
   const [customVoiceId, setCustomVoiceId] = useState('');
@@ -131,7 +130,7 @@ export function PlaygroundPage() {
   const [ttsMode, setTtsMode] = useState<'batch' | 'stream-input'>('batch');
   const [isTtsStreaming, setIsTtsStreaming] = useState(false);
   const [ttsStreamInputTokens, setTtsStreamInputTokens] = useState(
-    'Streaming chunk-based text to speech directly through the gateway.'
+    'Streaming text chunks through the gateway.'
   );
   const [ttsAudioChunksReceived, setTtsAudioChunksReceived] = useState(0);
   const [ttsFirstChunkLatencyMs, setTtsFirstChunkLatencyMs] = useState<number | null>(null);
@@ -560,13 +559,12 @@ export function PlaygroundPage() {
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">Interactive Playground</h1>
-            <Badge variant="outline" className="gap-1 text-[11px] font-mono">
-              <Sparkles className="size-3 text-primary" />
-              Live Inference
+            <Badge variant="outline" className="text-[11px] font-mono">
+              Chat &amp; Audio
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Benchmark streaming Chat Completions, Text-to-Speech, and Audio Transcriptions with real-time TTFT metrics.
+            Test chat completions, text-to-speech, and audio transcriptions directly against configured models.
           </p>
         </div>
 
@@ -696,19 +694,16 @@ export function PlaygroundPage() {
               ref={scrollRef}
               className="flex-1 overflow-y-auto p-4 flex flex-col gap-5 bg-background/40"
             >
-              {/* Initial Assistant Greeting */}
-              <div className="flex items-start gap-3 max-w-[85%]">
-                <Avatar className="size-7 rounded-lg border border-border shrink-0 mt-0.5">
-                  <AvatarFallback className="bg-primary/20 text-primary text-[11px] font-bold">
-                    AI
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col gap-1">
-                  <div className="rounded-2xl rounded-tl-sm bg-muted/60 border border-border/60 px-4 py-2.5 text-xs text-foreground leading-relaxed shadow-sm">
-                    Ready for inference. Select a prompt template below or type your own instructions to stream tokens over SSE with sub-millisecond routing.
-                  </div>
+              {/* Empty state when no message sent */}
+              {!userMessage && !assistantOutput && !isStreaming && (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-muted-foreground my-auto">
+                  <Bot className="size-8 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm font-medium text-foreground">Playground Session</p>
+                  <p className="text-xs text-muted-foreground max-w-sm mt-1">
+                    Enter a prompt below or select an example to test model responses.
+                  </p>
                 </div>
-              </div>
+              )}
 
               {/* User Message Turn */}
               {userMessage && (
@@ -792,9 +787,8 @@ export function PlaygroundPage() {
 
           {/* Quick Prompt Suggestions */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
-              <Sparkles className="size-3" />
-              Templates:
+            <span className="text-[11px] text-muted-foreground font-medium">
+              Examples:
             </span>
             {PROMPT_SUGGESTIONS.map((suggestion, idx) => (
               <Button

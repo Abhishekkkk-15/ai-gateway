@@ -3,11 +3,10 @@ import { Card, CardContent } from '../components/ui/card.js';
 import { Input } from '../components/ui/input.js';
 import { Label } from '../components/ui/label.js';
 import { Button } from '../components/ui/button.js';
-import { Badge } from '../components/ui/badge.js';
 import { Alert, AlertDescription } from '../components/ui/alert.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
 import { api } from '../lib/api.js';
-import { Lock, ArrowRight, AlertCircle, ShieldCheck, Zap, Activity, Cpu } from 'lucide-react';
+import { Lock, ArrowRight, AlertCircle, Shield, Terminal } from 'lucide-react';
 
 export interface LoginPageProps {
   onLoginSuccess: (user: { username: string }) => void;
@@ -48,14 +47,14 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-6 sm:p-10 justify-between">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-lg shadow-sm">
-                    ⚡
+                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow-sm">
+                    <Shield className="size-4" />
                   </div>
                   <span className="font-bold text-lg tracking-tight">AI Gateway</span>
                 </div>
                 <h1 className="text-2xl font-bold tracking-tight mt-3">Welcome back</h1>
                 <p className="text-xs text-muted-foreground">
-                  Enter your administrator credentials to access the orchestration control plane.
+                  Enter your administrator credentials to access the console.
                 </p>
               </div>
 
@@ -112,74 +111,48 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               </div>
 
               <div className="flex items-center justify-between border-t border-border/50 pt-4 text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <ShieldCheck className="size-3.5 text-emerald-500" />
-                  <span>AES-256-GCM Vault</span>
+                <span className="flex items-center gap-1.5 font-mono">
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  <span>Admin Session</span>
                 </span>
-                <span className="font-mono">Render Ready</span>
+                <span className="font-mono">v1.0.0</span>
               </div>
             </form>
 
-            {/* Right Branding Showcase Column */}
-            <div className="relative hidden md:flex flex-col justify-between p-10 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white border-l border-border/40 overflow-hidden">
-              <div className="relative z-10 flex flex-col gap-4">
-                <div className="inline-flex items-center gap-2">
-                  <Badge variant="outline" className="border-white/20 text-white/90 text-[11px] bg-white/5">
-                    Unified Multi-Provider
-                  </Badge>
-                  <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-[11px] bg-emerald-500/10">
-                    Zero-DB Latency
-                  </Badge>
+            {/* Right Architecture Column */}
+            <div className="relative hidden md:flex flex-col justify-between p-10 bg-zinc-950 text-white border-l border-border/40 overflow-hidden font-sans">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
+                  <Terminal className="size-3.5 text-zinc-400" />
+                  <span>Gateway Architecture</span>
                 </div>
-                <h2 className="text-3xl font-bold tracking-tight text-zinc-100">
+                <h2 className="text-2xl font-bold tracking-tight text-zinc-100">
                   Self-Hosted OpenAI SDK Gateway
                 </h2>
-                <p className="text-sm text-zinc-400 leading-relaxed">
-                  Route completions, real-time audio, and custom OpenAI-compatible endpoints with zero proxy overhead.
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Unified reverse proxy routing completions, embeddings, and real-time audio through a single authenticated endpoint.
                 </p>
               </div>
 
-              {/* Feature Highlights Grid */}
-              <div className="relative z-10 grid grid-cols-2 gap-3 py-6">
-                <div className="flex flex-col gap-1 p-3 rounded-lg bg-white/5 border border-white/10 backdrop-blur-sm">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
-                    <Zap className="size-3.5 text-amber-400" />
-                    <span>In-Memory Routing</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400">Synchronized hot-path without DB queries</p>
+              {/* Clean Terminal Box */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-4 font-mono text-[11px] text-zinc-300 space-y-2">
+                <div className="flex items-center justify-between text-zinc-500 pb-2 border-b border-zinc-800 text-[10px]">
+                  <span>HTTP &amp; WebSocket Proxy</span>
+                  <span className="text-emerald-400">PORT :3000</span>
                 </div>
-
-                <div className="flex flex-col gap-1 p-3 rounded-lg bg-white/5 border border-white/10 backdrop-blur-sm">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
-                    <Activity className="size-3.5 text-sky-400" />
-                    <span>SSE Streaming</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400">Zero-copy chunk piping with TTFT metrics</p>
-                </div>
-
-                <div className="flex flex-col gap-1 p-3 rounded-lg bg-white/5 border border-white/10 backdrop-blur-sm">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
-                    <ShieldCheck className="size-3.5 text-emerald-400" />
-                    <span>Neon Postgres</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400">Encrypted state for ephemeral containers</p>
-                </div>
-
-                <div className="flex flex-col gap-1 p-3 rounded-lg bg-white/5 border border-white/10 backdrop-blur-sm">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
-                    <Cpu className="size-3.5 text-purple-400" />
-                    <span>Custom Providers</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400">DeepSeek, Together, Ollama instantly</p>
+                <div className="space-y-1">
+                  <p><span className="text-zinc-500"># Chat completions (SSE)</span></p>
+                  <p className="text-zinc-200">POST /v1/chat/completions</p>
+                  <p className="pt-1"><span className="text-zinc-500"># Embeddings</span></p>
+                  <p className="text-zinc-200">POST /v1/embeddings</p>
+                  <p className="pt-1"><span className="text-zinc-500"># Realtime audio (WS)</span></p>
+                  <p className="text-zinc-200">GET  /v1/realtime</p>
                 </div>
               </div>
 
-              <div className="relative z-10 text-[11px] text-zinc-500 font-mono">
-                OpenAI SDK Compatible API · /v1/chat/completions · /v1/models
+              <div className="text-[11px] text-zinc-500 font-mono">
+                OpenAI SDK Compatible · Standard Bearer Auth
               </div>
-
-              {/* Ambient Glow Graphic */}
-              <div className="absolute -right-20 -bottom-20 size-80 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
             </div>
           </CardContent>
         </Card>

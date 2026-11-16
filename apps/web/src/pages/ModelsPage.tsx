@@ -226,7 +226,7 @@ export function ModelsPage() {
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Zero-overhead in-memory routable models. Set custom aliases to decouple frontend code from upstream provider slugs.
+            Configure available models and set custom aliases to decouple client applications from provider IDs.
           </p>
         </div>
 
