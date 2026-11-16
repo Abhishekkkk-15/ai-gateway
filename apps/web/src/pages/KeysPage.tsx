@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api, type GatewayKeyView } from '../lib/api.js';
@@ -17,6 +17,7 @@ import { Switch } from '../components/ui/switch.js';
 import { Skeleton } from '../components/ui/skeleton.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Alert, AlertDescription } from '../components/ui/alert.js';
+import { CodeBlock, InlineCode } from '../components/ui/code-block.js';
 import {
   Table,
   TableHeader,
@@ -51,7 +52,6 @@ export function KeysPage() {
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyRpm, setNewKeyRpm] = useState<number | ''>('');
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
-  const [copiedText, setCopiedText] = useState<string | null>(null);
   const [codeTab, setCodeTab] = useState<'python' | 'node' | 'curl'>('python');
 
   const { data, isLoading } = useQuery({
@@ -98,13 +98,6 @@ export function KeysPage() {
     },
   });
 
-  const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedText(label);
-    toast.success('Copied to clipboard!');
-    setTimeout(() => setCopiedText(null), 2000);
-  };
-
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newKeyName.trim()) return;
@@ -116,6 +109,53 @@ export function KeysPage() {
 
   const keys = data?.keys || [];
   const testKeyPrefix = keys.length > 0 ? `${keys[0].prefix}...` : 'sk-gw-YOUR_KEY';
+
+  const currentSnippet = useMemo(() => {
+    if (codeTab === 'python') {
+      return `from openai import OpenAI
+
+client = OpenAI(
+    base_url="${window.location.origin}/v1",
+    api_key="${testKeyPrefix}"
+)
+
+# Call any upstream model through the Gateway
+response = client.chat.completions.create(
+    model="groq/llama-3.3-70b-versatile",
+    messages=[{"role": "user", "content": "Hello via AI Gateway!"}],
+    stream=True
+)
+
+for chunk in response:
+    print(chunk.choices[0].delta.content or "", end="")`;
+    }
+    if (codeTab === 'node') {
+      return `import OpenAI from 'openai';
+
+const client = new OpenAI({
+  baseURL: '${window.location.origin}/v1',
+  apiKey: '${testKeyPrefix}',
+});
+
+const stream = await client.chat.completions.create({
+  model: 'groq/llama-3.3-70b-versatile',
+  messages: [{ role: 'user', content: 'Hello via AI Gateway!' }],
+  stream: true,
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || '');
+}`;
+    }
+    return `curl ${window.location.origin}/v1/chat/completions \\
+  -H "Authorization: Bearer ${testKeyPrefix}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "groq/llama-3.3-70b-versatile",
+    "messages": [{"role": "user", "content": "Hello via curl!"}],
+    "stream": true
+  }'`;
+  }, [codeTab, testKeyPrefix]);
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
@@ -272,76 +312,11 @@ export function KeysPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="relative">
-            <pre className="rounded-lg border border-border bg-black/60 p-4 font-mono text-xs overflow-x-auto text-zinc-100 leading-relaxed shadow-inner">
-              {codeTab === 'python' &&
-                `from openai import OpenAI
-
-client = OpenAI(
-    base_url="${window.location.origin}/v1",
-    api_key="${testKeyPrefix}"
-)
-
-# Call any upstream model through the Gateway
-response = client.chat.completions.create(
-    model="groq/llama-3.3-70b-versatile",
-    messages=[{"role": "user", "content": "Hello via AI Gateway!"}],
-    stream=True
-)
-
-for chunk in response:
-    print(chunk.choices[0].delta.content or "", end="")`}
-
-              {codeTab === 'node' &&
-                `import OpenAI from 'openai';
-
-const client = new OpenAI({
-  baseURL: '${window.location.origin}/v1',
-  apiKey: '${testKeyPrefix}',
-});
-
-const stream = await client.chat.completions.create({
-  model: 'groq/llama-3.3-70b-versatile',
-  messages: [{ role: 'user', content: 'Hello via AI Gateway!' }],
-  stream: true,
-});
-
-for await (const chunk of stream) {
-  process.stdout.write(chunk.choices[0]?.delta?.content || '');
-}`}
-
-              {codeTab === 'curl' &&
-                `curl ${window.location.origin}/v1/chat/completions \\
-  -H "Authorization: Bearer ${testKeyPrefix}" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "groq/llama-3.3-70b-versatile",
-    "messages": [{"role": "user", "content": "Hello via curl!"}],
-    "stream": true
-  }'`}
-            </pre>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const code =
-                  codeTab === 'python'
-                    ? `from openai import OpenAI\n\nclient = OpenAI(base_url="${window.location.origin}/v1", api_key="${testKeyPrefix}")\nresponse = client.chat.completions.create(model="groq/llama-3.3-70b-versatile", messages=[{"role": "user", "content": "Hello!"}], stream=True)\nfor chunk in response: print(chunk.choices[0].delta.content or "", end="")`
-                    : codeTab === 'node'
-                      ? `import OpenAI from 'openai';\n\nconst client = new OpenAI({ baseURL: '${window.location.origin}/v1', apiKey: '${testKeyPrefix}' });\nconst stream = await client.chat.completions.create({ model: 'groq/llama-3.3-70b-versatile', messages: [{ role: 'user', content: 'Hello!' }], stream: true });`
-                      : `curl ${window.location.origin}/v1/chat/completions -H "Authorization: Bearer ${testKeyPrefix}" -H "Content-Type: application/json" -d '{"model": "groq/llama-3.3-70b-versatile", "messages": [{"role": "user", "content": "Hello!"}], "stream": true}'`;
-                handleCopy(code, codeTab);
-              }}
-              className="absolute top-3 right-3 text-xs bg-background/80 backdrop-blur-sm"
-            >
-              {copiedText === codeTab ? (
-                <Check className="size-3.5 text-emerald-400 mr-1.5" />
-              ) : (
-                <Copy className="size-3.5 mr-1.5" />
-              )}
-              <span>{copiedText === codeTab ? 'Copied' : 'Copy Code'}</span>
-            </Button>
-          </div>
+          <CodeBlock
+            code={currentSnippet}
+            language={codeTab}
+            showLineNumbers
+          />
         </CardContent>
       </Card>
 
@@ -352,7 +327,7 @@ for await (const chunk of stream) {
             <DialogHeader>
               <DialogTitle>Generate Gateway API Key</DialogTitle>
               <DialogDescription>
-                Creates a new secret key (`sk-gw-...`) for client authentication.
+                Creates a new secret key (<InlineCode>sk-gw-...</InlineCode>) for client authentication.
               </DialogDescription>
             </DialogHeader>
 
@@ -417,23 +392,9 @@ for await (const chunk of stream) {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="my-2 p-3 rounded-lg bg-secondary/80 border border-border flex items-center justify-between">
-              <span className="font-mono text-xs text-primary break-all select-all">
-                {newlyCreatedKey}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => newlyCreatedKey && handleCopy(newlyCreatedKey, 'new-key')}
-                className="ml-3 shrink-0"
-              >
-                {copiedText === 'new-key' ? (
-                  <Check className="size-4 text-emerald-500" />
-                ) : (
-                  <Copy className="size-4" />
-                )}
-              </Button>
-            </div>
+            {newlyCreatedKey && (
+              <CodeBlock code={newlyCreatedKey} className="my-2" />
+            )}
 
             <Alert className="border-amber-500/20 bg-amber-500/10 text-amber-500 text-xs py-2.5">
               <AlertTriangle className="size-4 text-amber-500" />

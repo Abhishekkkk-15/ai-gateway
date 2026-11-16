@@ -11,6 +11,7 @@ import { Badge } from '../components/ui/badge.js';
 import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert.js';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../components/ui/collapsible.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { InlineCode } from '../components/ui/code-block.js';
 import { Avatar, AvatarFallback } from '../components/ui/avatar.js';
 import {
   Select,
@@ -769,7 +770,7 @@ export function PlaygroundPage() {
                     ElevenLabs Paid Plan Required for this Voice
                   </AlertTitle>
                   <AlertDescription className="text-amber-200/90 leading-relaxed text-[11px] mt-0.5">
-                    This is a community <strong>&quot;Voice Library&quot;</strong> voice. ElevenLabs returns <code>&quot;Free users cannot use library voices via the API&quot;</code> if your ElevenLabs subscription is on the Free tier. If you do not have a paid subscription, switch to one of the <strong>Default Premade Voices</strong> (e.g. George, Rachel, Sarah, Roger, Liam, Alice).
+                    This is a community <strong>&quot;Voice Library&quot;</strong> voice. ElevenLabs returns <InlineCode>&quot;Free users cannot use library voices via the API&quot;</InlineCode> if your ElevenLabs subscription is on the Free tier. If you do not have a paid subscription, switch to one of the <strong>Default Premade Voices</strong> (e.g. George, Rachel, Sarah, Roger, Liam, Alice).
                   </AlertDescription>
                 </Alert>
               )}
