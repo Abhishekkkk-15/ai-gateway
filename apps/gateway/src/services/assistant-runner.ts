@@ -393,7 +393,7 @@ export class AssistantRunnerService {
       throw new Error(`Upstream run failed with status ${upstreamResponse.status}`);
     }
 
-    const json = await upstreamResponse.json();
+    const json = (await upstreamResponse.json()) as any;
     const assistantContent = json.choices?.[0]?.message?.content || 'Task completed.';
 
     // Append assistant response to thread messages

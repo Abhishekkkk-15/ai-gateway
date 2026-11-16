@@ -8,7 +8,20 @@ Built for **Render** (ephemeral container filesystem) with persistent state in *
 
 ## 🌟 Key Features
 
-- **Standard OpenAI SDK Compatibility**: Drop-in replacement for OpenAI SDK clients (`openai.chat.completions.create`, `openai.audio.speech.create`, `openai.audio.transcriptions.create`, `openai.models.list`).
+- **100% Full-Surface OpenAI SDK Parity**: Complete drop-in replacement across the entire OpenAI client surface:
+  - **Chat Completions**: `client.chat.completions.create` (Streamed SSE & Non-Streamed)
+  - **Next-Gen Responses API**: `client.responses.create` & `client.conversations` with built-in `output_text`
+  - **Vector Embeddings**: `client.embeddings.create` with Matryoshka dimensions and base64/float encoding
+  - **Audio Speech (TTS)**: `client.audio.speech.create` (Streamed chunked audio & MP3/WAV/PCM)
+  - **Audio Transcriptions & Translations**: `client.audio.transcriptions.create` & `client.audio.translations.create`
+  - **Images API**: `client.images.generate`, `client.images.edit`, `client.images.createVariation`
+  - **Content Moderations**: `client.moderations.create` with multi-category safety classification
+  - **Persistent Files & Uploads**: `client.files.create`, `list`, `content`, `delete`, and resumable `/v1/uploads`
+  - **Asynchronous Batches API**: `client.batches.create`, `retrieve`, `cancel` (50% cost optimization / 24h window)
+  - **Vector Stores API (RAG)**: `client.vectorStores.create`, `files`, `fileBatches`
+  - **Assistants v2 Stateful Agents**: `client.beta.assistants`, `client.beta.threads`, `client.beta.threads.runs`
+  - **Realtime API (WebSockets)**: `ws://.../v1/realtime` ultra-low latency bidirectional text/audio streaming
+  - **Fine-Tuning Jobs**: `client.fineTuning.jobs.create`, `list`, `retrieve`, `cancel`
 - **Zero-DB Latency on Hot Path**: The `/v1/*` proxy pipeline resolves keys, models, and provider routes strictly from an in-memory `Map` cache (<0.1ms overhead). Postgres is never queried on the hot path.
 - **Render Ephemeral Recovery**: On container startup, the gateway immediately hydrates its in-memory routing cache from Neon Serverless Postgres.
 - **Zero-Buffering Streaming**: Undici `ReadableStream` / SSE chunks pipe directly to client HTTP responses with native `AbortSignal` cancellation upon client disconnect.

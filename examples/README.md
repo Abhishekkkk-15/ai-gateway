@@ -6,14 +6,23 @@ This directory contains production-ready examples demonstrating **100% drop-in c
 
 ## Supported Endpoints & Modes
 
-| Route | Mode | Node.js Example | Python Example | cURL Command |
+| Resource / Route | Capability / Mode | Node.js Example | Python Example | cURL / Protocol |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST /v1/chat/completions` | **Non-Streamed** | [chat-non-streamed.ts](nodejs/chat-non-streamed.ts) | [chat_non_streamed.py](python/chat_non_streamed.py) | `curl -s ... /chat/completions` |
-| `POST /v1/chat/completions` | **Streamed (SSE)** | [chat-streamed.ts](nodejs/chat-streamed.ts) | [chat_streamed.py](python/chat_streamed.py) | `curl -N ... /chat/completions` |
-| `POST /v1/audio/speech` | **Non-Streamed** | [tts-non-streamed.ts](nodejs/tts-non-streamed.ts) | [tts_non_streamed.py](python/tts_non_streamed.py) | `curl ... /audio/speech --output file.mp3` |
-| `POST /v1/audio/speech` | **Streamed** | [tts-streamed.ts](nodejs/tts-streamed.ts) | [tts_streamed.py](python/tts_streamed.py) | `curl -N ... /audio/speech` |
-| `POST /v1/audio/transcriptions` | **Audio STT** | [stt-transcription.ts](nodejs/stt-transcription.ts) | [stt_transcription.py](python/stt_transcription.py) | `curl -F "file=@..." /audio/transcriptions` |
-| **Full Pipeline** | **Multi-Modal** | [full-demo.ts](nodejs/full-demo.ts) | [full_demo.py](python/full_demo.py) | End-to-End Chat + Audio |
+| `POST /v1/chat/completions` | **Non-Streamed Chat** | [chat-non-streamed.ts](nodejs/chat-non-streamed.ts) | [chat_non_streamed.py](python/chat_non_streamed.py) | HTTP JSON |
+| `POST /v1/chat/completions` | **Streamed (SSE)** | [chat-streamed.ts](nodejs/chat-streamed.ts) | [chat_streamed.py](python/chat_streamed.py) | Server-Sent Events |
+| `POST /v1/responses` | **Next-Gen Responses** | [responses-demo.ts](nodejs/responses-demo.ts) | [responses_demo.py](python/responses_demo.py) | HTTP & SSE Stream |
+| `POST /v1/embeddings` | **Vector Embeddings** | [embeddings-demo.ts](nodejs/embeddings-demo.ts) | [embeddings_demo.py](python/embeddings_demo.py) | HTTP JSON |
+| `POST /v1/images/generations` | **Image Generation** | [images-demo.ts](nodejs/images-demo.ts) | [images_demo.py](python/images_demo.py) | HTTP JSON / URL / b64 |
+| `POST /v1/moderations` | **Safety Moderation** | [moderations-demo.ts](nodejs/moderations-demo.ts) | [moderations_demo.py](python/moderations_demo.py) | HTTP JSON |
+| `POST /v1/files` | **File Storage & Datasets** | [files-demo.ts](nodejs/files-demo.ts) | [files_demo.py](python/files_demo.py) | Multipart / Streams |
+| `POST /v1/batches` | **24h Async Batches** | [batches-demo.ts](nodejs/batches-demo.ts) | [batches_demo.py](python/batches_demo.py) | HTTP JSONL |
+| `POST /v1/vector_stores` | **Vector Retrieval (RAG)** | [vector-stores-demo.ts](nodejs/vector-stores-demo.ts) | [vector_stores_demo.py](python/vector_stores_demo.py) | HTTP JSON |
+| `POST /v1/assistants` & `/threads` | **Assistants v2 Agents** | [assistants-v2-demo.ts](nodejs/assistants-v2-demo.ts) | [assistants_v2_demo.py](python/assistants_v2_demo.py) | Stateful Runs |
+| `GET /v1/realtime` | **Realtime API (WebSockets)** | [realtime-demo.ts](nodejs/realtime-demo.ts) | [realtime_demo.py](python/realtime_demo.py) | Bidirectional WebSocket |
+| `POST /v1/fine_tuning/jobs` | **Model Fine-Tuning** | [fine-tuning-demo.ts](nodejs/fine-tuning-demo.ts) | [fine_tuning_demo.py](python/fine_tuning_demo.py) | HTTP JSON |
+| `POST /v1/audio/speech` | **Audio TTS (Stream & MP3)**| [tts-non-streamed.ts](nodejs/tts-non-streamed.ts) | [tts_non_streamed.py](python/tts_non_streamed.py) | Binary Audio Stream |
+| `POST /v1/audio/transcriptions` | **Audio STT Transcription** | [stt-transcription.ts](nodejs/stt-transcription.ts) | [stt_transcription.py](python/stt_transcription.py) | Multipart Audio |
+| **Full Pipeline** | **Multi-Modal End-to-End** | [full-demo.ts](nodejs/full-demo.ts) | [full_demo.py](python/full_demo.py) | Multi-modal Pipeline |
 
 ---
 

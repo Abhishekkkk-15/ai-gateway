@@ -84,7 +84,7 @@ export class ResponsesEngineService {
       const prev = this.memoryResponses.get(params.previousResponseId);
       if (prev) {
         messages.push({ role: 'user', content: prev.inputText });
-        messages.push({ role: 'assistant', content: prev.outputText });
+        messages.push({ role: 'assistant', content: prev.output_text });
       }
     }
 
@@ -221,7 +221,7 @@ export class ResponsesEngineService {
     }
 
     // 4. Handle Non-Streaming Response
-    const json = await upstreamResponse.json();
+    const json = (await upstreamResponse.json()) as any;
     const outputText = json.choices?.[0]?.message?.content || '';
     const msgId = this.generateId('msg_');
 
