@@ -14,6 +14,7 @@ import { Badge } from '../components/ui/badge.js';
 import { Input } from '../components/ui/input.js';
 import { Button } from '../components/ui/button.js';
 import { Skeleton } from '../components/ui/skeleton.js';
+import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
 import {
   Pagination,
   PaginationContent,
@@ -183,41 +184,36 @@ export function LogsPage() {
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-1.5 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => handleStatusChange('all')}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  statusFilter === 'all'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-muted/70 text-muted-foreground hover:text-foreground'
-                }`}
+            <ToggleGroup
+              type="single"
+              value={statusFilter}
+              onValueChange={(val) => {
+                if (val) handleStatusChange(val as 'all' | 'success' | 'error');
+              }}
+              className="w-full sm:w-auto justify-start"
+            >
+              <ToggleGroupItem
+                value="all"
+                aria-label="All logs"
+                className="h-8 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
               >
                 All
-              </button>
-              <button
-                type="button"
-                onClick={() => handleStatusChange('success')}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  statusFilter === 'success'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-muted/70 text-muted-foreground hover:text-foreground'
-                }`}
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="success"
+                aria-label="Success logs"
+                className="h-8 px-3 text-xs data-[state=on]:bg-emerald-600 data-[state=on]:text-white"
               >
                 2xx Success
-              </button>
-              <button
-                type="button"
-                onClick={() => handleStatusChange('error')}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  statusFilter === 'error'
-                    ? 'bg-destructive text-destructive-foreground shadow-sm'
-                    : 'bg-muted/70 text-muted-foreground hover:text-foreground'
-                }`}
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="error"
+                aria-label="Error logs"
+                className="h-8 px-3 text-xs data-[state=on]:bg-destructive data-[state=on]:text-destructive-foreground"
               >
                 Errors
-              </button>
-            </div>
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
         </CardContent>
       </Card>

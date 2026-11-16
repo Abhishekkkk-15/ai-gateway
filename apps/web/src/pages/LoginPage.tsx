@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '../components/ui/card.js';
 import { Input } from '../components/ui/input.js';
+import { Label } from '../components/ui/label.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
+import { Alert, AlertDescription } from '../components/ui/alert.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
 import { api } from '../lib/api.js';
 import { Lock, ArrowRight, AlertCircle, ShieldCheck, Zap, Activity, Cpu } from 'lucide-react';
@@ -58,17 +60,17 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
-                  <AlertCircle className="size-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
+                <Alert variant="destructive" className="py-2.5">
+                  <AlertCircle className="size-4" />
+                  <AlertDescription className="text-xs">{error}</AlertDescription>
+                </Alert>
               )}
 
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-foreground" htmlFor="username">
+                  <Label className="text-xs font-medium text-foreground" htmlFor="username">
                     Admin Username
-                  </label>
+                  </Label>
                   <Input
                     id="username"
                     type="text"
@@ -81,9 +83,9 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-foreground" htmlFor="password">
+                    <Label className="text-xs font-medium text-foreground" htmlFor="password">
                       Admin Password
-                    </label>
+                    </Label>
                   </div>
                   <Input
                     id="password"

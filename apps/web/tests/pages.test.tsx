@@ -80,7 +80,7 @@ describe('Feature Pages (Playground, Logs & Models)', () => {
     expect(screen.getByText('Send Prompt')).toBeDefined();
 
     // Switch to TTS
-    const ttsButton = screen.getByRole('button', { name: /tts/i });
+    const ttsButton = screen.getByRole('tab', { name: /tts/i });
     fireEvent.click(ttsButton);
     expect(screen.getByText('Text-to-Speech Synthesis')).toBeDefined();
     expect(screen.getByText('Voice Preset / ID')).toBeDefined();
@@ -88,7 +88,7 @@ describe('Feature Pages (Playground, Logs & Models)', () => {
     expect(screen.getByText('Synthesize Audio')).toBeDefined();
 
     // Switch to STT
-    const sttButton = screen.getByRole('button', { name: /stt/i });
+    const sttButton = screen.getByRole('tab', { name: /stt/i });
     fireEvent.click(sttButton);
     expect(screen.getByText('Speech-to-Text Transcription')).toBeDefined();
   });

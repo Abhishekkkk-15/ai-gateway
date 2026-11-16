@@ -5,7 +5,12 @@ import { api } from '../lib/api.js';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
+import { Label } from '../components/ui/label.js';
+import { Textarea } from '../components/ui/textarea.js';
 import { Badge } from '../components/ui/badge.js';
+import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert.js';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../components/ui/collapsible.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Avatar, AvatarFallback } from '../components/ui/avatar.js';
 import {
   Select,
@@ -322,41 +327,22 @@ export function PlaygroundPage() {
         </div>
 
         {/* Tab switchers */}
-        <div className="flex items-center gap-1 bg-muted/80 p-1 rounded-lg border border-border/60 self-start sm:self-auto">
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              activeTab === 'chat'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Play className="size-3.5" />
-            <span>Chat</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('tts')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              activeTab === 'tts'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Volume2 className="size-3.5" />
-            <span>TTS</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('stt')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              activeTab === 'stt'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Mic className="size-3.5" />
-            <span>STT</span>
-          </button>
-        </div>
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'chat' | 'tts' | 'stt')} className="self-start sm:self-auto">
+          <TabsList className="h-9">
+            <TabsTrigger value="chat" onClick={() => setActiveTab('chat')} className="text-xs gap-1.5 px-3">
+              <Play className="size-3.5" />
+              <span>Chat</span>
+            </TabsTrigger>
+            <TabsTrigger value="tts" onClick={() => setActiveTab('tts')} className="text-xs gap-1.5 px-3">
+              <Volume2 className="size-3.5" />
+              <span>TTS</span>
+            </TabsTrigger>
+            <TabsTrigger value="stt" onClick={() => setActiveTab('stt')} className="text-xs gap-1.5 px-3">
+              <Mic className="size-3.5" />
+              <span>STT</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Target Configuration Bar */}
@@ -364,7 +350,7 @@ export function PlaygroundPage() {
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Gateway API Key</label>
+              <Label className="text-xs font-semibold text-muted-foreground">Gateway API Key</Label>
               <Input
                 type="password"
                 placeholder={keys.length > 0 ? `Auto: ${keys[0].prefix}...` : 'sk-gw-...'}
@@ -374,7 +360,7 @@ export function PlaygroundPage() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Select Model or Routable Alias</label>
+              <Label className="text-xs font-semibold text-muted-foreground">Select Model or Routable Alias</Label>
               <Select
                 value={selectedModel}
                 onValueChange={(val) => setSelectedModel(val)}
@@ -508,26 +494,34 @@ export function PlaygroundPage() {
                   <div className="flex flex-col gap-2 flex-1 min-w-0">
                     {/* Collapsible Chain-of-Thought / Reasoning Element */}
                     {reasoningOutput && (
-                      <div className="rounded-lg border border-border/80 bg-zinc-950/40 p-2.5 text-xs font-mono">
-                        <button
-                          type="button"
-                          onClick={() => setIsReasoningOpen(!isReasoningOpen)}
-                          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground font-semibold w-full text-left"
-                        >
-                          <Brain className="size-3.5 text-primary" />
-                          <span>Thought process</span>
-                          {isReasoningOpen ? (
-                            <ChevronDown className="size-3 ml-auto" />
-                          ) : (
-                            <ChevronRight className="size-3 ml-auto" />
-                          )}
-                        </button>
-                        {isReasoningOpen && (
+                      <Collapsible
+                        open={isReasoningOpen}
+                        onOpenChange={setIsReasoningOpen}
+                        className="rounded-lg border border-border/80 bg-zinc-950/40 p-2.5 text-xs font-mono"
+                      >
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground font-semibold w-full justify-between h-auto p-0"
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <Brain className="size-3.5 text-primary" />
+                              <span>Thought process</span>
+                            </span>
+                            {isReasoningOpen ? (
+                              <ChevronDown className="size-3" />
+                            ) : (
+                              <ChevronRight className="size-3" />
+                            )}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
                           <div className="mt-2 text-zinc-400 whitespace-pre-wrap leading-relaxed text-[11px] border-t border-border/40 pt-2 max-h-48 overflow-y-auto">
                             {reasoningOutput}
                           </div>
-                        )}
-                      </div>
+                        </CollapsibleContent>
+                      </Collapsible>
                     )}
 
                     {/* Stream Content Bubble */}
@@ -559,14 +553,16 @@ export function PlaygroundPage() {
               Templates:
             </span>
             {PROMPT_SUGGESTIONS.map((suggestion, idx) => (
-              <button
+              <Button
                 key={idx}
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setPrompt(suggestion)}
-                className="text-[11px] bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground px-2.5 py-1 rounded-md transition-colors text-left truncate max-w-full border border-border/40"
+                className="text-[11px] h-7 px-2.5 bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50 font-normal"
               >
                 {suggestion}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -574,12 +570,12 @@ export function PlaygroundPage() {
           <Card className="border-border/80 shadow-sm">
             <CardContent className="p-3">
               <div className="flex flex-col gap-2">
-                <textarea
+                <Textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={handleKeyDown}
                   rows={3}
-                  className="w-full rounded-md border-0 bg-transparent p-1 text-sm font-sans focus-visible:outline-none resize-none leading-relaxed"
+                  className="w-full rounded-md border-0 bg-transparent p-1 text-sm font-sans focus-visible:ring-0 resize-none leading-relaxed shadow-none"
                   placeholder="Ask a question or provide instructions (Press Enter to send, Shift+Enter for newline)..."
                 />
 
@@ -637,10 +633,10 @@ export function PlaygroundPage() {
                 {/* 1. Voice ID Selection */}
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                       <AudioLines className="size-3.5 text-primary" />
                       <span>Voice Preset / ID</span>
-                    </label>
+                    </Label>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
@@ -709,10 +705,10 @@ export function PlaygroundPage() {
 
                 {/* 2. TTS Model Selection */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                     <Sliders className="size-3.5 text-primary" />
                     <span>TTS Synthesis Model</span>
-                  </label>
+                  </Label>
                   <Select value={ttsModel} onValueChange={setTtsModel}>
                     <SelectTrigger className="h-9 text-xs bg-background/50 font-mono">
                       <SelectValue placeholder="Select TTS Model" />
@@ -747,9 +743,9 @@ export function PlaygroundPage() {
                 {selectedVoice === 'custom' && (
                   <div className="flex flex-col gap-1.5 md:col-span-2 pt-2 border-t border-border/40">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                      <Label className="text-xs font-semibold text-primary flex items-center gap-1.5">
                         <span>Enter Custom Voice ID</span>
-                      </label>
+                      </Label>
                       <span className="text-[11px] text-muted-foreground">
                         Paste any ElevenLabs voice ID (e.g. cloned voice) or custom voice identifier
                       </span>
@@ -767,42 +763,40 @@ export function PlaygroundPage() {
 
               {/* Warning if a Library Voice is Selected */}
               {isSelectedVoiceLibrary && (
-                <div className="flex items-start gap-2.5 p-3 rounded-lg border border-amber-500/40 bg-amber-500/10 text-xs text-amber-200">
-                  <AlertTriangle className="size-4 text-amber-400 shrink-0 mt-0.5" />
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-semibold text-amber-300">
-                      ElevenLabs Paid Plan Required for this Voice
-                    </span>
-                    <span className="text-amber-200/90 leading-relaxed text-[11px]">
-                      This is a community <strong>&quot;Voice Library&quot;</strong> voice. ElevenLabs returns <code>&quot;Free users cannot use library voices via the API&quot;</code> if your ElevenLabs subscription is on the Free tier. If you do not have a paid subscription, switch to one of the <strong>Default Premade Voices</strong> (e.g. George, Rachel, Sarah, Roger, Liam, Alice).
-                    </span>
-                  </div>
-                </div>
+                <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-200">
+                  <AlertTriangle className="size-4 text-amber-400" />
+                  <AlertTitle className="text-xs font-semibold text-amber-300">
+                    ElevenLabs Paid Plan Required for this Voice
+                  </AlertTitle>
+                  <AlertDescription className="text-amber-200/90 leading-relaxed text-[11px] mt-0.5">
+                    This is a community <strong>&quot;Voice Library&quot;</strong> voice. ElevenLabs returns <code>&quot;Free users cannot use library voices via the API&quot;</code> if your ElevenLabs subscription is on the Free tier. If you do not have a paid subscription, switch to one of the <strong>Default Premade Voices</strong> (e.g. George, Rachel, Sarah, Roger, Liam, Alice).
+                  </AlertDescription>
+                </Alert>
               )}
 
               {/* Informational Tip */}
-              <div className="flex items-start gap-2 p-2.5 rounded-lg border border-border/60 bg-background/40 text-[11px] text-muted-foreground">
-                <Info className="size-3.5 text-primary shrink-0 mt-0.5" />
-                <span>
+              <Alert className="border-border/60 bg-background/40 text-[11px] text-muted-foreground py-2.5">
+                <Info className="size-3.5 text-primary" />
+                <AlertDescription className="text-[11px] text-muted-foreground">
                   <strong>Free Tier Notice:</strong> ElevenLabs restricts public Voice Library access to paid plans. Default premade voices (George, Rachel, Sarah, Roger, Liam, etc.) are free and work with all accounts.
-                </span>
-              </div>
+                </AlertDescription>
+              </Alert>
             </div>
 
             {/* Text Input Area */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-muted-foreground">Text to Speak</label>
+                <Label className="text-xs font-semibold text-muted-foreground">Text to Speak</Label>
                 <span className="text-[11px] text-muted-foreground font-mono">
                   {ttsText.length} characters
                 </span>
               </div>
-              <textarea
+              <Textarea
                 value={ttsText}
                 onChange={(e) => setTtsText(e.target.value)}
                 rows={4}
                 placeholder="Enter text to synthesize into high quality speech..."
-                className="w-full rounded-md border border-input bg-background/50 p-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring leading-relaxed"
+                className="w-full bg-background/50 p-3 text-sm leading-relaxed"
               />
             </div>
 

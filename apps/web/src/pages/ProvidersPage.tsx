@@ -12,6 +12,7 @@ import {
 } from '../components/ui/card.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
+import { Label } from '../components/ui/label.js';
 import { Badge } from '../components/ui/badge.js';
 import { Switch } from '../components/ui/switch.js';
 import { Skeleton } from '../components/ui/skeleton.js';
@@ -202,7 +203,7 @@ export function ProvidersPage() {
 
                 <CardContent className="flex flex-col gap-4 flex-1">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Base URL</label>
+                    <Label className="text-xs font-medium text-muted-foreground">Base URL</Label>
                     <Input
                       value={currentUrlVal}
                       onChange={(e) =>
@@ -215,7 +216,7 @@ export function ProvidersPage() {
 
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-medium text-muted-foreground">API Key</label>
+                      <Label className="text-xs font-medium text-muted-foreground">API Key</Label>
                       {hasKey && (
                         <span className="text-[10px] text-emerald-500 flex items-center gap-1 font-mono">
                           <ShieldCheck className="size-3" />
@@ -290,7 +291,7 @@ export function ProvidersPage() {
 
             <div className="flex flex-col gap-4 py-2">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Provider Name</label>
+                <Label className="text-xs font-medium text-muted-foreground">Provider Name</Label>
                 <Input
                   placeholder="e.g. DeepSeek AI"
                   value={customName}
@@ -305,7 +306,7 @@ export function ProvidersPage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Provider Slug ID (alphanumeric)</label>
+                <Label className="text-xs font-medium text-muted-foreground">Provider Slug ID (alphanumeric)</Label>
                 <Input
                   placeholder="e.g. deepseek"
                   value={customId}
@@ -316,7 +317,7 @@ export function ProvidersPage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Base URL</label>
+                <Label className="text-xs font-medium text-muted-foreground">Base URL</Label>
                 <Input
                   placeholder="e.g. https://api.deepseek.com/v1"
                   value={customBaseUrl}
@@ -327,7 +328,7 @@ export function ProvidersPage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">API Key (optional for local models)</label>
+                <Label className="text-xs font-medium text-muted-foreground">API Key (optional for local models)</Label>
                 <Input
                   type="password"
                   placeholder="sk-..."

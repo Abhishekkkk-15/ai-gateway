@@ -11,9 +11,12 @@ import {
 } from '../components/ui/card.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
+import { Label } from '../components/ui/label.js';
 import { Badge } from '../components/ui/badge.js';
 import { Switch } from '../components/ui/switch.js';
 import { Skeleton } from '../components/ui/skeleton.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Alert, AlertDescription } from '../components/ui/alert.js';
 import {
   Table,
   TableHeader,
@@ -257,21 +260,15 @@ export function KeysPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1 bg-muted p-1 rounded-lg self-start sm:self-auto">
-              {(['python', 'node', 'curl'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setCodeTab(tab)}
-                  className={`px-3 py-1 rounded-md text-xs font-mono uppercase transition-all ${
-                    codeTab === tab
-                      ? 'bg-background text-foreground shadow-sm font-semibold'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
+            <Tabs value={codeTab} onValueChange={(val) => setCodeTab(val as 'python' | 'node' | 'curl')} className="self-start sm:self-auto">
+              <TabsList className="h-8">
+                {(['python', 'node', 'curl'] as const).map((tab) => (
+                  <TabsTrigger key={tab} value={tab} className="text-xs font-mono uppercase h-7 px-3">
+                    {tab}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
           </div>
         </CardHeader>
         <CardContent>
@@ -361,7 +358,7 @@ for await (const chunk of stream) {
 
             <div className="flex flex-col gap-4 py-2">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Key Name / Client ID</label>
+                <Label className="text-xs font-medium text-muted-foreground">Key Name / Client ID</Label>
                 <Input
                   placeholder="e.g. Production Backend, Dev Playground"
                   value={newKeyName}
@@ -371,7 +368,7 @@ for await (const chunk of stream) {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Rate Limit RPM (optional)</label>
+                <Label className="text-xs font-medium text-muted-foreground">Rate Limit RPM (optional)</Label>
                 <Input
                   type="number"
                   placeholder="Unlimited (e.g. 60)"
@@ -438,10 +435,12 @@ for await (const chunk of stream) {
               </Button>
             </div>
 
-            <div className="flex items-start gap-2 text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 p-3 rounded-md">
-              <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-              <span>Store this key securely in your environment variables. Never commit it to source control.</span>
-            </div>
+            <Alert className="border-amber-500/20 bg-amber-500/10 text-amber-500 text-xs py-2.5">
+              <AlertTriangle className="size-4 text-amber-500" />
+              <AlertDescription className="text-amber-500 text-xs leading-relaxed">
+                Store this key securely in your environment variables. Never commit it to source control.
+              </AlertDescription>
+            </Alert>
 
             <DialogFooter>
               <Button onClick={() => setNewlyCreatedKey(null)}>Done</Button>

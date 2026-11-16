@@ -14,6 +14,15 @@ import {
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Skeleton } from '../components/ui/skeleton.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../components/ui/table.js';
 import {
   AreaChart,
   Area,
@@ -257,28 +266,16 @@ export function OverviewPage({
               Chronological streaming performance across upstream AI providers
             </CardDescription>
           </div>
-          <div className="flex items-center gap-1 bg-muted p-1 rounded-lg self-start sm:self-auto">
-            <button
-              onClick={() => setMetricTab('latency')}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                metricTab === 'latency'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Latency (ms)
-            </button>
-            <button
-              onClick={() => setMetricTab('volume')}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                metricTab === 'volume'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              TTFT (ms)
-            </button>
-          </div>
+          <Tabs value={metricTab} onValueChange={(val) => setMetricTab(val as 'latency' | 'volume')}>
+            <TabsList className="h-8">
+              <TabsTrigger value="latency" className="text-xs h-7">
+                Latency (ms)
+              </TabsTrigger>
+              <TabsTrigger value="volume" className="text-xs h-7">
+                TTFT (ms)
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardHeader>
         <CardContent>
           <div className="h-[280px] w-full pt-2">
@@ -371,69 +368,67 @@ export function OverviewPage({
             Open Logs
           </Button>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
-              <thead>
-                <tr className="border-b border-border/80 text-muted-foreground font-sans">
-                  <th className="pb-2 font-medium">Timestamp</th>
-                  <th className="pb-2 font-medium">Model Slug</th>
-                  <th className="pb-2 font-medium">Provider</th>
-                  <th className="pb-2 font-medium">Status</th>
-                  <th className="pb-2 font-medium">TTFT</th>
-                  <th className="pb-2 font-medium">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {isLoadingLogs ? (
-                  Array.from({ length: 4 }).map((_, idx) => (
-                    <tr key={idx}>
-                      <td colSpan={6} className="py-2.5">
-                        <Skeleton className="h-6 w-full" />
-                      </td>
-                    </tr>
-                  ))
-                ) : logs.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-6 text-center text-muted-foreground font-sans italic">
-                      No requests recorded yet. Test an inference in the Playground or send an OpenAI SDK call.
-                    </td>
-                  </tr>
-                ) : (
-                  logs.slice(0, 5).map((log) => {
-                    const isSuccess = log.statusCode >= 200 && log.statusCode < 300;
-                    return (
-                      <tr key={log.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="py-2.5 text-muted-foreground whitespace-nowrap">
-                          {new Date(log.timestamp).toLocaleTimeString()}
-                        </td>
-                        <td className="py-2.5 font-semibold text-foreground">{log.modelSlug}</td>
-                        <td className="py-2.5">
-                          <Badge variant="secondary" className="text-[10px] uppercase font-mono">
-                            {log.providerId}
-                          </Badge>
-                        </td>
-                        <td className="py-2.5">
-                          <Badge
-                            variant={isSuccess ? 'outline' : 'destructive'}
-                            className={`text-[10px] font-mono ${
-                              isSuccess
-                                ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'
-                                : ''
-                            }`}
-                          >
-                            {log.statusCode}
-                          </Badge>
-                        </td>
-                        <td className="py-2.5 text-amber-500">{log.ttftMs ? `${log.ttftMs}ms` : '—'}</td>
-                        <td className="py-2.5 text-primary font-semibold">{log.latencyMs}ms</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-28">Timestamp</TableHead>
+                <TableHead>Model Slug</TableHead>
+                <TableHead className="w-28">Provider</TableHead>
+                <TableHead className="w-20">Status</TableHead>
+                <TableHead className="w-24">TTFT</TableHead>
+                <TableHead className="w-24 text-right">Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoadingLogs ? (
+                Array.from({ length: 4 }).map((_, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell colSpan={6} className="py-2.5">
+                      <Skeleton className="h-6 w-full" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : logs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-6 text-center text-muted-foreground font-sans italic">
+                    No requests recorded yet. Test an inference in the Playground or send an OpenAI SDK call.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                logs.slice(0, 5).map((log) => {
+                  const isSuccess = log.statusCode >= 200 && log.statusCode < 300;
+                  return (
+                    <TableRow key={log.id} className="hover:bg-muted/30 transition-colors">
+                      <TableCell className="py-2.5 text-muted-foreground whitespace-nowrap font-mono text-xs">
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </TableCell>
+                      <TableCell className="py-2.5 font-semibold text-foreground font-mono text-xs">{log.modelSlug}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-[10px] uppercase font-mono">
+                          {log.providerId}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={isSuccess ? 'outline' : 'destructive'}
+                          className={`text-[10px] font-mono ${
+                            isSuccess
+                              ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'
+                              : ''
+                          }`}
+                        >
+                          {log.statusCode}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-2.5 text-amber-500 font-mono text-xs">{log.ttftMs ? `${log.ttftMs}ms` : '—'}</TableCell>
+                      <TableCell className="py-2.5 text-primary font-semibold font-mono text-xs text-right">{log.latencyMs}ms</TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

@@ -15,6 +15,7 @@ import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { Switch } from '../components/ui/switch.js';
 import { Skeleton } from '../components/ui/skeleton.js';
+import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
 import {
   Select,
   SelectTrigger,
@@ -349,48 +350,39 @@ export function ModelsPage() {
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40 text-xs">
           <div className="flex items-center gap-1.5">
             <span className="text-muted-foreground font-medium text-[11px] mr-1">Status:</span>
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter('all');
-                setCurrentPage(1);
+            <ToggleGroup
+              type="single"
+              value={statusFilter}
+              onValueChange={(val) => {
+                if (val) {
+                  setStatusFilter(val as 'all' | 'enabled' | 'disabled');
+                  setCurrentPage(1);
+                }
               }}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                statusFilter === 'all'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-muted/70 text-muted-foreground hover:text-foreground'
-              }`}
+              className="gap-1"
             >
-              All ({models.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter('enabled');
-                setCurrentPage(1);
-              }}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                statusFilter === 'enabled'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-muted/70 text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Enabled ({activeCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter('disabled');
-                setCurrentPage(1);
-              }}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                statusFilter === 'disabled'
-                  ? 'bg-destructive text-destructive-foreground shadow-sm'
-                  : 'bg-muted/70 text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Disabled ({models.length - activeCount})
-            </button>
+              <ToggleGroupItem
+                value="all"
+                aria-label="All models"
+                className="h-7 px-2.5 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+              >
+                All ({models.length})
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="enabled"
+                aria-label="Enabled models"
+                className="h-7 px-2.5 text-xs data-[state=on]:bg-emerald-600 data-[state=on]:text-white"
+              >
+                Enabled ({activeCount})
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="disabled"
+                aria-label="Disabled models"
+                className="h-7 px-2.5 text-xs data-[state=on]:bg-destructive data-[state=on]:text-destructive-foreground"
+              >
+                Disabled ({models.length - activeCount})
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
 
           <div className="text-[11px] text-muted-foreground font-mono">
@@ -517,20 +509,21 @@ export function ModelsPage() {
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {m.capabilities.map((cap) => (
-                          <span
+                          <Badge
                             key={cap}
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${
+                            variant="outline"
+                            className={`px-1.5 py-0 text-[10px] font-mono ${
                               cap === 'chat'
-                                ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
                                 : cap === 'tts'
-                                  ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                  ? 'bg-purple-500/10 text-purple-400 border-purple-500/30'
                                   : cap === 'stt'
-                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                                     : 'bg-secondary text-secondary-foreground border-border'
                             }`}
                           >
                             {cap}
-                          </span>
+                          </Badge>
                         ))}
                       </div>
                     </TableCell>
