@@ -9,3 +9,4 @@ coverage
 .superpowers/sdd
 .agents
 skills-lock.json
+.data
