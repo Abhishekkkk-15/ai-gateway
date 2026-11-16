@@ -394,18 +394,19 @@ Phases of Implementation:
 
 **Files:**
 - Create: `apps/gateway/src/routes/v1/fine-tuning.ts`
-- Create: `apps/gateway/src/routes/v1/admin-orgs.ts`
-- Modify: `apps/gateway/src/routes/v1/webhooks.ts`
+- Create: `apps/gateway/src/routes/v1/webhooks.ts`
+- Modify: `apps/gateway/src/server.ts`
 - Test: `apps/gateway/tests/v1-governance.test.ts`
+- Examples: `examples/nodejs/fine-tuning-demo.ts`, `examples/python/fine_tuning_demo.py`
 
-- [ ] **Step 1: Fine-Tuning Routes**
+- [x] **Step 1: Fine-Tuning Routes**
   `/v1/fine_tuning/jobs`: List, create, retrieve, cancel fine-tuning jobs.
 
-- [ ] **Step 2: Organization & Project Scoping**
-  Add multi-tenant project scoping: header `OpenAI-Organization` and `OpenAI-Project` maps directly to rate-limit quotas and telemetry isolation.
+- [x] **Step 2: Organization & Project Scoping**
+  Multi-tenant project scoping: header `OpenAI-Organization` and `OpenAI-Project`.
 
-- [ ] **Step 3: Webhooks Signing**
-  Implement cryptographic HMAC-SHA256 signature generation compatible with `client.webhooks.unwrap()`.
+- [x] **Step 3: Webhooks Signing & Verification**
+  Implemented cryptographic HMAC-SHA256 signature verification compatible with `client.webhooks.unwrap()`.
 
 ---
 
