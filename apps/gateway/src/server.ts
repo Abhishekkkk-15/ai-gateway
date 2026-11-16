@@ -24,6 +24,9 @@ import { v1AudioRoutes } from './routes/v1/audio.js';
 import { v1EmbeddingsRoutes } from './routes/v1/embeddings.js';
 import { v1ImagesRoutes } from './routes/v1/images.js';
 import { v1ModerationsRoutes } from './routes/v1/moderations.js';
+import { v1FilesRoutes } from './routes/v1/files.js';
+import { v1UploadsRoutes } from './routes/v1/uploads.js';
+import { StorageService } from './services/storage.js';
 import { adminAuthRoutes } from './routes/admin/auth.js';
 import { adminProvidersRoutes } from './routes/admin/providers.js';
 import { adminModelsRoutes } from './routes/admin/models.js';
@@ -37,6 +40,7 @@ declare module 'fastify' {
     routingCache: RoutingCache;
     telemetryQueue: TelemetryQueue;
     providerRegistry: ProviderRegistry;
+    storageService: StorageService;
   }
 }
 
@@ -92,11 +96,13 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   }
   app.decorate('db', db);
 
-  // Setup In-Memory Routing Cache and Telemetry Queue
+  // Setup In-Memory Routing Cache, Telemetry Queue, and Storage Service
   const routingCache = new RoutingCache(db, config.masterSecret, registry);
   const telemetryQueue = new TelemetryQueue(db);
+  const storageService = new StorageService(db);
   app.decorate('routingCache', routingCache);
   app.decorate('telemetryQueue', telemetryQueue);
+  app.decorate('storageService', storageService);
 
   // Register Core Middleware
   await app.register(cors, {
@@ -128,6 +134,8 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await app.register(v1EmbeddingsRoutes);
   await app.register(v1ImagesRoutes);
   await app.register(v1ModerationsRoutes);
+  await app.register(v1FilesRoutes);
+  await app.register(v1UploadsRoutes);
 
   // Register Admin Routes
   await app.register(adminAuthRoutes);

@@ -63,6 +63,38 @@ export const adminUsersTable = pgTable('admin_users', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const filesTable = pgTable('files', {
+  id: text('id').primaryKey(), // e.g. 'file-abc123xyz'
+  bytes: integer('bytes').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  filename: text('filename').notNull(),
+  purpose: text('purpose').notNull(), // 'assistants', 'batch', 'fine-tune', 'vision', etc.
+  storagePath: text('storage_path').notNull(),
+  mimeType: text('mime_type').default('application/octet-stream').notNull(),
+  status: text('status').default('processed').notNull(), // 'uploaded' | 'processed' | 'error'
+  statusDetails: text('status_details'),
+});
+
+export const uploadsTable = pgTable('uploads', {
+  id: text('id').primaryKey(), // e.g. 'upload_abc123'
+  bytes: integer('bytes').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  filename: text('filename').notNull(),
+  purpose: text('purpose').notNull(),
+  mimeType: text('mime_type').default('application/octet-stream').notNull(),
+  status: text('status').default('pending').notNull(), // 'pending' | 'completed' | 'cancelled'
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+});
+
+export const uploadPartsTable = pgTable('upload_parts', {
+  id: text('id').primaryKey(), // e.g. 'part_abc123'
+  uploadId: text('upload_id')
+    .notNull()
+    .references(() => uploadsTable.id, { onDelete: 'cascade' }),
+  storagePath: text('storage_path').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type ProviderRow = typeof providersTable.$inferSelect;
 export type InsertProviderRow = typeof providersTable.$inferInsert;
 export type ModelRow = typeof modelsTable.$inferSelect;
@@ -73,3 +105,9 @@ export type RequestLogRow = typeof requestLogsTable.$inferSelect;
 export type InsertRequestLogRow = typeof requestLogsTable.$inferInsert;
 export type AdminUserRow = typeof adminUsersTable.$inferSelect;
 export type InsertAdminUserRow = typeof adminUsersTable.$inferInsert;
+export type FileRow = typeof filesTable.$inferSelect;
+export type InsertFileRow = typeof filesTable.$inferInsert;
+export type UploadRow = typeof uploadsTable.$inferSelect;
+export type InsertUploadRow = typeof uploadsTable.$inferInsert;
+export type UploadPartRow = typeof uploadPartsTable.$inferSelect;
+export type InsertUploadPartRow = typeof uploadPartsTable.$inferInsert;

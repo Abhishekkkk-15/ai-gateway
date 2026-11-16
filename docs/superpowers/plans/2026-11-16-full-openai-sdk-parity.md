@@ -190,45 +190,37 @@ Phases of Implementation:
 ### Task 5: Persistent Files API (`/v1/files`) & Multipart Chunked Uploads (`/v1/uploads`)
 
 **Files:**
-- Create: `packages/db/src/schema/files.ts`
-- Modify: `packages/db/src/schema/index.ts`
 - Create: `apps/gateway/src/services/storage.ts`
 - Create: `apps/gateway/src/routes/v1/files.ts`
 - Create: `apps/gateway/src/routes/v1/uploads.ts`
+- Modify: `packages/db/src/schema.ts`
+- Modify: `apps/gateway/src/server.ts`
 - Test: `apps/gateway/tests/v1-files.test.ts`
+- Examples: `examples/nodejs/files-demo.ts`, `examples/python/files_demo.py`
 
-- [ ] **Step 1: Design DB Schema for Files & Uploads**
-  In `packages/db/src/schema/files.ts`:
-  ```typescript
-  export const filesTable = pgTable('files', {
-    id: varchar('id', { length: 64 }).primaryKey(), // 'file-abc123xyz'
-    bytes: integer('bytes').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    filename: varchar('filename', { length: 255 }).notNull(),
-    purpose: varchar('purpose', { length: 64 }).notNull(), // 'assistants', 'batch', 'fine-tune'
-    storagePath: text('storage_path').notNull(), // local file path or S3 key
-    status: varchar('status', { length: 32 }).default('uploaded').notNull(),
-  });
-  ```
-  Create `uploadsTable` and `uploadPartsTable` for resumable multipart uploads.
+- [x] **Step 1: Design DB Schema for Files & Uploads**
+  In `packages/db/src/schema.ts`:
+  - `filesTable`: `id`, `bytes`, `createdAt`, `filename`, `purpose`, `storagePath`, `mimeType`, `status`.
+  - `uploadsTable` and `uploadPartsTable` for resumable multipart uploads.
 
-- [ ] **Step 2: Implement Storage Service Abstraction**
-  `apps/gateway/src/services/storage.ts`: Supports local disk storage (default for standalone dev) and S3/R2 storage (for production cluster).
-  Methods: `saveFileStream`, `getFileStream`, `deleteFile`, `getFileMetadata`.
+- [x] **Step 2: Implement Storage Service Abstraction**
+  `apps/gateway/src/services/storage.ts`: Supports local disk storage with in-memory test fallback and database persistence.
+  Methods: `saveFile`, `listFiles`, `getFile`, `getFileContent`, `deleteFile`, `createUpload`, `addUploadPart`, `completeUpload`, `cancelUpload`.
 
-- [ ] **Step 3: Implement `/v1/files` Routes**
+- [x] **Step 3: Implement `/v1/files` Routes**
   - `POST /v1/files`: Multipart upload (returns `FileObject`).
   - `GET /v1/files`: Lists files filtered by `purpose` (`{ object: 'list', data: [...] }`).
   - `GET /v1/files/:file_id`: Returns metadata.
   - `GET /v1/files/:file_id/content`: Streams binary file bytes.
   - `DELETE /v1/files/:file_id`: Revokes and deletes from storage.
 
-- [ ] **Step 4: Implement `/v1/uploads` Routes**
+- [x] **Step 4: Implement `/v1/uploads` Routes**
   - `POST /v1/uploads`: Initializes a multi-part upload session (`bytes`, `filename`, `purpose`).
   - `POST /v1/uploads/:upload_id/parts`: Appends chunk part (`part_id`).
   - `POST /v1/uploads/:upload_id/complete`: Stitches parts and creates final `file-` entry.
+  - `POST /v1/uploads/:upload_id/cancel`: Cancels upload session.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
   Verify complete file lifecycle via `v1-files.test.ts`.
 
 ---
