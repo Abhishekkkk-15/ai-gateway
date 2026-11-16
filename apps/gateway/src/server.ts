@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
+import fastifyWebsocket from '@fastify/websocket';
 import path from 'node:path';
 import fs from 'node:fs';
 
@@ -32,6 +33,7 @@ import { v1ResponsesRoutes } from './routes/v1/responses.js';
 import { v1ConversationsRoutes } from './routes/v1/conversations.js';
 import { v1AssistantsRoutes } from './routes/v1/assistants.js';
 import { v1ThreadsRoutes } from './routes/v1/threads.js';
+import { v1RealtimeRoutes } from './routes/v1/realtime.js';
 import { StorageService } from './services/storage.js';
 import { BatchProcessorService } from './services/batch-processor.js';
 import { VectorStoreService } from './services/vector-store.js';
@@ -148,6 +150,8 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
     },
   });
 
+  await app.register(fastifyWebsocket);
+
   // Register Operational & OpenAI Routes
   await app.register(healthRoutes);
   await app.register(v1ModelsRoutes);
@@ -164,6 +168,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await app.register(v1ConversationsRoutes);
   await app.register(v1AssistantsRoutes);
   await app.register(v1ThreadsRoutes);
+  await app.register(v1RealtimeRoutes);
 
   // Register Admin Routes
   await app.register(adminAuthRoutes);

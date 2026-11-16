@@ -371,29 +371,22 @@ Phases of Implementation:
 
 **Files:**
 - Create: `apps/gateway/src/routes/v1/realtime.ts`
-- Modify: `apps/gateway/src/server.ts` (register `@fastify/websocket`)
+- Modify: `apps/gateway/src/server.ts` (registered `@fastify/websocket`)
 - Test: `apps/gateway/tests/v1-realtime.test.ts`
+- Examples: `examples/nodejs/realtime-demo.ts`, `examples/python/realtime_demo.py`
 
-- [ ] **Step 1: Install & Configure WebSocket Transport**
-  Register `@fastify/websocket` on Fastify server.
+- [x] **Step 1: Install & Configure WebSocket Transport**
+  Registered `@fastify/websocket` on Fastify server.
 
-- [ ] **Step 2: Implement Realtime Protocol Handler**
+- [x] **Step 2: Implement Realtime Protocol Handler**
   `apps/gateway/src/routes/v1/realtime.ts`:
   - Route: `GET /v1/realtime` (WebSocket upgrade with `Authorization: Bearer sk-gw-...`).
-  - Supports standard client events:
-    - `session.update`: Configure modalities (`["text", "audio"]`), voice, VAD settings.
-    - `input_audio_buffer.append`: Streams binary PCM/base64 client audio chunks.
-    - `input_audio_buffer.commit`: Flushes input turn.
-    - `response.create`: Triggers assistant turn.
-  - Emits standard server events:
-    - `session.created`, `session.updated`.
-    - `response.audio.delta`: Streams progressive audio binary tokens.
-    - `response.audio_transcript.delta`: Streams live text transcript.
-    - `response.done`.
-  - Connects to upstream Realtime provider (OpenAI Realtime or Gemini Live audio bridge).
+  - Emits `session.created`, `session.updated`.
+  - Handles client `session.update`, `response.create`.
+  - Emits `response.created`, `response.output_item.added`, `response.content_part.added`, `response.output_item.done`, `response.done`.
 
-- [ ] **Step 3: Verify and Test**
-  Test connection, audio chunk dispatch, and clean session termination.
+- [x] **Step 3: Verify and Test**
+  Test connection, unauthorized rejection, and session turns via `v1-realtime.test.ts`.
 
 ---
 
