@@ -78,7 +78,11 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
-  * {
+  *, ::before, ::after {
+    @apply border-border;
+  }
+
+  table, thead, tbody, tfoot, tr, th, td {
     @apply border-border;
   }
 

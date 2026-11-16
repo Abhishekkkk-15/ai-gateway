@@ -184,11 +184,17 @@ export function ProvidersPage() {
                       >
                         {p.isEnabled ? 'Active' : 'Disabled'}
                       </Badge>
-                      <Switch
-                        checked={p.isEnabled}
-                        disabled={updateMutation.isPending && updateMutation.variables?.id === p.id}
-                        onCheckedChange={(checked) => handleToggle(p, checked)}
-                      />
+                      {updateMutation.isPending &&
+                      updateMutation.variables?.id === p.id &&
+                      updateMutation.variables?.data.isEnabled !== undefined ? (
+                        <Loader2 className="size-4 animate-spin text-primary" />
+                      ) : (
+                        <Switch
+                          checked={p.isEnabled}
+                          disabled={updateMutation.isPending && updateMutation.variables?.id === p.id}
+                          onCheckedChange={(checked) => handleToggle(p, checked)}
+                        />
+                      )}
                     </div>
                   </div>
                   <CardDescription className="text-xs font-mono">{p.id}</CardDescription>

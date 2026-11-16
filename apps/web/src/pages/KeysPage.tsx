@@ -12,6 +12,7 @@ import {
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Badge } from '../components/ui/badge.js';
+import { Switch } from '../components/ui/switch.js';
 import { Skeleton } from '../components/ui/skeleton.js';
 import {
   Table,
@@ -79,6 +80,18 @@ export function KeysPage() {
     },
     onError: (err: unknown) => {
       toast.error(err instanceof Error ? err.message : 'Failed to revoke key');
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, isEnabled }: { id: string; isEnabled: boolean }) =>
+      api.updateGatewayKey(id, { isEnabled }),
+    onSuccess: (_, vars) => {
+      toast.success(`Key ${vars.isEnabled ? 'enabled' : 'disabled'}`);
+      void queryClient.invalidateQueries({ queryKey: ['gateway-keys'] });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to update key status');
     },
   });
 
@@ -184,16 +197,29 @@ export function KeysPage() {
                     {new Date(k.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] font-mono ${
-                        k.isEnabled
-                          ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'
-                          : 'border-border text-muted-foreground'
-                      }`}
-                    >
-                      {k.isEnabled ? 'Active' : 'Disabled'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {toggleMutation.isPending && toggleMutation.variables?.id === k.id ? (
+                        <Loader2 className="size-4 animate-spin text-primary" />
+                      ) : (
+                        <Switch
+                          checked={k.isEnabled}
+                          disabled={toggleMutation.isPending && toggleMutation.variables?.id === k.id}
+                          onCheckedChange={(checked) =>
+                            toggleMutation.mutate({ id: k.id, isEnabled: checked })
+                          }
+                        />
+                      )}
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-mono ${
+                          k.isEnabled
+                            ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'
+                            : 'border-border text-muted-foreground'
+                        }`}
+                      >
+                        {k.isEnabled ? 'Active' : 'Disabled'}
+                      </Badge>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <Button

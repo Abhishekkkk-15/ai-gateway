@@ -152,6 +152,13 @@ export const api = {
     );
   },
 
+  async updateGatewayKey(id: string, data: { isEnabled?: boolean; name?: string }) {
+    return fetchJson<{ message: string }>(`${API_BASE}/api/admin/gateway-keys/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
   async deleteGatewayKey(id: string) {
     return fetchJson<{ message: string }>(`${API_BASE}/api/admin/gateway-keys/${encodeURIComponent(id)}`, {
       method: 'DELETE',
