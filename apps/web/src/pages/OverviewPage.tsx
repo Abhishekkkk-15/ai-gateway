@@ -212,28 +212,50 @@ export function OverviewPage({
           </CardContent>
         </Card>
 
-        {/* Card 4: Avg Latency / TTFT */}
+        {/* Card 4: Avg Latency & TTFT */}
         <Card className="border-border/80 shadow-sm hover:border-border transition-colors">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Avg TTFT / Latency
+              Avg Latency / TTFT
             </CardTitle>
             <Timer className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {isLoadingLogs ? (
               <Skeleton className="h-8 w-24 my-1" />
+            ) : totalRequests === 0 ? (
+              <div>
+                <div className="text-2xl font-bold tracking-tight text-muted-foreground">—</div>
+                <p className="text-xs text-muted-foreground mt-1">No requests recorded</p>
+              </div>
             ) : (
-              <div className="text-2xl font-bold tracking-tight">
-                {avgTtft > 0 ? `${avgTtft}ms` : '—'}
-                <span className="text-xs text-muted-foreground font-normal ml-1.5">
-                  ({avgLatency}ms total)
-                </span>
+              <div className="flex flex-col gap-0.5">
+                <div className="text-2xl font-bold tracking-tight flex items-baseline gap-2">
+                  <span>{avgLatency > 0 ? `${avgLatency}ms` : '—'}</span>
+                  {avgTtft > 0 && (
+                    <span className="text-sm font-medium font-mono text-amber-500">
+                      / {avgTtft}ms TTFT
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 font-mono">
+                  <span>Latency: {avgLatency}ms</span>
+                  {validTtftLogs.length > 0 ? (
+                    <>
+                      <span className="mx-1 text-muted-foreground/40">·</span>
+                      <span className="text-amber-500">
+                        TTFT: {avgTtft}ms ({validTtftLogs.length} stream{validTtftLogs.length === 1 ? '' : 's'})
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="mx-1 text-muted-foreground/40">·</span>
+                      <span>TTFT: — ({totalRequests} non-streaming)</span>
+                    </>
+                  )}
+                </p>
               </div>
             )}
-            <p className="text-xs text-muted-foreground mt-1">
-              <span>{validTtftLogs.length} streaming responses</span>
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -265,6 +287,14 @@ export function OverviewPage({
               <p className="text-sm font-medium text-foreground">No telemetry recorded yet</p>
               <p className="text-xs text-muted-foreground max-w-sm mt-1">
                 Requests processed by the gateway will display real-time latency and TTFT metrics here.
+              </p>
+            </div>
+          ) : metricTab === 'volume' && validTtftLogs.length === 0 ? (
+            <div className="h-[280px] w-full flex flex-col items-center justify-center text-center p-6 border border-dashed rounded-lg border-border/60">
+              <Timer className="size-8 text-muted-foreground/30 mb-2" />
+              <p className="text-sm font-medium text-foreground">No streaming requests recorded in recent window</p>
+              <p className="text-xs text-muted-foreground max-w-sm mt-1">
+                TTFT (Time to First Token) is recorded on streaming SSE and WebSocket connections. All recent requests used standard HTTP buffering.
               </p>
             </div>
           ) : (
@@ -304,7 +334,9 @@ export function OverviewPage({
                           <div className="rounded-lg border border-border bg-popover p-2.5 shadow-md text-xs font-mono">
                             <p className="font-semibold text-foreground mb-1">{data.time}</p>
                             <p className="text-emerald-500">Total Latency: {data.latency}ms</p>
-                            <p className="text-amber-500">TTFT: {data.ttft}ms</p>
+                            <p className="text-amber-500">
+                              TTFT: {data.ttft > 0 ? `${data.ttft}ms` : '— (non-streaming)'}
+                            </p>
                             {data.status && (
                               <p className="text-muted-foreground mt-0.5">Status: {data.status}</p>
                             )}
