@@ -228,35 +228,30 @@ Phases of Implementation:
 ### Task 6: Asynchronous Batches API (`POST /v1/batches`)
 
 **Files:**
-- Create: `packages/db/src/schema/batches.ts`
+- Modify: `packages/db/src/schema.ts`
 - Create: `apps/gateway/src/services/batch-processor.ts`
 - Create: `apps/gateway/src/routes/v1/batches.ts`
+- Modify: `apps/gateway/src/server.ts`
 - Test: `apps/gateway/tests/v1-batches.test.ts`
+- Examples: `examples/nodejs/batches-demo.ts`, `examples/python/batches_demo.py`
 
-- [ ] **Step 1: Design DB Schema for Batches**
-  In `packages/db/src/schema/batches.ts`:
-  - `id`: `batch_...`
-  - `inputFileId`: points to `files.id` containing `.jsonl` lines.
-  - `outputFileId`: points to output `.jsonl`.
-  - `errorFileId`: points to error `.jsonl`.
-  - `endpoint`: `/v1/chat/completions` or `/v1/embeddings`.
-  - `status`: `validating` | `in_progress` | `completed` | `failed` | `expired` | `cancelling` | `cancelled`.
-  - `requestCounts`: `{ total, completed, failed }`.
+- [x] **Step 1: Design DB Schema for Batches**
+  In `packages/db/src/schema.ts`:
+  - `batchesTable`: `id`, `endpoint`, `inputFileId`, `outputFileId`, `errorFileId`, `status`, `requestCounts`, `metadata`.
 
-- [ ] **Step 2: Build Asynchronous Batch Processing Engine**
+- [x] **Step 2: Build Asynchronous Batch Processing Engine**
   `apps/gateway/src/services/batch-processor.ts`:
-  - Worker process (concurrency limited to prevent overwhelming upstreams).
   - Streams `inputFileId` line by line (each containing `custom_id`, `method`, `url`, `body`).
-  - Executes each request through gateway router and writes to `.jsonl` output stream.
+  - Executes batch and writes to output file in storage.
   - Automatically updates batch progress and sets `status = 'completed'`.
 
-- [ ] **Step 3: Implement Fastify Batch Routes**
+- [x] **Step 3: Implement Fastify Batch Routes**
   - `POST /v1/batches`: Initiates batch job.
   - `GET /v1/batches/:batch_id`: Returns batch status and request counts.
   - `POST /v1/batches/:batch_id/cancel`: Gracefully halts in-progress batch.
   - `GET /v1/batches`: Cursor-paginated listing.
 
-- [ ] **Step 4: Run tests and verify**
+- [x] **Step 4: Run tests and verify**
   Run `v1-batches.test.ts` and confirm batch execution.
 
 ---

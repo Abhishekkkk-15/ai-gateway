@@ -95,6 +95,23 @@ export const uploadPartsTable = pgTable('upload_parts', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const batchesTable = pgTable('batches', {
+  id: text('id').primaryKey(), // e.g. 'batch_abc123'
+  endpoint: text('endpoint').notNull(), // '/v1/chat/completions' | '/v1/embeddings'
+  inputFileId: text('input_file_id').notNull(),
+  outputFileId: text('output_file_id'),
+  errorFileId: text('error_file_id'),
+  completionWindow: text('completion_window').notNull().default('24h'),
+  status: text('status').notNull().default('validating'), // 'validating' | 'in_progress' | 'completed' | 'failed' | 'expired' | 'cancelling' | 'cancelled'
+  requestCounts: jsonb('request_counts').$type<{ total: number; completed: number; failed: number }>().notNull(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  inProgressAt: timestamp('in_progress_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  failedAt: timestamp('failed_at', { withTimezone: true }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+});
+
 export type ProviderRow = typeof providersTable.$inferSelect;
 export type InsertProviderRow = typeof providersTable.$inferInsert;
 export type ModelRow = typeof modelsTable.$inferSelect;
@@ -111,3 +128,5 @@ export type UploadRow = typeof uploadsTable.$inferSelect;
 export type InsertUploadRow = typeof uploadsTable.$inferInsert;
 export type UploadPartRow = typeof uploadPartsTable.$inferSelect;
 export type InsertUploadPartRow = typeof uploadPartsTable.$inferInsert;
+export type BatchRow = typeof batchesTable.$inferSelect;
+export type InsertBatchRow = typeof batchesTable.$inferInsert;
