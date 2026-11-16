@@ -40,9 +40,10 @@ Phases of Implementation:
  Phase 2: Multimodal & Safety (Image Generation/Edits/Variations, Moderations)
  Phase 3: Files & Batch Processing (Multipart File Storage, 24-hr Asynchronous Batches)
  Phase 4: Semantic Retrieval & Vector Stores (pgvector, Document Chunking, File Batches)
- Phase 5: Assistants v2 & Stateful Agent Engine (Threads, Messages, Runs, Tool Output Submission)
- Phase 6: Realtime API (Bidirectional Audio/Text WebSockets Bridge)
- Phase 7: Verification, Examples & Admin Console Integration
+ Phase 5: Next-Generation Responses API & Conversations (/v1/responses, /v1/conversations)
+ Phase 6: Assistants v2 & Stateful Agent Engine (Threads, Messages, Runs, Tool Output Submission)
+ Phase 7: Realtime API (Bidirectional Audio/Text WebSockets Bridge)
+ Phase 8: Verification, Examples & Admin Console Integration
 ```
 
 ---
@@ -293,7 +294,47 @@ Phases of Implementation:
 
 ---
 
-### Task 8: Assistants v2 & Stateful Agent Engine (`/v1/assistants`, `/v1/threads`, `/v1/runs`)
+### Task 8: Next-Generation Responses API & Conversations (`POST /v1/responses`, `/v1/conversations`)
+
+**Files:**
+- Create: `packages/db/src/schema/conversations.ts`
+- Create: `apps/gateway/src/services/responses-engine.ts`
+- Create: `apps/gateway/src/routes/v1/responses.ts`
+- Create: `apps/gateway/src/routes/v1/conversations.ts`
+- Modify: `apps/gateway/src/routes/v1/index.ts`
+- Test: `apps/gateway/tests/v1-responses.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+  Create `apps/gateway/tests/v1-responses.test.ts` testing:
+  - `POST /v1/responses` with simple input: `{ model: "gpt-4o", input: "Say hello!" }`
+  - Verify envelope: `{ id: "resp_...", object: "response", status: "completed", output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: "..." }] }], output_text: "...", usage: { total_tokens: 10 } }`.
+  - Multi-turn chained responses via `previous_response_id: "resp_123"` or `conversation: "conv_123"`.
+  - SSE streaming mode (`stream: true`): emitting `response.output_item.added`, `response.content_part.delta`, and `response.completed`.
+  - Built-in tools: `tools: [{ type: "web_search_preview" }]` or `tools: [{ type: "file_search" }]`.
+
+- [ ] **Step 2: Conversation & Response DB Schema**
+  In `packages/db/src/schema/conversations.ts`:
+  - `conversationsTable`: `id` (`conv_...`), `metadata`, `createdAt`.
+  - `conversationItemsTable`: `id`, `conversationId`, `role`, `content`, `createdAt`.
+  - `responsesTable`: `id` (`resp_...`), `conversationId`, `model`, `status`, `inputText`, `outputText`, `usage`, `createdAt`.
+
+- [ ] **Step 3: Implement Responses Translation & Execution Engine**
+  `apps/gateway/src/services/responses-engine.ts`:
+  - Normalizes `input` (string or array of multimodal items: text, image, file).
+  - Handles conversation context: automatically restores previous turns from `conversation` or `previous_response_id`.
+  - Translates and forwards to upstream provider (native `/v1/responses` for OpenAI, or transformed `/v1/chat/completions` for Groq, Nvidia, Google, DeepSeek).
+  - Automatically synthesizes the convenient `output_text` helper accessor and output item lists.
+
+- [ ] **Step 4: Implement Fastify Routes**
+  - In `apps/gateway/src/routes/v1/responses.ts`: `POST /v1/responses`, `GET /v1/responses/:id`, `DELETE /v1/responses/:id`.
+  - In `apps/gateway/src/routes/v1/conversations.ts`: `POST /v1/conversations`, `GET /v1/conversations/:id`, `DELETE /v1/conversations/:id`, `POST /v1/conversations/:id/items`.
+
+- [ ] **Step 5: Run tests and verify**
+  Run `v1-responses.test.ts` and confirm Responses API parity.
+
+---
+
+### Task 9: Assistants v2 & Stateful Agent Engine (`/v1/assistants`, `/v1/threads`, `/v1/runs`)
 
 **Files:**
 - Create: `packages/db/src/schema/assistants.ts`
@@ -324,7 +365,7 @@ Phases of Implementation:
 
 ---
 
-### Task 9: Realtime API Bidirectional WebSocket Bridge (`/v1/realtime`)
+### Task 10: Realtime API Bidirectional WebSocket Bridge (`/v1/realtime`)
 
 **Files:**
 - Create: `apps/gateway/src/routes/v1/realtime.ts`
@@ -354,7 +395,7 @@ Phases of Implementation:
 
 ---
 
-### Task 10: Admin Governance, Fine-Tuning & Webhooks
+### Task 11: Admin Governance, Fine-Tuning & Webhooks
 
 **Files:**
 - Create: `apps/gateway/src/routes/v1/fine-tuning.ts`
@@ -373,7 +414,7 @@ Phases of Implementation:
 
 ---
 
-### Task 11: End-to-End Verification, Documentation & Examples
+### Task 12: End-to-End Verification, Documentation & Examples
 
 **Files:**
 - Create: `examples/nodejs/embeddings-demo.ts`
