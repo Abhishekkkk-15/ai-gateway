@@ -1,13 +1,29 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { api, type ProviderView } from '../lib/api.js';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/Card.js';
-import { Button } from '../components/ui/Button.js';
-import { Input } from '../components/ui/Input.js';
-import { Badge } from '../components/ui/Badge.js';
-import { Switch } from '../components/ui/Switch.js';
-import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/Dialog.js';
-import { Eye, EyeOff, RefreshCw, Plus, CheckCircle, ShieldCheck } from 'lucide-react';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '../components/ui/card.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Badge } from '../components/ui/badge.js';
+import { Switch } from '../components/ui/switch.js';
+import { Skeleton } from '../components/ui/skeleton.js';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../components/ui/dialog.js';
+import { Eye, EyeOff, RefreshCw, Plus, CheckCircle, ShieldCheck, Loader2 } from 'lucide-react';
 
 export function ProvidersPage() {
   const queryClient = useQueryClient();
@@ -15,7 +31,6 @@ export function ProvidersPage() {
   const [editingUrl, setEditingUrl] = useState<Record<string, string>>({});
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [syncingId, setSyncingId] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
 
   // Add Custom Provider Dialog State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -33,10 +48,12 @@ export function ProvidersPage() {
     mutationFn: ({ id, data }: { id: string; data: Parameters<typeof api.updateProvider>[1] }) =>
       api.updateProvider(id, data),
     onSuccess: (_, vars) => {
-      setFeedback(`Saved settings for ${vars.id}`);
-      setTimeout(() => setFeedback(null), 3000);
+      toast.success(`Settings saved for ${vars.id}`);
       void queryClient.invalidateQueries({ queryKey: ['providers'] });
       void queryClient.invalidateQueries({ queryKey: ['models'] });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to update provider');
     },
   });
 
@@ -65,14 +82,13 @@ export function ProvidersPage() {
     setSyncingId(provider.id);
     try {
       const res = await api.syncProviderModels(provider.id);
-      setFeedback(res.message);
+      toast.success(res.message);
       void queryClient.invalidateQueries({ queryKey: ['models'] });
       void queryClient.invalidateQueries({ queryKey: ['providers'] });
     } catch (err: unknown) {
-      setFeedback(err instanceof Error ? err.message : 'Sync failed');
+      toast.error(err instanceof Error ? err.message : 'Sync failed');
     } finally {
       setSyncingId(null);
-      setTimeout(() => setFeedback(null), 4000);
     }
   };
 
@@ -94,11 +110,11 @@ export function ProvidersPage() {
       setCustomId('');
       setCustomName('');
       setCustomApiKey('');
-      setFeedback(`Custom provider '${customName}' registered!`);
+      toast.success(`Custom provider '${customName}' registered!`);
       void queryClient.invalidateQueries({ queryKey: ['providers'] });
       void queryClient.invalidateQueries({ queryKey: ['models'] });
     } catch (err: unknown) {
-      setFeedback(err instanceof Error ? err.message : 'Failed to register provider');
+      toast.error(err instanceof Error ? err.message : 'Failed to create provider');
     }
   };
 
@@ -108,131 +124,132 @@ export function ProvidersPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">AI Providers</h1>
+          <h1 className="text-2xl font-bold tracking-tight">AI Model Providers</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Configure upstream AI credentials, customized endpoints, and synchronize live model catalogs.
+            Manage upstream providers, secure AES-256-GCM credentials, and synchronize model catalogs.
           </p>
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2">
+        <Button
+          onClick={() => setIsAddModalOpen(true)}
+          className="flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
+        >
           <Plus className="size-4" />
-          <span>Add Custom OpenAI Provider</span>
+          <span>Add Custom Provider</span>
         </Button>
       </div>
 
-      {feedback && (
-        <div className="flex items-center gap-2 text-sm bg-primary/10 border border-primary/30 text-primary p-3 rounded-lg">
-          <CheckCircle className="size-4 shrink-0" />
-          <span>{feedback}</span>
-        </div>
-      )}
-
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">Loading configured providers...</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="border-border/80 p-6 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-9 w-full mt-2" />
+              <Skeleton className="h-9 w-full" />
+            </Card>
+          ))}
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {providers.map((p) => {
-            const isConfigured = p.isConfigured;
-            const keyVal = editingKey[p.id] ?? '';
-            const isShowingKey = showKey[p.id] ?? false;
+            const hasKey = p.isConfigured;
+            const currentKeyVal = editingKey[p.id] ?? '';
+            const currentUrlVal = editingUrl[p.id] ?? p.baseUrl;
+            const isKeyVisible = showKey[p.id] || false;
+            const isSyncing = syncingId === p.id;
 
             return (
-              <Card key={p.id} className="border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between">
-                <div>
-                  <CardHeader className="flex flex-row items-start justify-between pb-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-lg">{p.name}</CardTitle>
-                        {p.isBuiltIn ? (
-                          <Badge variant="secondary" className="text-[10px]">Built-in</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] text-primary border-primary/30">Custom OpenAI</Badge>
-                        )}
-                      </div>
-                      <CardDescription className="text-xs font-mono mt-1">id: {p.id}</CardDescription>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {!isConfigured ? (
-                        <Badge variant="secondary" className="text-[10px]">Not Configured</Badge>
-                      ) : p.isEnabled ? (
-                        <Badge variant="success" className="text-[10px]">Active</Badge>
-                      ) : (
-                        <Badge variant="destructive" className="text-[10px]">Disabled</Badge>
-                      )}
-                      <div className="flex items-center gap-1.5">
-                        <Switch
-                          checked={p.isEnabled}
-                          onCheckedChange={(checked) => handleToggle(p, checked)}
-                          disabled={!isConfigured}
-                        />
-                        <span className="text-[11px] text-muted-foreground select-none">
-                          {p.isEnabled ? 'On' : 'Off'}
-                        </span>
-                      </div>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="flex flex-col gap-4 text-sm">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-medium text-muted-foreground flex items-center justify-between">
-                        <span>API Key</span>
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <ShieldCheck className="size-3 text-emerald-400" />
-                          <span>Encrypted at rest</span>
-                        </span>
-                      </label>
-                      <div className="flex gap-2">
-                        <Input
-                          type={isShowingKey ? 'text' : 'password'}
-                          placeholder={isConfigured ? '••••••••••••••••••••••••' : 'Enter upstream API key...'}
-                          value={keyVal}
-                          onChange={(e) => setEditingKey({ ...editingKey, [p.id]: e.target.value })}
-                          className="font-mono text-xs"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowKey({ ...showKey, [p.id]: !isShowingKey })}
-                          type="button"
-                          className="size-9 shrink-0"
-                        >
-                          {isShowingKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Endpoint Base URL</label>
-                      <Input
-                        type="text"
-                        value={editingUrl[p.id] ?? p.baseUrl}
-                        onChange={(e) => setEditingUrl({ ...editingUrl, [p.id]: e.target.value })}
-                        placeholder={p.defaultBaseUrl}
-                        className="font-mono text-xs"
+              <Card
+                key={p.id}
+                className="border-border/80 flex flex-col justify-between shadow-sm hover:border-border transition-colors"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-semibold">{p.name}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={p.isEnabled ? 'outline' : 'secondary'}
+                        className={`text-[10px] font-mono ${
+                          p.isEnabled
+                            ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'
+                            : ''
+                        }`}
+                      >
+                        {p.isEnabled ? 'Active' : 'Disabled'}
+                      </Badge>
+                      <Switch
+                        checked={p.isEnabled}
+                        onCheckedChange={(checked) => handleToggle(p, checked)}
                       />
                     </div>
+                  </div>
+                  <CardDescription className="text-xs font-mono">{p.id}</CardDescription>
+                </CardHeader>
 
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {p.supportedCapabilities.map((cap) => (
-                        <span key={cap} className="px-2 py-0.5 rounded text-[11px] bg-secondary text-secondary-foreground font-mono">
-                          {cap}
+                <CardContent className="flex flex-col gap-4 flex-1">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Base URL</label>
+                    <Input
+                      value={currentUrlVal}
+                      onChange={(e) =>
+                        setEditingUrl({ ...editingUrl, [p.id]: e.target.value })
+                      }
+                      placeholder="https://..."
+                      className="font-mono text-xs"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-muted-foreground">API Key</label>
+                      {hasKey && (
+                        <span className="text-[10px] text-emerald-500 flex items-center gap-1 font-mono">
+                          <ShieldCheck className="size-3" />
+                          <span>Encrypted (AES-GCM)</span>
                         </span>
-                      ))}
+                      )}
                     </div>
-                  </CardContent>
-                </div>
+                    <div className="relative">
+                      <Input
+                        type={isKeyVisible ? 'text' : 'password'}
+                        value={currentKeyVal}
+                        onChange={(e) =>
+                          setEditingKey({ ...editingKey, [p.id]: e.target.value })
+                        }
+                        placeholder={hasKey ? '••••••••••••••••••••••••' : 'Enter API Key...'}
+                        className="font-mono text-xs pr-9"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowKey({ ...showKey, [p.id]: !isKeyVisible })}
+                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                      >
+                        {isKeyVisible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </CardContent>
 
-                <CardFooter className="flex justify-between border-t border-border/50 pt-4">
+                <CardFooter className="pt-2 flex items-center justify-between border-t border-border/40 gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleSync(p)}
-                    disabled={!isConfigured || syncingId === p.id}
-                    className="flex items-center gap-1.5 text-xs"
+                    disabled={isSyncing || !p.isEnabled}
+                    className="text-xs flex items-center gap-1.5"
                   >
-                    <RefreshCw className={`size-3.5 ${syncingId === p.id ? 'animate-spin' : ''}`} />
-                    <span>Test &amp; Sync Models</span>
+                    <RefreshCw className={`size-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                    <span>{isSyncing ? 'Syncing...' : 'Sync Models'}</span>
                   </Button>
-                  <Button size="sm" onClick={() => handleSave(p)} className="text-xs">
+                  <Button
+                    size="sm"
+                    onClick={() => handleSave(p)}
+                    disabled={updateMutation.isPending}
+                    className="text-xs"
+                  >
                     Save Changes
                   </Button>
                 </CardFooter>
@@ -244,73 +261,75 @@ export function ProvidersPage() {
 
       {/* Add Custom Provider Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <form onSubmit={handleCreateCustomProvider} className="flex flex-col gap-4">
-          <DialogHeader>
-            <DialogTitle>Add Custom OpenAI-Compatible Provider</DialogTitle>
-            <DialogDescription>
-              Connect any OpenAI-compatible provider (DeepSeek, Together AI, Mistral, Ollama, Perplexity, vLLM) instantly without code.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleCreateCustomProvider} className="flex flex-col gap-4">
+            <DialogHeader>
+              <DialogTitle>Add Custom OpenAI-Compatible Provider</DialogTitle>
+              <DialogDescription>
+                Connect any OpenAI-compatible provider (DeepSeek, Together AI, Mistral, Ollama, Perplexity, vLLM) instantly without code.
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="flex flex-col gap-4 py-2">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Provider Name</label>
-              <Input
-                placeholder="e.g. DeepSeek AI"
-                value={customName}
-                onChange={(e) => {
-                  setCustomName(e.target.value);
-                  if (!customId) {
-                    setCustomId(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''));
-                  }
-                }}
-                required
-              />
+            <div className="flex flex-col gap-4 py-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Provider Name</label>
+                <Input
+                  placeholder="e.g. DeepSeek AI"
+                  value={customName}
+                  onChange={(e) => {
+                    setCustomName(e.target.value);
+                    if (!customId) {
+                      setCustomId(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''));
+                    }
+                  }}
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Provider Slug ID (alphanumeric)</label>
+                <Input
+                  placeholder="e.g. deepseek"
+                  value={customId}
+                  onChange={(e) => setCustomId(e.target.value)}
+                  required
+                  className="font-mono text-xs"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Base URL</label>
+                <Input
+                  placeholder="e.g. https://api.deepseek.com/v1"
+                  value={customBaseUrl}
+                  onChange={(e) => setCustomBaseUrl(e.target.value)}
+                  required
+                  className="font-mono text-xs"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground">API Key (optional for local models)</label>
+                <Input
+                  type="password"
+                  placeholder="sk-..."
+                  value={customApiKey}
+                  onChange={(e) => setCustomApiKey(e.target.value)}
+                  className="font-mono text-xs"
+                />
+              </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Provider Slug ID (alphanumeric)</label>
-              <Input
-                placeholder="e.g. deepseek"
-                value={customId}
-                onChange={(e) => setCustomId(e.target.value)}
-                required
-                className="font-mono text-xs"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Base URL</label>
-              <Input
-                placeholder="e.g. https://api.deepseek.com/v1"
-                value={customBaseUrl}
-                onChange={(e) => setCustomBaseUrl(e.target.value)}
-                required
-                className="font-mono text-xs"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">API Key (optional for local models)</label>
-              <Input
-                type="password"
-                placeholder="sk-..."
-                value={customApiKey}
-                onChange={(e) => setCustomApiKey(e.target.value)}
-                className="font-mono text-xs"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" type="button" onClick={() => setIsAddModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              Register Provider
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => setIsAddModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                Register Provider
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
       </Dialog>
     </div>
   );

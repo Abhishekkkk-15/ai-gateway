@@ -1,11 +1,19 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, type RequestLogView } from '../lib/api.js';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card.js';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table.js';
-import { Badge } from '../components/ui/Badge.js';
-import { Input } from '../components/ui/Input.js';
-import { Activity, Zap, Timer, CheckCircle2, AlertCircle, Search, Filter } from 'lucide-react';
+import { Card, CardContent } from '../components/ui/card.js';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../components/ui/table.js';
+import { Badge } from '../components/ui/badge.js';
+import { Input } from '../components/ui/input.js';
+import { Skeleton } from '../components/ui/skeleton.js';
+import { Activity, Zap, Timer, CheckCircle2, AlertCircle, Search } from 'lucide-react';
 
 export function LogsPage() {
   const [search, setSearch] = useState('');
@@ -50,7 +58,10 @@ export function LogsPage() {
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">Request Telemetry &amp; Logs</h1>
-            <Badge variant="outline" className="gap-1.5 text-[11px] font-mono border-emerald-500/30 text-emerald-500 bg-emerald-500/10">
+            <Badge
+              variant="outline"
+              className="gap-1.5 text-[11px] font-mono border-emerald-500/30 text-emerald-500 bg-emerald-500/10"
+            >
               <span className="relative flex size-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
@@ -148,14 +159,31 @@ export function LogsPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-28 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Activity className="size-5 animate-spin text-primary" />
-                    <span className="text-xs">Loading telemetry records...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <Skeleton className="h-5 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-40" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-12" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-14" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-16" />
+                  </TableCell>
+                </TableRow>
+              ))
             ) : filteredLogs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">

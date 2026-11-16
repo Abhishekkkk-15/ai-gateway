@@ -2,10 +2,17 @@
 import { describe, it, expect } from 'vitest';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../src/components/ui/Sidebar.js';
-import { Separator } from '../src/components/ui/Separator.js';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../src/components/ui/DropdownMenu.js';
-import { Card, CardHeader, CardTitle, CardContent } from '../src/components/ui/Card.js';
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarTrigger,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+} from '../src/components/ui/sidebar.js';
+import { Separator } from '../src/components/ui/separator.js';
+import { Card, CardHeader, CardTitle, CardContent } from '../src/components/ui/card.js';
 
 describe('UI Primitives Smoke Test', () => {
   it('renders Sidebar and SidebarTrigger without crashing', () => {

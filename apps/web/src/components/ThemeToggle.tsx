@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext.js';
-import { Button } from './ui/Button.js';
+import { Button } from './ui/button.js';
 import { Sun, Moon, Laptop } from 'lucide-react';
 
 export function ThemeToggle({ className }: { className?: string }) {

@@ -61,8 +61,8 @@ describe('Feature Pages (Playground & Logs)', () => {
     renderWithProviders(<PlaygroundPage />);
 
     expect(screen.getByText('Interactive Playground')).toBeDefined();
-    expect(screen.getByText('Prompt Input')).toBeDefined();
-    expect(screen.getByText('Send Completion Request')).toBeDefined();
+    expect(screen.getByText('Inference Stream')).toBeDefined();
+    expect(screen.getByText('Send Prompt')).toBeDefined();
 
     // Switch to TTS
     const ttsButton = screen.getByRole('button', { name: /tts/i });

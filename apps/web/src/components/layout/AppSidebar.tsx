@@ -1,4 +1,5 @@
 import React from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   Sidebar,
   SidebarHeader,
@@ -10,8 +11,18 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarRail,
   useSidebar,
-} from '../ui/Sidebar.js';
+} from '../ui/sidebar.js';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '../ui/dropdown-menu.js';
+import { Avatar, AvatarFallback } from '../ui/avatar.js';
 import {
   LayoutDashboard,
   Cpu,
@@ -20,50 +31,56 @@ import {
   Play,
   ScrollText,
   LogOut,
-  ShieldCheck,
+  ChevronsUpDown,
+  Zap,
 } from 'lucide-react';
 
-export type NavTab = 'overview' | 'providers' | 'models' | 'keys' | 'playground' | 'logs';
+export interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+export const NAV_ITEMS: NavItem[] = [
+  { path: '/overview', label: 'Overview', icon: LayoutDashboard },
+  { path: '/providers', label: 'AI Providers', icon: Cpu },
+  { path: '/models', label: 'Models Catalog', icon: Layers },
+  { path: '/keys', label: 'Gateway API Keys', icon: KeyRound },
+  { path: '/playground', label: 'Playground', icon: Play },
+  { path: '/logs', label: 'Telemetry Logs', icon: ScrollText },
+];
 
 export function AppSidebar({
-  activeTab,
-  onSelectTab,
   onLogout,
   username = 'admin',
 }: {
-  activeTab: NavTab;
-  onSelectTab: (tab: NavTab) => void;
   onLogout: () => void;
   username?: string;
 }) {
   const { open } = useSidebar();
-
-  const navItems: Array<{ id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'providers', label: 'AI Providers', icon: Cpu },
-    { id: 'models', label: 'Models Catalog', icon: Layers },
-    { id: 'keys', label: 'Gateway API Keys', icon: KeyRound },
-    { id: 'playground', label: 'Playground', icon: Play },
-    { id: 'logs', label: 'Telemetry Logs', icon: ScrollText },
-  ];
+  const location = useLocation();
 
   return (
-    <Sidebar variant="inset">
+    <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
-        <div className="flex items-center gap-3">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold shadow-sm shrink-0">
-            ⚡
-          </div>
-          {open && (
-            <div className="flex flex-col min-w-0">
-              <span className="font-bold text-sm tracking-tight truncate">AI Gateway</span>
-              <span className="text-[10px] text-muted-foreground flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Hot-Path Active</span>
-              </span>
-            </div>
-          )}
-        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild className="hover:bg-transparent">
+              <NavLink to="/overview" className="flex items-center gap-3">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold shadow-sm shrink-0">
+                  <Zap className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-bold tracking-tight">AI Gateway</span>
+                  <span className="truncate text-[11px] text-muted-foreground flex items-center gap-1.5">
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Hot-Path Active</span>
+                  </span>
+                </div>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent>
@@ -71,18 +88,18 @@ export function AppSidebar({
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => {
+              {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
-                const isActive = activeTab === item.id;
+                const isActive =
+                  location.pathname === item.path ||
+                  (item.path === '/overview' && location.pathname === '/');
                 return (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => onSelectTab(item.id)}
-                      tooltip={item.label}
-                    >
-                      <Icon className={`size-4 shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                      {open && <span className="truncate">{item.label}</span>}
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                      <NavLink to={item.path} className="flex items-center gap-3">
+                        <Icon className="size-4 shrink-0" />
+                        <span>{item.label}</span>
+                      </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -93,26 +110,61 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="flex flex-col gap-2">
-          {open && (
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-sidebar-accent/40 text-xs">
-              <ShieldCheck className="size-4 text-emerald-500 shrink-0" />
-              <div className="flex flex-col min-w-0">
-                <span className="font-medium truncate">{username}</span>
-                <span className="text-[10px] text-muted-foreground">Admin Session</span>
-              </div>
-            </div>
-          )}
-          <SidebarMenuButton
-            onClick={onLogout}
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            tooltip="Sign Out"
-          >
-            <LogOut className="size-4 shrink-0" />
-            {open && <span>Sign Out</span>}
-          </SidebarMenuButton>
-        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                >
+                  <Avatar className="size-8 rounded-lg">
+                    <AvatarFallback className="rounded-lg bg-primary text-primary-foreground font-semibold text-xs">
+                      {username.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">{username}</span>
+                    <span className="truncate text-xs text-muted-foreground">Admin Session</span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-56 rounded-lg"
+                side="bottom"
+                align="end"
+                sideOffset={4}
+              >
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                    <Avatar className="size-8 rounded-lg">
+                      <AvatarFallback className="rounded-lg bg-primary text-primary-foreground font-semibold text-xs">
+                        {username.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">{username}</span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        Gateway Operator
+                      </span>
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={onLogout}
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
+                >
+                  <LogOut className="size-4 mr-2" />
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }

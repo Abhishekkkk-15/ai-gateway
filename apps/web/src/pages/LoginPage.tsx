@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Card, CardContent } from '../components/ui/Card.js';
-import { Input } from '../components/ui/Input.js';
-import { Button } from '../components/ui/Button.js';
-import { Badge } from '../components/ui/Badge.js';
+import { Card, CardContent } from '../components/ui/card.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
 import { api } from '../lib/api.js';
 import { Lock, ArrowRight, AlertCircle, ShieldCheck, Zap, Activity, Cpu } from 'lucide-react';
