@@ -91,6 +91,82 @@ export interface OpenAIEmbeddingResponse {
   };
 }
 
+export interface OpenAIImageGenerateRequest {
+  prompt: string;
+  model?: string;
+  n?: number;
+  quality?: 'standard' | 'hd' | string;
+  response_format?: 'url' | 'b64_json' | string;
+  size?: '256x256' | '512x512' | '1024x1024' | '1792x1024' | '1024x1792' | string;
+  style?: 'vivid' | 'natural' | string;
+  user?: string;
+  [key: string]: unknown;
+}
+
+export interface OpenAIImageData {
+  url?: string;
+  b64_json?: string;
+  revised_prompt?: string;
+}
+
+export interface OpenAIImageResponse {
+  created: number;
+  data: OpenAIImageData[];
+}
+
+export interface OpenAIModerationRequest {
+  input: string | string[];
+  model?: string;
+  [key: string]: unknown;
+}
+
+export interface OpenAIModerationCategories {
+  sexual?: boolean;
+  hate?: boolean;
+  harassment?: boolean;
+  'self-harm'?: boolean;
+  'sexual/minors'?: boolean;
+  'hate/threatening'?: boolean;
+  'violence/graphic'?: boolean;
+  'self-harm/intent'?: boolean;
+  'self-harm/instructions'?: boolean;
+  'harassment/threatening'?: boolean;
+  violence?: boolean;
+  illicit?: boolean;
+  'illicit/violent'?: boolean;
+  [key: string]: boolean | undefined;
+}
+
+export interface OpenAIModerationCategoryScores {
+  sexual?: number;
+  hate?: number;
+  harassment?: number;
+  'self-harm'?: number;
+  'sexual/minors'?: number;
+  'hate/threatening'?: number;
+  'violence/graphic'?: number;
+  'self-harm/intent'?: number;
+  'self-harm/instructions'?: number;
+  'harassment/threatening'?: number;
+  violence?: number;
+  illicit?: number;
+  'illicit/violent'?: number;
+  [key: string]: number | undefined;
+}
+
+export interface OpenAIModerationResult {
+  flagged: boolean;
+  categories: OpenAIModerationCategories;
+  category_scores: OpenAIModerationCategoryScores;
+  category_applied_input_types?: Record<string, string[]>;
+}
+
+export interface OpenAIModerationResponse {
+  id: string;
+  model: string;
+  results: OpenAIModerationResult[];
+}
+
 export interface OpenAIErrorEnvelope {
   error: {
     message: string;

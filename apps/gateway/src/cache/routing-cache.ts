@@ -295,6 +295,13 @@ export class RoutingCache {
 
   setModelForTesting(slug: string, route: ResolvedRoute): void {
     this.modelsMap.set(slug, route);
+    if (route.model?.id) {
+      this.modelIdMap.set(route.model.id.toLowerCase(), slug);
+      const short = route.model.id.split('/').pop()?.toLowerCase();
+      if (short) {
+        this.shortNameMap.set(short, slug);
+      }
+    }
   }
 
   setAliasForTesting(alias: string, slug: string): void {

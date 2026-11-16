@@ -5,6 +5,8 @@ import type {
   OpenAIChatCompletionRequest,
   OpenAISpeechRequest,
   OpenAIEmbeddingRequest,
+  OpenAIImageGenerateRequest,
+  OpenAIModerationRequest,
 } from './types.js';
 
 export interface ProviderAdapter {
@@ -47,6 +49,34 @@ export interface ProviderAdapter {
   /** Text-to-Speech mapped to POST /v1/audio/speech */
   synthesizeSpeech?(
     request: OpenAISpeechRequest,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response>;
+
+  /** Image Generation mapped to POST /v1/images/generations */
+  generateImages?(
+    request: OpenAIImageGenerateRequest,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response>;
+
+  /** Image Edits mapped to POST /v1/images/edits */
+  editImages?(
+    formData: FormData,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response>;
+
+  /** Image Variations mapped to POST /v1/images/variations */
+  createImageVariations?(
+    formData: FormData,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response>;
+
+  /** Content Moderations mapped to POST /v1/moderations */
+  createModeration?(
+    request: OpenAIModerationRequest,
     config: ProviderConfig,
     signal?: AbortSignal
   ): Promise<Response>;

@@ -6,6 +6,8 @@ import type {
   OpenAIChatCompletionRequest,
   OpenAISpeechRequest,
   OpenAIEmbeddingRequest,
+  OpenAIImageGenerateRequest,
+  OpenAIModerationRequest,
 } from '../types.js';
 
 export class GenericOpenAIAdapter implements ProviderAdapter {
@@ -156,6 +158,92 @@ export class GenericOpenAIAdapter implements ProviderAdapter {
     const headers = this.getHeaders(config);
 
     const response = await fetch(`${baseUrl}/audio/speech`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(request),
+      signal,
+      duplex: 'half',
+    } as RequestInit);
+
+    return response;
+  }
+
+  async generateImages(
+    request: OpenAIImageGenerateRequest,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    const baseUrl = this.getBaseUrl(config);
+    const headers = this.getHeaders(config);
+
+    const response = await fetch(`${baseUrl}/images/generations`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(request),
+      signal,
+      duplex: 'half',
+    } as RequestInit);
+
+    return response;
+  }
+
+  async editImages(
+    formData: FormData,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    const baseUrl = this.getBaseUrl(config);
+    const headers: Record<string, string> = {
+      ...config.extraHeaders,
+    };
+    if (config.apiKey) {
+      headers['Authorization'] = `Bearer ${config.apiKey}`;
+    }
+
+    const response = await fetch(`${baseUrl}/images/edits`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      signal,
+      duplex: 'half',
+    } as RequestInit);
+
+    return response;
+  }
+
+  async createImageVariations(
+    formData: FormData,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    const baseUrl = this.getBaseUrl(config);
+    const headers: Record<string, string> = {
+      ...config.extraHeaders,
+    };
+    if (config.apiKey) {
+      headers['Authorization'] = `Bearer ${config.apiKey}`;
+    }
+
+    const response = await fetch(`${baseUrl}/images/variations`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      signal,
+      duplex: 'half',
+    } as RequestInit);
+
+    return response;
+  }
+
+  async createModeration(
+    request: OpenAIModerationRequest,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    const baseUrl = this.getBaseUrl(config);
+    const headers = this.getHeaders(config);
+
+    const response = await fetch(`${baseUrl}/moderations`, {
       method: 'POST',
       headers,
       body: JSON.stringify(request),

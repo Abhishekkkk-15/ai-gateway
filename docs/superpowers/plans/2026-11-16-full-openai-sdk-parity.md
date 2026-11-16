@@ -134,12 +134,14 @@ Phases of Implementation:
 
 **Files:**
 - Create: `apps/gateway/src/routes/v1/images.ts`
-- Create: `packages/core/src/adapters/images.ts`
+- Modify: `packages/core/src/types.ts`
 - Modify: `packages/core/src/adapter.ts`
-- Modify: `apps/gateway/src/routes/v1/index.ts`
+- Modify: `packages/core/src/adapters/generic-openai.ts`
+- Modify: `apps/gateway/src/server.ts`
 - Test: `apps/gateway/tests/v1-images.test.ts`
+- Examples: `examples/nodejs/images-demo.ts`, `examples/python/images_demo.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Create `apps/gateway/tests/v1-images.test.ts` testing:
   - `POST /v1/images/generations`: `{ prompt: "cyberpunk city", model: "dall-e-3", n: 1, size: "1024x1024", response_format: "url" }`.
   - Verify OpenAI response structure: `{ created: 1710000000, data: [{ url: "https://...", revised_prompt: "..." }] }`.
@@ -147,14 +149,14 @@ Phases of Implementation:
   - `POST /v1/images/edits` (multipart with image, mask, prompt).
   - `POST /v1/images/variations` (multipart with image).
 
-- [ ] **Step 2: Implement Image Generation Adapter & Routing**
+- [x] **Step 2: Implement Image Generation Adapter & Routing**
   - Implement image contract supporting DALL-E, Stability AI, and FLUX (Black Forest Labs via Together/Replicate/OpenAI-compatible).
   - Add `generateImages`, `editImages`, `createImageVariations` to `packages/core/src/adapter.ts`.
 
-- [ ] **Step 3: Register Fastify Routes**
+- [x] **Step 3: Register Fastify Routes**
   In `apps/gateway/src/routes/v1/images.ts`, register `/v1/images/generations`, `/v1/images/edits`, and `/v1/images/variations`.
 
-- [ ] **Step 4: Run tests and verify**
+- [x] **Step 4: Run tests and verify**
   Run `pnpm test` and ensure all image tests pass.
 
 ---
@@ -163,22 +165,24 @@ Phases of Implementation:
 
 **Files:**
 - Create: `apps/gateway/src/routes/v1/moderations.ts`
-- Modify: `packages/provider-nvidia/src/index.ts` (Llama-Guard-4 integration)
+- Modify: `packages/core/src/types.ts`
 - Modify: `packages/core/src/adapter.ts`
-- Modify: `apps/gateway/src/routes/v1/index.ts`
+- Modify: `packages/core/src/adapters/generic-openai.ts`
+- Modify: `apps/gateway/src/server.ts`
 - Test: `apps/gateway/tests/v1-moderations.test.ts`
+- Examples: `examples/nodejs/moderations-demo.ts`, `examples/python/moderations_demo.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Create `apps/gateway/tests/v1-moderations.test.ts` testing:
   - Input: `{ input: "Sample benign text" }`
   - Output envelope: `{ id: "modr-...", model: "omni-moderation-latest", results: [{ flagged: false, categories: { hate: false, harassment: false, ... }, category_scores: { hate: 0.001, ... } }] }`.
   - Flagged input behavior with policy categories.
 
-- [ ] **Step 2: Implement Adapter & Moderation Normalization**
+- [x] **Step 2: Implement Adapter & Moderation Normalization**
   - Connect to upstream moderation (OpenAI moderation or Nvidia `meta/llama-guard-4-12b` classification adapter).
   - Normalize classifications to standard OpenAI category dictionary (`hate`, `hate/threatening`, `harassment`, `self-harm`, `sexual`, `sexual/minors`, `violence`, `violence/graphic`).
 
-- [ ] **Step 3: Register Fastify Route**
+- [x] **Step 3: Register Fastify Route**
   Register `POST /v1/moderations` in `apps/gateway/src/routes/v1/moderations.ts`.
 
 ---
