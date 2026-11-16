@@ -96,3 +96,62 @@
 code, pre {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
+
+/* Prism Syntax Highlighting Tokens */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #71717a; /* zinc-500 */
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: #a1a1aa; /* zinc-400 */
+}
+
+.token.property,
+.token.tag,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #f43f5e; /* rose-500 */
+}
+
+.token.boolean,
+.token.number {
+  color: #fbbf24; /* amber-400 */
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #34d399; /* emerald-400 */
+}
+
+.token.operator,
+.token.entity,
+.token.url {
+  color: #38bdf8; /* sky-400 */
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #c084fc; /* purple-400 */
+  font-weight: 600;
+}
+
+.token.function,
+.token.class-name {
+  color: #60a5fa; /* blue-400 */
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #f97316; /* orange-500 */
+}

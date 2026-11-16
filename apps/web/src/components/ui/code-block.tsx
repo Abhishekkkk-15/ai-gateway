@@ -1,5 +1,12 @@
 import * as React from 'react';
 import { Check, Copy, Terminal, Code2 } from 'lucide-react';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-python.js';
+import 'prismjs/components/prism-javascript.js';
+import 'prismjs/components/prism-typescript.js';
+import 'prismjs/components/prism-bash.js';
+import 'prismjs/components/prism-json.js';
+
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,9 +44,33 @@ export const CodeBlock = React.forwardRef<HTMLDivElement, CodeBlockProps>(
       }
     };
 
-    const lines = React.useMemo(() => code.split('\n'), [code]);
-
     const displayLanguage = language || (filename ? filename.split('.').pop() : undefined);
+
+    const highlightedLines = React.useMemo(() => {
+      const normalizedLang = displayLanguage?.toLowerCase() || 'javascript';
+      const grammar =
+        normalizedLang === 'python' || normalizedLang === 'py'
+          ? Prism.languages.python
+          : normalizedLang === 'node' || normalizedLang === 'javascript' || normalizedLang === 'js'
+            ? Prism.languages.javascript
+            : normalizedLang === 'typescript' || normalizedLang === 'ts'
+              ? Prism.languages.typescript
+              : normalizedLang === 'curl' || normalizedLang === 'bash' || normalizedLang === 'sh' || normalizedLang === 'shell'
+                ? Prism.languages.bash
+                : normalizedLang === 'json'
+                  ? Prism.languages.json
+                  : Prism.languages.javascript;
+
+      const langToUse = grammar ? normalizedLang : 'javascript';
+      const effectiveGrammar = grammar || Prism.languages.javascript;
+
+      try {
+        const rawHtml = Prism.highlight(code, effectiveGrammar, langToUse);
+        return rawHtml.split('\n');
+      } catch {
+        return code.split('\n');
+      }
+    }, [code, displayLanguage]);
 
     return (
       <div
@@ -52,7 +83,7 @@ export const CodeBlock = React.forwardRef<HTMLDivElement, CodeBlockProps>(
       >
         {/* Header Bar */}
         {(filename || displayLanguage) && (
-          <div className="flex items-center justify-between border-b border-border/40 bg-zinc-900/60 px-4 py-2 text-xs">
+          <div className="flex items-center justify-between border-b border-border/40 bg-zinc-900/80 px-4 py-2 text-xs">
             <div className="flex items-center gap-2 text-zinc-400">
               {displayLanguage === 'bash' || displayLanguage === 'curl' || displayLanguage === 'sh' ? (
                 <Terminal className="size-3.5 text-primary" />
@@ -64,7 +95,7 @@ export const CodeBlock = React.forwardRef<HTMLDivElement, CodeBlockProps>(
               ) : (
                 <Badge
                   variant="outline"
-                  className="h-5 px-1.5 text-[10px] uppercase font-mono border-zinc-700 text-zinc-300 bg-zinc-800/50"
+                  className="h-5 px-1.5 text-[10px] uppercase font-mono border-zinc-700 text-zinc-300 bg-zinc-800/60"
                 >
                   {displayLanguage}
                 </Badge>
@@ -75,7 +106,7 @@ export const CodeBlock = React.forwardRef<HTMLDivElement, CodeBlockProps>(
               variant="ghost"
               size="sm"
               onClick={handleCopy}
-              className="h-6 px-2 text-[11px] text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 gap-1.5"
+              className="h-6 px-2 text-[11px] text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 gap-1.5"
               title="Copy snippet"
             >
               {copied ? (
@@ -121,18 +152,24 @@ export const CodeBlock = React.forwardRef<HTMLDivElement, CodeBlockProps>(
             {showLineNumbers ? (
               <table className="w-full border-collapse">
                 <tbody>
-                  {lines.map((line, idx) => (
+                  {highlightedLines.map((lineHtml, idx) => (
                     <tr key={idx} className="hover:bg-zinc-900/40">
                       <td className="w-8 select-none pr-4 text-right text-zinc-600 font-mono text-[11px]">
                         {idx + 1}
                       </td>
-                      <td className="whitespace-pre">{line || ' '}</td>
+                      <td
+                        className="whitespace-pre font-mono text-zinc-200"
+                        dangerouslySetInnerHTML={{ __html: lineHtml || '&nbsp;' }}
+                      />
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <code className="text-zinc-100 whitespace-pre">{code}</code>
+              <code
+                className="text-zinc-200 whitespace-pre font-mono block"
+                dangerouslySetInnerHTML={{ __html: highlightedLines.join('\n') }}
+              />
             )}
           </pre>
         </div>
