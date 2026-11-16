@@ -4,6 +4,7 @@ import type {
   UnifiedModel,
   ModelCapability,
   OpenAIChatCompletionRequest,
+  OpenAIEmbeddingRequest,
 } from '@ai-gateway/core';
 
 export class GoogleAdapter implements ProviderAdapter {
@@ -52,11 +53,15 @@ export class GoogleAdapter implements ProviderAdapter {
         if (Array.isArray(data.data) && data.data.length > 0) {
           return data.data.map((item) => {
             const normalizedId = item.id.replace(/^models\//, '');
+            const isEmbed = normalizedId.toLowerCase().includes('embed');
+            const capabilities: ModelCapability[] = isEmbed
+              ? ['embeddings']
+              : ['chat', 'vision', 'tools'];
             return {
               id: normalizedId,
               providerId: config.id,
               displayName: item.display_name || normalizedId,
-              capabilities: ['chat', 'vision', 'tools'],
+              capabilities,
             };
           });
         }
@@ -64,11 +69,15 @@ export class GoogleAdapter implements ProviderAdapter {
         if (Array.isArray(data.models) && data.models.length > 0) {
           return data.models.map((item) => {
             const normalizedId = item.name.replace(/^models\//, '');
+            const isEmbed = normalizedId.toLowerCase().includes('embed');
+            const capabilities: ModelCapability[] = isEmbed
+              ? ['embeddings']
+              : ['chat', 'vision', 'tools'];
             return {
               id: normalizedId,
               providerId: config.id,
               displayName: item.displayName || normalizedId,
-              capabilities: ['chat', 'vision', 'tools'],
+              capabilities,
               contextWindow: item.inputTokenLimit,
             };
           });
@@ -98,11 +107,31 @@ export class GoogleAdapter implements ProviderAdapter {
         contextWindow: 2097152,
       },
       {
-        id: 'gemini-2.0-flash-exp',
+        id: 'gemini-2.0-flash',
         providerId,
-        displayName: 'Gemini 2.0 Flash Exp',
+        displayName: 'Gemini 2.0 Flash',
         capabilities: ['chat', 'vision', 'tools'],
         contextWindow: 1048576,
+      },
+      {
+        id: 'gemini-1.5-flash',
+        providerId,
+        displayName: 'Gemini 1.5 Flash',
+        capabilities: ['chat', 'vision', 'tools'],
+        contextWindow: 1048576,
+      },
+      {
+        id: 'gemini-1.5-pro',
+        providerId,
+        displayName: 'Gemini 1.5 Pro',
+        capabilities: ['chat', 'vision', 'tools'],
+        contextWindow: 2097152,
+      },
+      {
+        id: 'text-embedding-004',
+        providerId,
+        displayName: 'Text Embedding 004',
+        capabilities: ['embeddings'],
       },
     ];
   }
@@ -122,6 +151,30 @@ export class GoogleAdapter implements ProviderAdapter {
     };
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(normalizedRequest),
+      signal,
+      duplex: 'half',
+    } as RequestInit);
+
+    return response;
+  }
+
+  async createEmbeddings(
+    request: OpenAIEmbeddingRequest,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    const baseUrl = this.getBaseUrl(config);
+    const headers = this.getHeaders(config);
+
+    const normalizedRequest = {
+      ...request,
+      model: request.model.replace(/^models\//, ''),
+    };
+
+    const response = await fetch(`${baseUrl}/embeddings`, {
       method: 'POST',
       headers,
       body: JSON.stringify(normalizedRequest),
