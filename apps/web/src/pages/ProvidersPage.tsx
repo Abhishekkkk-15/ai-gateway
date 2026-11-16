@@ -34,6 +34,7 @@ export function ProvidersPage() {
 
   // Add Custom Provider Dialog State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isCreatingCustom, setIsCreatingCustom] = useState(false);
   const [customId, setCustomId] = useState('');
   const [customName, setCustomName] = useState('');
   const [customBaseUrl, setCustomBaseUrl] = useState('https://api.deepseek.com/v1');
@@ -95,8 +96,9 @@ export function ProvidersPage() {
   const handleCreateCustomProvider = async (e: React.FormEvent) => {
     e.preventDefault();
     const id = customId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
-    if (!id || !customName.trim() || !customBaseUrl.trim()) return;
+    if (!id || !customName.trim() || !customBaseUrl.trim() || isCreatingCustom) return;
 
+    setIsCreatingCustom(true);
     try {
       await api.updateProvider(id, {
         name: customName.trim(),
@@ -115,6 +117,8 @@ export function ProvidersPage() {
       void queryClient.invalidateQueries({ queryKey: ['models'] });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to create provider');
+    } finally {
+      setIsCreatingCustom(false);
     }
   };
 
@@ -182,6 +186,7 @@ export function ProvidersPage() {
                       </Badge>
                       <Switch
                         checked={p.isEnabled}
+                        disabled={updateMutation.isPending && updateMutation.variables?.id === p.id}
                         onCheckedChange={(checked) => handleToggle(p, checked)}
                       />
                     </div>
@@ -247,10 +252,17 @@ export function ProvidersPage() {
                   <Button
                     size="sm"
                     onClick={() => handleSave(p)}
-                    disabled={updateMutation.isPending}
+                    disabled={updateMutation.isPending && updateMutation.variables?.id === p.id}
                     className="text-xs"
                   >
-                    Save Changes
+                    {updateMutation.isPending && updateMutation.variables?.id === p.id ? (
+                      <>
+                        <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>Save Changes</span>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
@@ -321,11 +333,23 @@ export function ProvidersPage() {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" type="button" onClick={() => setIsAddModalOpen(false)}>
+              <Button
+                variant="outline"
+                type="button"
+                disabled={isCreatingCustom}
+                onClick={() => setIsAddModalOpen(false)}
+              >
                 Cancel
               </Button>
-              <Button type="submit">
-                Register Provider
+              <Button type="submit" disabled={isCreatingCustom}>
+                {isCreatingCustom ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                    <span>Registering...</span>
+                  </>
+                ) : (
+                  <span>Register Provider</span>
+                )}
               </Button>
             </DialogFooter>
           </form>

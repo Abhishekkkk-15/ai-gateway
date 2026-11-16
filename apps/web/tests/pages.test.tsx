@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PlaygroundPage } from '../src/pages/PlaygroundPage.js';
 import { LogsPage } from '../src/pages/LogsPage.js';
+import { ModelsPage } from '../src/pages/ModelsPage.js';
 import { ThemeProvider } from '../src/context/ThemeContext.js';
 
 vi.mock('../src/lib/api.js', () => ({
@@ -12,14 +13,28 @@ vi.mock('../src/lib/api.js', () => ({
     getModels: vi.fn().mockResolvedValue({
       models: [
         {
-          id: 'm-1',
-          providerId: 'groq',
           slug: 'groq/llama-3.3-70b-versatile',
+          modelId: 'llama-3.3-70b-versatile',
+          providerId: 'groq',
+          displayName: 'Llama 3.3 70B',
+          capabilities: ['chat', 'tools'],
+          contextWindow: 131072,
           customAlias: 'groq-llama',
           isEnabled: true,
         },
+        {
+          slug: 'nvidia/deepseek-ai/deepseek-v4.1-flash',
+          modelId: 'deepseek-v4.1-flash',
+          providerId: 'nvidia',
+          displayName: 'DeepSeek Flash',
+          capabilities: ['chat'],
+          contextWindow: 65536,
+          customAlias: null,
+          isEnabled: false,
+        },
       ],
     }),
+    updateModel: vi.fn().mockResolvedValue({ message: 'Model updated' }),
     getGatewayKeys: vi.fn().mockResolvedValue({
       keys: [{ id: 'k-1', name: 'Test Key', prefix: 'sk-gw-test', createdAt: '2026-11-16' }],
     }),
@@ -52,7 +67,7 @@ function renderWithProviders(ui: React.ReactElement) {
   );
 }
 
-describe('Feature Pages (Playground & Logs)', () => {
+describe('Feature Pages (Playground, Logs & Models)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -68,6 +83,9 @@ describe('Feature Pages (Playground & Logs)', () => {
     const ttsButton = screen.getByRole('button', { name: /tts/i });
     fireEvent.click(ttsButton);
     expect(screen.getByText('Text-to-Speech Synthesis')).toBeDefined();
+    expect(screen.getByText('Voice Preset / ID')).toBeDefined();
+    expect(screen.getByText('TTS Synthesis Model')).toBeDefined();
+    expect(screen.getByText('Synthesize Audio')).toBeDefined();
 
     // Switch to STT
     const sttButton = screen.getByRole('button', { name: /stt/i });
@@ -85,5 +103,27 @@ describe('Feature Pages (Playground & Logs)', () => {
     expect(screen.getByText('All')).toBeDefined();
     expect(screen.getByText('2xx Success')).toBeDefined();
     expect(screen.getByText('Errors')).toBeDefined();
+  });
+
+  it('renders ModelsPage with search input, filters toolbar, and models list', async () => {
+    renderWithProviders(<ModelsPage />);
+
+    expect(screen.getByText('Models Catalog')).toBeDefined();
+    expect(
+      screen.getByPlaceholderText('Search by slug, alias, provider...')
+    ).toBeDefined();
+
+    // Wait for mock models to load
+    await waitFor(() => {
+      expect(screen.getByText('groq/llama-3.3-70b-versatile')).toBeDefined();
+      expect(screen.getByText('nvidia/deepseek-ai/deepseek-v4.1-flash')).toBeDefined();
+    });
+
+    // Test filter by search
+    const searchInput = screen.getByPlaceholderText('Search by slug, alias, provider...');
+    fireEvent.change(searchInput, { target: { value: 'llama' } });
+
+    expect(screen.getByText('groq/llama-3.3-70b-versatile')).toBeDefined();
+    expect(screen.queryByText('nvidia/deepseek-ai/deepseek-v4.1-flash')).toBeNull();
   });
 });

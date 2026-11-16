@@ -38,6 +38,7 @@ import {
   Code2,
   ShieldAlert,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 
 export function KeysPage() {
@@ -198,10 +199,15 @@ export function KeysPage() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      disabled={deleteMutation.isPending && deleteMutation.variables === k.id}
                       onClick={() => deleteMutation.mutate(k.id)}
                       className="text-destructive hover:bg-destructive/10 size-8 p-0"
                     >
-                      <Trash2 className="size-4" />
+                      {deleteMutation.isPending && deleteMutation.variables === k.id ? (
+                        <Loader2 className="size-4 animate-spin text-destructive" />
+                      ) : (
+                        <Trash2 className="size-4" />
+                      )}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -351,10 +357,24 @@ for await (const chunk of stream) {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" type="button" onClick={() => setIsCreateOpen(false)}>
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => setIsCreateOpen(false)}
+                disabled={createMutation.isPending}
+              >
                 Cancel
               </Button>
-              <Button type="submit">Create Key</Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                    <span>Creating Key...</span>
+                  </>
+                ) : (
+                  <span>Create Key</span>
+                )}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

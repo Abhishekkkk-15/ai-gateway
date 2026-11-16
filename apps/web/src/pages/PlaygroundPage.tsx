@@ -34,12 +34,41 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  AudioLines,
+  Sliders,
 } from 'lucide-react';
 
 const PROMPT_SUGGESTIONS = [
   'Explain the benefits of an in-memory routing cache in 3 concise bullet points.',
   'Write a TypeScript function to calculate Exponential Moving Average (EMA).',
   'What are the core differences between SSE streaming and WebSockets for LLMs?',
+];
+
+const PRESET_VOICES = [
+  {
+    category: 'ElevenLabs Voices',
+    voices: [
+      { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Calm, Warm (Default)' },
+      { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', description: 'Deep, Narrative' },
+      { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', description: 'Crisp, Professional' },
+      { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella', description: 'Expressive, Warm' },
+      { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh', description: 'Young, Conversational' },
+      { id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam', description: 'Dynamic, Versatile' },
+      { id: 'piTKgcLEGmPE4e6mEKli', name: 'Nicole', description: 'Soft, Whispering' },
+      { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold', description: 'Authoritative, Strong' },
+    ],
+  },
+  {
+    category: 'OpenAI Standard Voices',
+    voices: [
+      { id: 'alloy', name: 'Alloy', description: 'Neutral, Balanced' },
+      { id: 'echo', name: 'Echo', description: 'Warm, Well-rounded' },
+      { id: 'fable', name: 'Fable', description: 'British Accent' },
+      { id: 'onyx', name: 'Onyx', description: 'Deep, Resonant' },
+      { id: 'nova', name: 'Nova', description: 'Energetic, Bright' },
+      { id: 'shimmer', name: 'Shimmer', description: 'Clear, Expressive' },
+    ],
+  },
 ];
 
 export function PlaygroundPage() {
@@ -64,6 +93,9 @@ export function PlaygroundPage() {
 
   // TTS state
   const [ttsText, setTtsText] = useState('Welcome to the high-performance AI API Gateway.');
+  const [ttsModel, setTtsModel] = useState('eleven_flash_v2_5');
+  const [selectedVoice, setSelectedVoice] = useState('21m00Tcm4TlvDq8ikWAM');
+  const [customVoiceId, setCustomVoiceId] = useState('');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
 
@@ -158,6 +190,13 @@ export function PlaygroundPage() {
 
   const handleSynthesizeTts = async () => {
     if (!ttsText.trim()) return;
+
+    const effectiveVoice = selectedVoice === 'custom' ? customVoiceId.trim() : selectedVoice;
+    if (!effectiveVoice) {
+      toast.error('Please enter a custom Voice ID or select a preset voice.');
+      return;
+    }
+
     setIsSynthesizing(true);
     setAudioUrl(null);
 
@@ -171,9 +210,9 @@ export function PlaygroundPage() {
           Authorization: `Bearer ${keyToUse}`,
         },
         body: JSON.stringify({
-          model: 'eleven_flash_v2_5',
+          model: ttsModel || 'eleven_flash_v2_5',
           input: ttsText,
-          voice: '21m00Tcm4TlvDq8ikWAM',
+          voice: effectiveVoice,
         }),
       });
 
@@ -538,39 +577,191 @@ export function PlaygroundPage() {
       {activeTab === 'tts' && (
         <Card className="border-border/80 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Volume2 className="size-4 text-primary" />
-              Text-to-Speech Synthesis
-            </CardTitle>
-            <CardDescription>Converts text to streaming audio binary (ElevenLabs adapter)</CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Volume2 className="size-4 text-primary" />
+                  Text-to-Speech Synthesis
+                </CardTitle>
+                <CardDescription>
+                  Converts text to streaming audio binary with sub-millisecond routing (ElevenLabs &amp; OpenAI adapters).
+                </CardDescription>
+              </div>
+              <Badge variant="outline" className="font-mono text-xs self-start sm:self-auto border-border">
+                Voice ID: {selectedVoice === 'custom' ? (customVoiceId || 'custom') : selectedVoice}
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <textarea
-              value={ttsText}
-              onChange={(e) => setTtsText(e.target.value)}
-              rows={4}
-              className="w-full rounded-md border border-input bg-background/50 p-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring leading-relaxed"
-            />
-            <Button
-              onClick={handleSynthesizeTts}
-              disabled={isSynthesizing}
-              className="flex items-center gap-2 self-start"
-            >
-              {isSynthesizing ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  <span>Synthesizing...</span>
-                </>
-              ) : (
-                <>
-                  <Volume2 className="size-4" />
-                  <span>Synthesize Audio</span>
-                </>
-              )}
-            </Button>
+          <CardContent className="flex flex-col gap-5">
+            {/* Voice & Model Configuration Panel */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border border-border/80 bg-muted/20">
+              {/* 1. Voice ID Selection */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <AudioLines className="size-3.5 text-primary" />
+                    <span>Voice Preset / ID</span>
+                  </label>
+                  {selectedVoice !== 'custom' && (
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {selectedVoice}
+                    </span>
+                  )}
+                </div>
+                <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                  <SelectTrigger className="h-9 text-xs bg-background/50">
+                    <SelectValue placeholder="Select a Voice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRESET_VOICES.map((group) => (
+                      <SelectGroup key={group.category}>
+                        <SelectLabel className="text-xs font-sans text-muted-foreground">
+                          {group.category}
+                        </SelectLabel>
+                        {group.voices.map((v) => (
+                          <SelectItem key={v.id} value={v.id} className="text-xs">
+                            <span className="font-medium">{v.name}</span>
+                            <span className="text-muted-foreground ml-2 text-[11px]">
+                              — {v.description}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-sans text-muted-foreground">
+                        Custom Voice
+                      </SelectLabel>
+                      <SelectItem value="custom" className="text-xs font-medium text-primary">
+                        Other / Custom Voice ID...
+                      </SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
 
+              {/* 2. TTS Model Selection */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Sliders className="size-3.5 text-primary" />
+                  <span>TTS Synthesis Model</span>
+                </label>
+                <Select value={ttsModel} onValueChange={setTtsModel}>
+                  <SelectTrigger className="h-9 text-xs bg-background/50 font-mono">
+                    <SelectValue placeholder="Select TTS Model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-sans text-muted-foreground">ElevenLabs Models</SelectLabel>
+                      <SelectItem value="eleven_flash_v2_5" className="text-xs font-mono">
+                        eleven_flash_v2_5 (Ultra-low latency ~75ms)
+                      </SelectItem>
+                      <SelectItem value="eleven_multilingual_v2" className="text-xs font-mono">
+                        eleven_multilingual_v2 (High expressive quality)
+                      </SelectItem>
+                      <SelectItem value="eleven_turbo_v2_5" className="text-xs font-mono">
+                        eleven_turbo_v2_5 (Fast streaming)
+                      </SelectItem>
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-sans text-muted-foreground">OpenAI Models</SelectLabel>
+                      <SelectItem value="tts-1" className="text-xs font-mono">
+                        tts-1 (Standard)
+                      </SelectItem>
+                      <SelectItem value="tts-1-hd" className="text-xs font-mono">
+                        tts-1-hd (High Definition)
+                      </SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* 3. Custom Voice ID Input (shown when 'custom' is selected) */}
+              {selectedVoice === 'custom' && (
+                <div className="flex flex-col gap-1.5 md:col-span-2 pt-2 border-t border-border/40">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                      <span>Enter Custom Voice ID</span>
+                    </label>
+                    <span className="text-[11px] text-muted-foreground">
+                      Paste any ElevenLabs voice ID (e.g. cloned voice) or custom voice identifier
+                    </span>
+                  </div>
+                  <Input
+                    placeholder="e.g. 21m00Tcm4TlvDq8ikWAM or custom_voice_slug"
+                    value={customVoiceId}
+                    onChange={(e) => setCustomVoiceId(e.target.value)}
+                    className="font-mono text-xs bg-background/50 h-9"
+                    autoFocus
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Text Input Area */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-muted-foreground">Text to Speak</label>
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  {ttsText.length} characters
+                </span>
+              </div>
+              <textarea
+                value={ttsText}
+                onChange={(e) => setTtsText(e.target.value)}
+                rows={4}
+                placeholder="Enter text to synthesize into high quality speech..."
+                className="w-full rounded-md border border-input bg-background/50 p-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring leading-relaxed"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleSynthesizeTts}
+                disabled={isSynthesizing || !ttsText.trim()}
+                className="flex items-center gap-2 shadow-sm"
+              >
+                {isSynthesizing ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    <span>Synthesizing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="size-4" />
+                    <span>Synthesize Audio</span>
+                  </>
+                )}
+              </Button>
+
+              {audioUrl && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = audioUrl;
+                    a.download = `speech-${Date.now()}.mp3`;
+                    a.click();
+                  }}
+                  className="text-xs flex items-center gap-1.5"
+                >
+                  Download MP3
+                </Button>
+              )}
+            </div>
+
+            {/* Audio Player */}
             {audioUrl && (
-              <div className="pt-4 border-t border-border/50">
+              <div className="p-4 rounded-xl border border-border/80 bg-muted/20 flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground flex items-center gap-1.5">
+                    <AudioLines className="size-3.5 text-primary" />
+                    Generated Audio Output
+                  </span>
+                  <span className="font-mono text-[11px]">MP3 Stream</span>
+                </div>
                 <audio controls src={audioUrl} className="w-full rounded-lg" autoPlay />
               </div>
             )}
