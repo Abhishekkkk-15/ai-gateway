@@ -4,10 +4,11 @@ import { cn } from '../../lib/utils.js';
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  asChild?: boolean;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'default', size = 'default', ...props }, ref) => {
+  ({ className, variant = 'default', size = 'default', asChild = false, ...props }, ref) => {
     const base = 'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 select-none';
 
     const variants = {
@@ -26,10 +27,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       icon: 'h-9 w-9',
     };
 
+    const classes = cn(base, variants[variant], sizes[size], className);
+
+    if (asChild && React.isValidElement(props.children)) {
+      const child = props.children as React.ReactElement<{ className?: string }>;
+      return React.cloneElement(child, {
+        className: cn(classes, child.props.className),
+      });
+    }
+
     return (
       <button
         ref={ref}
-        className={cn(base, variants[variant], sizes[size], className)}
+        className={classes}
         {...props}
       />
     );

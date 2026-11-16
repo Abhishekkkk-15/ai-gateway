@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Navbar } from './components/Navbar.js';
+import { useQuery } from '@tanstack/react-query';
+import { SidebarProvider, SidebarInset } from './components/ui/Sidebar.js';
+import { AppSidebar, type NavTab } from './components/layout/AppSidebar.js';
+import { SiteHeader } from './components/layout/SiteHeader.js';
 import { LoginPage } from './pages/LoginPage.js';
+import { OverviewPage } from './pages/OverviewPage.js';
 import { ProvidersPage } from './pages/ProvidersPage.js';
 import { ModelsPage } from './pages/ModelsPage.js';
 import { KeysPage } from './pages/KeysPage.js';
@@ -11,7 +15,7 @@ import { api } from './lib/api.js';
 export function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [username, setUsername] = useState('admin');
-  const [currentTab, setCurrentTab] = useState('providers');
+  const [currentTab, setCurrentTab] = useState<NavTab>('overview');
 
   useEffect(() => {
     // Check current auth status on mount
@@ -25,6 +29,14 @@ export function App() {
         setIsAuthenticated(false);
       });
   }, []);
+
+  const { data: modelsData } = useQuery({
+    queryKey: ['models'],
+    queryFn: () => api.getModels(),
+    enabled: isAuthenticated === true,
+  });
+
+  const loadedModelsCount = modelsData?.models?.filter((m) => m.isEnabled).length || 0;
 
   const handleLoginSuccess = (user: { username: string }) => {
     setIsAuthenticated(true);
@@ -52,22 +64,39 @@ export function App() {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }
 
+  const tabTitles: Record<NavTab, string> = {
+    overview: 'Overview & Telemetry',
+    providers: 'AI Providers',
+    models: 'Models Catalog',
+    keys: 'Gateway API Keys',
+    playground: 'Interactive Playground',
+    logs: 'Telemetry Logs',
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar
-        currentTab={currentTab}
-        onTabChange={setCurrentTab}
+    <SidebarProvider defaultOpen={true}>
+      <AppSidebar
+        activeTab={currentTab}
+        onSelectTab={setCurrentTab}
         onLogout={handleLogout}
         username={username}
       />
-
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        {currentTab === 'providers' && <ProvidersPage />}
-        {currentTab === 'models' && <ModelsPage />}
-        {currentTab === 'keys' && <KeysPage />}
-        {currentTab === 'playground' && <PlaygroundPage />}
-        {currentTab === 'logs' && <LogsPage />}
-      </main>
-    </div>
+      <SidebarInset>
+        <SiteHeader
+          activeTabTitle={tabTitles[currentTab]}
+          loadedModelsCount={loadedModelsCount}
+        />
+        <main className="flex-1 w-full bg-background/50">
+          {currentTab === 'overview' && (
+            <OverviewPage onNavigate={(tab) => setCurrentTab(tab as NavTab)} />
+          )}
+          {currentTab === 'providers' && <ProvidersPage />}
+          {currentTab === 'models' && <ModelsPage />}
+          {currentTab === 'keys' && <KeysPage />}
+          {currentTab === 'playground' && <PlaygroundPage />}
+          {currentTab === 'logs' && <LogsPage />}
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
