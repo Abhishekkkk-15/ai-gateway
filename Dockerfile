@@ -45,24 +45,12 @@ ENV HOST=0.0.0.0
 
 # Copy workspace package manifests & production dependencies
 COPY --from=builder /app/package.json /app/pnpm-workspace.yaml /app/.npmrc /app/pnpm-lock.yaml ./
-COPY --from=builder /app/packages/tsconfig ./packages/tsconfig
-COPY --from=builder /app/packages/core/package.json ./packages/core/
-COPY --from=builder /app/packages/core/dist ./packages/core/dist
-COPY --from=builder /app/packages/db/package.json ./packages/db/
-COPY --from=builder /app/packages/db/dist ./packages/db/dist
-COPY --from=builder /app/packages/provider-groq/package.json ./packages/provider-groq/
-COPY --from=builder /app/packages/provider-groq/dist ./packages/provider-groq/dist
-COPY --from=builder /app/packages/provider-nvidia/package.json ./packages/provider-nvidia/
-COPY --from=builder /app/packages/provider-nvidia/dist ./packages/provider-nvidia/dist
-COPY --from=builder /app/packages/provider-google/package.json ./packages/provider-google/
-COPY --from=builder /app/packages/provider-google/dist ./packages/provider-google/dist
-COPY --from=builder /app/packages/provider-elevenlabs/package.json ./packages/provider-elevenlabs/
-COPY --from=builder /app/packages/provider-elevenlabs/dist ./packages/provider-elevenlabs/dist
+COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/apps/gateway/package.json ./apps/gateway/
 COPY --from=builder /app/apps/gateway/dist ./apps/gateway/dist
+COPY --from=builder /app/apps/gateway/node_modules ./apps/gateway/node_modules
 COPY --from=builder /app/apps/web/dist ./apps/web/dist
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/gateway/node_modules ./apps/gateway/node_modules
 
 EXPOSE 3000
 

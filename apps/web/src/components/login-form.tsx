@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
+import { Shield, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { api } from '@/lib/api';
-import { Lock, ArrowRight, AlertCircle } from 'lucide-react';
 
-export interface LoginFormProps extends React.ComponentPropsWithoutRef<'form'> {
+export interface LoginFormProps extends React.ComponentPropsWithoutRef<'div'> {
   onLoginSuccess: (user: { username: string }) => void;
 }
 
@@ -33,77 +33,79 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={cn('flex flex-col gap-6', className)}
-      {...props}
-    >
-      <div className="flex flex-col items-center gap-2 text-center md:items-start md:text-left">
-        <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
-        <p className="text-xs text-muted-foreground">
-          Enter your administrator credentials to access the console.
-        </p>
-      </div>
-
-      {error && (
-        <Alert variant="destructive" className="py-2.5">
-          <AlertCircle className="size-4" />
-          <AlertDescription className="text-xs">{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid gap-4">
-        <div className="grid gap-2">
-          <Label className="text-xs font-medium" htmlFor="username">
-            Admin Username
-          </Label>
-          <Input
-            id="username"
-            type="text"
-            placeholder="admin"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="grid gap-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium" htmlFor="password">
-              Admin Password
-            </Label>
+    <div className={cn('flex flex-col gap-6', className)} {...props}>
+      <form onSubmit={handleSubmit}>
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <div className="flex items-center gap-2 font-medium">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+                <Shield className="size-5" />
+              </div>
+              <span className="text-base font-semibold tracking-tight">AI Gateway</span>
+            </div>
+            <h1 className="text-xl font-bold tracking-tight">Welcome back</h1>
+            <p className="text-xs text-muted-foreground">
+              Enter your administrator credentials to access the console
+            </p>
           </div>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoFocus
-          />
-        </div>
 
-        <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-          {isLoading ? (
-            <span>Authenticating...</span>
-          ) : (
-            <span className="flex items-center justify-center gap-2">
-              <Lock className="size-4" />
-              <span>Sign In to Console</span>
-              <ArrowRight className="size-4" />
-            </span>
+          {error && (
+            <Alert variant="destructive" className="py-2.5">
+              <AlertCircle className="size-4" />
+              <AlertDescription className="text-xs">{error}</AlertDescription>
+            </Alert>
           )}
-        </Button>
-      </div>
 
-      <div className="flex items-center justify-between border-t border-border/60 pt-4 text-[11px] text-muted-foreground font-mono">
-        <span className="flex items-center gap-1.5">
-          <span className="size-1.5 rounded-full bg-emerald-500" />
-          <span>Admin Session</span>
-        </span>
-        <span>v1.0.0</span>
+          <div className="flex flex-col gap-4">
+            <div className="grid gap-2">
+              <Label className="text-xs font-medium" htmlFor="username">
+                Admin Username
+              </Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="admin"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium" htmlFor="password">
+                  Admin Password
+                </Label>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+
+            <Button type="submit" className="w-full mt-2" disabled={isLoading}>
+              {isLoading ? (
+                <span>Authenticating...</span>
+              ) : (
+                <span className="flex items-center justify-center gap-2">
+                  <Lock className="size-4" />
+                  <span>Sign In to Console</span>
+                  <ArrowRight className="size-4" />
+                </span>
+              )}
+            </Button>
+          </div>
+        </div>
+      </form>
+
+      <div className="text-balance text-center text-xs text-muted-foreground font-mono">
+        Self-Hosted OpenAI SDK Gateway · v1.0.0
       </div>
-    </form>
+    </div>
   );
 }
