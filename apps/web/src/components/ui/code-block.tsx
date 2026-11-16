@@ -151,7 +151,7 @@ export const CodeBlock = React.forwardRef<HTMLDivElement, CodeBlockProps>(
             </Button>
           )}
 
-          <pre className="overflow-x-auto p-4 leading-relaxed font-mono">
+          <pre className="overflow-x-auto p-4 leading-relaxed font-mono custom-scrollbar">
             {showLineNumbers ? (
               <table className="w-full border-collapse">
                 <tbody>

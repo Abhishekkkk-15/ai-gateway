@@ -692,7 +692,7 @@ export function PlaygroundPage() {
 
             <CardContent
               ref={scrollRef}
-              className="flex-1 overflow-y-auto p-4 flex flex-col gap-5 bg-background/40"
+              className="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-5 bg-background/40"
             >
               {/* Empty state when no message sent */}
               {!userMessage && !assistantOutput && !isStreaming && (
@@ -756,7 +756,7 @@ export function PlaygroundPage() {
                           </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
-                          <div className="mt-2 text-zinc-400 whitespace-pre-wrap leading-relaxed text-[11px] border-t border-border/40 pt-2 max-h-48 overflow-y-auto">
+                          <div className="mt-2 text-zinc-400 whitespace-pre-wrap leading-relaxed text-[11px] border-t border-border/40 pt-2 max-h-48 overflow-y-auto custom-scrollbar">
                             {reasoningOutput}
                           </div>
                         </CollapsibleContent>
@@ -1317,7 +1317,7 @@ export function PlaygroundPage() {
                       No speech segments committed yet. Click &quot;Start Streaming Audio&quot; and speak.
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                    <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar">
                       {sttCommittedTranscripts.map((text, idx) => (
                         <div
                           key={idx}
