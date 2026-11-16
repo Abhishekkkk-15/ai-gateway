@@ -55,12 +55,18 @@ export class NvidiaAdapter implements ProviderAdapter {
         return this.getCuratedDefaults(config.id);
       }
 
-      return data.data.map((item) => ({
-        id: item.id,
-        providerId: config.id,
-        displayName: item.id,
-        capabilities: ['chat', 'tools'],
-      }));
+      return data.data.map((item) => {
+        const isEmbed = item.id.toLowerCase().includes('embed');
+        const capabilities: ModelCapability[] = isEmbed
+          ? ['embeddings']
+          : ['chat', 'tools'];
+        return {
+          id: item.id,
+          providerId: config.id,
+          displayName: item.id,
+          capabilities,
+        };
+      });
     } catch {
       return this.getCuratedDefaults(config.id);
     }
