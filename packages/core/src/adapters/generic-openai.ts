@@ -104,6 +104,30 @@ export class GenericOpenAIAdapter implements ProviderAdapter {
     return response;
   }
 
+  async translateAudio(
+    formData: FormData,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    const baseUrl = this.getBaseUrl(config);
+    const headers: Record<string, string> = {
+      ...config.extraHeaders,
+    };
+    if (config.apiKey) {
+      headers['Authorization'] = `Bearer ${config.apiKey}`;
+    }
+
+    const response = await fetch(`${baseUrl}/audio/translations`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      signal,
+      duplex: 'half',
+    } as RequestInit);
+
+    return response;
+  }
+
   async createEmbeddings(
     request: OpenAIEmbeddingRequest,
     config: ProviderConfig,

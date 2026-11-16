@@ -111,21 +111,21 @@ Phases of Implementation:
 - Modify: `apps/gateway/src/routes/v1/audio.ts:80-140`
 - Test: `apps/gateway/tests/v1-audio-translations.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Create `apps/gateway/tests/v1-audio-translations.test.ts` testing:
   - `POST /v1/audio/translations` with multipart form-data `file` (foreign language audio) and `model: "whisper-large-v3-turbo"`.
   - Formats: JSON (`{ text: "English translation..." }`), verbose_json, srt, vtt.
 
-- [ ] **Step 2: Add Adapter Translation Contract**
+- [x] **Step 2: Add Adapter Translation Contract**
   Add `translateAudio?(formData: FormData, config: ProviderConfig, signal?: AbortSignal): Promise<Response>` to `ProviderAdapter`.
 
-- [ ] **Step 3: Implement Fastify Route**
+- [x] **Step 3: Implement Fastify Route**
   In `apps/gateway/src/routes/v1/audio.ts`, register `POST /v1/audio/translations`:
   - Consume streaming multipart form-data via `@fastify/multipart`.
   - Route to Whisper-capable provider (Groq or OpenAI).
   - Forward translation result in requested format.
 
-- [ ] **Step 4: Run tests and commit**
+- [x] **Step 4: Run tests and commit**
   Confirm test passes; commit as `feat(gateway): add /v1/audio/translations route`.
 
 ---

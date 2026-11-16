@@ -37,6 +37,13 @@ export interface ProviderAdapter {
     signal?: AbortSignal
   ): Promise<Response>;
 
+  /** Speech Translation mapped to POST /v1/audio/translations */
+  translateAudio?(
+    formData: FormData,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response>;
+
   /** Text-to-Speech mapped to POST /v1/audio/speech */
   synthesizeSpeech?(
     request: OpenAISpeechRequest,
