@@ -201,11 +201,13 @@ export function PlaygroundPage() {
             className="flex h-9 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-xs shadow-sm font-mono text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <option value="">Default (Auto-select first enabled model)</option>
-            {models.map((m) => (
-              <option key={m.slug} value={m.customAlias || m.slug}>
-                {m.customAlias ? `${m.customAlias} (${m.slug})` : m.slug}
-              </option>
-            ))}
+            {models
+              .filter((m) => m.isEnabled)
+              .map((m) => (
+                <option key={m.slug} value={m.customAlias || m.slug}>
+                  {m.customAlias ? `${m.customAlias} (${m.slug})` : m.slug}
+                </option>
+              ))}
           </select>
         </div>
       </div>

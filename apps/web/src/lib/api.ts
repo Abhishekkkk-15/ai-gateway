@@ -219,7 +219,8 @@ export const api = {
           if (dataStr === '[DONE]') continue;
           try {
             const parsed = JSON.parse(dataStr);
-            const content = parsed.choices?.[0]?.delta?.content;
+            const delta = parsed.choices?.[0]?.delta;
+            const content = delta?.content ?? delta?.reasoning ?? delta?.reasoning_content;
             if (content) onChunk(content);
           } catch {
             // ignore non-json chunk

@@ -48,6 +48,7 @@ export function ProvidersPage() {
       data: {
         apiKey: key !== undefined ? key : undefined,
         baseUrl: url !== undefined ? url : provider.baseUrl,
+        isEnabled: true,
       },
     });
   };
@@ -146,14 +147,23 @@ export function ProvidersPage() {
                     <CardDescription className="text-xs font-mono mt-1">id: {p.id}</CardDescription>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <Badge variant={isConfigured ? 'success' : 'secondary'}>
-                      {isConfigured ? 'Configured' : 'Not Configured'}
-                    </Badge>
-                    <Switch
-                      checked={p.isEnabled}
-                      onCheckedChange={(checked) => handleToggle(p, checked)}
-                      disabled={!isConfigured}
-                    />
+                    {!isConfigured ? (
+                      <Badge variant="secondary">Not Configured</Badge>
+                    ) : p.isEnabled ? (
+                      <Badge variant="success">Active</Badge>
+                    ) : (
+                      <Badge variant="destructive">Disabled</Badge>
+                    )}
+                    <div className="flex items-center space-x-1.5">
+                      <Switch
+                        checked={p.isEnabled}
+                        onCheckedChange={(checked) => handleToggle(p, checked)}
+                        disabled={!isConfigured}
+                      />
+                      <span className="text-[11px] text-muted-foreground select-none">
+                        {p.isEnabled ? 'On' : 'Off'}
+                      </span>
+                    </div>
                   </div>
                 </CardHeader>
 

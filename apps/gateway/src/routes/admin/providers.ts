@@ -102,13 +102,24 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
 
     const adapter = fastify.providerRegistry.get(body.adapterType || id) || fastify.providerRegistry.getGenericAdapter();
 
+    let isEnabled = true;
+    if (body.isEnabled !== undefined) {
+      isEnabled = body.isEnabled;
+    } else if (existing) {
+      if (body.apiKey && body.apiKey.trim()) {
+        isEnabled = true;
+      } else {
+        isEnabled = existing.isEnabled;
+      }
+    }
+
     const providerPayload: InsertProviderRow = {
       id,
       name: body.name || existing?.name || adapter.name,
       adapterType: body.adapterType || existing?.adapterType || adapter.id,
       baseUrl: body.baseUrl !== undefined ? body.baseUrl : existing?.baseUrl || adapter.defaultBaseUrl,
       encryptedApiKey,
-      isEnabled: body.isEnabled !== undefined ? body.isEnabled : existing ? existing.isEnabled : true,
+      isEnabled,
       extraHeaders: body.extraHeaders || existing?.extraHeaders || null,
       customOptions: body.customOptions || existing?.customOptions || null,
       updatedAt: new Date(),
@@ -205,6 +216,14 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
           } else {
             await fastify.db.insert(modelsTable).values(modelPayload);
           }
+        }
+
+        // Ensure provider is enabled if it has an API key so synced models are immediately routable
+        if (!providerRow.isEnabled && providerRow.encryptedApiKey) {
+          await fastify.db
+            .update(providersTable)
+            .set({ isEnabled: true, updatedAt: new Date() })
+            .where(eq(providersTable.id, id));
         }
 
         // Refresh cache

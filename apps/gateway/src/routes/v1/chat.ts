@@ -19,9 +19,10 @@ export const v1ChatRoutes: FastifyPluginAsync = async (fastify) => {
 
       const route = fastify.routingCache.resolveModel(body.model);
       if (!route) {
+        const errorMsg = fastify.routingCache.explainMissingModel(body.model);
         return reply.status(404).send(
           createOpenAIError(
-            `The model '${body.model}' does not exist or is not enabled in this gateway.`,
+            errorMsg,
             404,
             'invalid_request_error',
             'model_not_found'
