@@ -21,6 +21,7 @@ import { healthRoutes } from './routes/health.js';
 import { v1ModelsRoutes } from './routes/v1/models.js';
 import { v1ChatRoutes } from './routes/v1/chat.js';
 import { v1AudioRoutes } from './routes/v1/audio.js';
+import { v1EmbeddingsRoutes } from './routes/v1/embeddings.js';
 import { adminAuthRoutes } from './routes/admin/auth.js';
 import { adminProvidersRoutes } from './routes/admin/providers.js';
 import { adminModelsRoutes } from './routes/admin/models.js';
@@ -122,6 +123,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await app.register(v1ModelsRoutes);
   await app.register(v1ChatRoutes);
   await app.register(v1AudioRoutes);
+  await app.register(v1EmbeddingsRoutes);
 
   // Register Admin Routes
   await app.register(adminAuthRoutes);

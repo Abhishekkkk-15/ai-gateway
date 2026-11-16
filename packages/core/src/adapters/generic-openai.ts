@@ -5,6 +5,7 @@ import type {
   UnifiedModel,
   OpenAIChatCompletionRequest,
   OpenAISpeechRequest,
+  OpenAIEmbeddingRequest,
 } from '../types.js';
 
 export class GenericOpenAIAdapter implements ProviderAdapter {
@@ -96,6 +97,25 @@ export class GenericOpenAIAdapter implements ProviderAdapter {
       method: 'POST',
       headers,
       body: formData,
+      signal,
+      duplex: 'half',
+    } as RequestInit);
+
+    return response;
+  }
+
+  async createEmbeddings(
+    request: OpenAIEmbeddingRequest,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    const baseUrl = this.getBaseUrl(config);
+    const headers = this.getHeaders(config);
+
+    const response = await fetch(`${baseUrl}/embeddings`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(request),
       signal,
       duplex: 'half',
     } as RequestInit);

@@ -58,7 +58,7 @@ Phases of Implementation:
 - Modify: `apps/gateway/src/routes/v1/index.ts`
 - Test: `apps/gateway/tests/v1-embeddings.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Create `apps/gateway/tests/v1-embeddings.test.ts` testing:
   - Single string input: `{ model: "text-embedding-3-small", input: "Hello world" }`
   - Array of strings input: `{ model: "text-embedding-3-small", input: ["Doc 1", "Doc 2"] }`
@@ -66,7 +66,7 @@ Phases of Implementation:
   - Base64 encoding format: `{ encoding_format: "base64" }`
   - OpenAI response envelope verification: `{ object: "list", data: [{ object: "embedding", embedding: [...], index: 0 }], model: "...", usage: { prompt_tokens: 2, total_tokens: 2 } }`.
 
-- [ ] **Step 2: Define Adapter Contract & Types**
+- [x] **Step 2: Define Adapter Contract & Types**
   In `packages/core/src/adapter.ts`, add:
   ```typescript
   export interface OpenAIEmbeddingRequest {
@@ -85,11 +85,11 @@ Phases of Implementation:
   ```
   Add optional `createEmbeddings?(request: OpenAIEmbeddingRequest, config: ProviderConfig, signal?: AbortSignal): Promise<OpenAIEmbeddingResponse>` to `ProviderAdapter`.
 
-- [ ] **Step 3: Implement Upstream Adapters**
+- [x] **Step 3: Implement Upstream Adapters**
   - Implement `createEmbeddings` in `generic-openai.ts` mapping to `${baseUrl}/embeddings`.
   - Implement `createEmbeddings` in `packages/provider-nvidia/src/index.ts` routing to Nvidia NeMo Embedding models (e.g. `nvidia/nv-embedqa-e5-v5`).
 
-- [ ] **Step 4: Implement Fastify Route & In-Memory Route Resolution**
+- [x] **Step 4: Implement Fastify Route & In-Memory Route Resolution**
   Create `apps/gateway/src/routes/v1/embeddings.ts`:
   - Enforce `authenticateGatewayKey`.
   - Lookup model via zero-DB `fastify.routingCache.resolveModel(body.model)`.
@@ -97,7 +97,7 @@ Phases of Implementation:
   - Execute adapter and return JSON response.
   - Asynchronously record request telemetry log to DB without blocking response.
 
-- [ ] **Step 5: Run tests and verify**
+- [x] **Step 5: Run tests and verify**
   Run `pnpm --filter @ai-gateway/gateway test` and confirm `v1-embeddings.test.ts` passes.
 
 ---

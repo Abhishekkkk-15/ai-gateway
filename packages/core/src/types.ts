@@ -66,6 +66,31 @@ export interface OpenAISpeechRequest {
   speed?: number;
 }
 
+export interface OpenAIEmbeddingRequest {
+  model: string;
+  input: string | string[] | number[] | number[][];
+  dimensions?: number;
+  encoding_format?: 'float' | 'base64';
+  user?: string;
+  [key: string]: unknown;
+}
+
+export interface OpenAIEmbeddingData {
+  object: 'embedding';
+  embedding: number[] | string;
+  index: number;
+}
+
+export interface OpenAIEmbeddingResponse {
+  object: 'list';
+  data: OpenAIEmbeddingData[];
+  model: string;
+  usage: {
+    prompt_tokens: number;
+    total_tokens: number;
+  };
+}
+
 export interface OpenAIErrorEnvelope {
   error: {
     message: string;

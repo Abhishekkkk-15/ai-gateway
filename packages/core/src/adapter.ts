@@ -4,6 +4,7 @@ import type {
   UnifiedModel,
   OpenAIChatCompletionRequest,
   OpenAISpeechRequest,
+  OpenAIEmbeddingRequest,
 } from './types.js';
 
 export interface ProviderAdapter {
@@ -18,6 +19,13 @@ export interface ProviderAdapter {
   /** Standard & SSE Streaming Chat Completions (OpenAI format in -> OpenAI format out) */
   chatCompletions?(
     request: OpenAIChatCompletionRequest,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response>;
+
+  /** Vector Embeddings mapped to POST /v1/embeddings */
+  createEmbeddings?(
+    request: OpenAIEmbeddingRequest,
     config: ProviderConfig,
     signal?: AbortSignal
   ): Promise<Response>;

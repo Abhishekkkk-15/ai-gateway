@@ -4,13 +4,14 @@ import type {
   UnifiedModel,
   ModelCapability,
   OpenAIChatCompletionRequest,
+  OpenAIEmbeddingRequest,
 } from '@ai-gateway/core';
 
 export class NvidiaAdapter implements ProviderAdapter {
   public readonly id = 'nvidia';
   public readonly name = 'NVIDIA NIM';
   public readonly defaultBaseUrl = 'https://integrate.api.nvidia.com/v1';
-  public readonly supportedCapabilities: ModelCapability[] = ['chat', 'vision', 'tools'];
+  public readonly supportedCapabilities: ModelCapability[] = ['chat', 'embeddings', 'vision', 'tools'];
 
   private getBaseUrl(config: ProviderConfig): string {
     const raw = config.baseUrl?.trim() || this.defaultBaseUrl;
@@ -100,6 +101,25 @@ export class NvidiaAdapter implements ProviderAdapter {
     const headers = this.getHeaders(config);
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(request),
+      signal,
+      duplex: 'half',
+    } as RequestInit);
+
+    return response;
+  }
+
+  async createEmbeddings(
+    request: OpenAIEmbeddingRequest,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    const baseUrl = this.getBaseUrl(config);
+    const headers = this.getHeaders(config);
+
+    const response = await fetch(`${baseUrl}/embeddings`, {
       method: 'POST',
       headers,
       body: JSON.stringify(request),
