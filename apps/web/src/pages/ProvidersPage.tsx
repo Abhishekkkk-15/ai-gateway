@@ -7,7 +7,7 @@ import { Input } from '../components/ui/Input.js';
 import { Badge } from '../components/ui/Badge.js';
 import { Switch } from '../components/ui/Switch.js';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/Dialog.js';
-import { Eye, EyeOff, RefreshCw, Plus, CheckCircle, ShieldCheck, Sparkles, ExternalLink } from 'lucide-react';
+import { Eye, EyeOff, RefreshCw, Plus, CheckCircle, ShieldCheck } from 'lucide-react';
 
 export function ProvidersPage() {
   const queryClient = useQueryClient();
@@ -36,6 +36,7 @@ export function ProvidersPage() {
       setFeedback(`Saved settings for ${vars.id}`);
       setTimeout(() => setFeedback(null), 3000);
       void queryClient.invalidateQueries({ queryKey: ['providers'] });
+      void queryClient.invalidateQueries({ queryKey: ['models'] });
     },
   });
 
@@ -66,6 +67,7 @@ export function ProvidersPage() {
       const res = await api.syncProviderModels(provider.id);
       setFeedback(res.message);
       void queryClient.invalidateQueries({ queryKey: ['models'] });
+      void queryClient.invalidateQueries({ queryKey: ['providers'] });
     } catch (err: unknown) {
       setFeedback(err instanceof Error ? err.message : 'Sync failed');
     } finally {
@@ -94,6 +96,7 @@ export function ProvidersPage() {
       setCustomApiKey('');
       setFeedback(`Custom provider '${customName}' registered!`);
       void queryClient.invalidateQueries({ queryKey: ['providers'] });
+      void queryClient.invalidateQueries({ queryKey: ['models'] });
     } catch (err: unknown) {
       setFeedback(err instanceof Error ? err.message : 'Failed to register provider');
     }
@@ -102,7 +105,7 @@ export function ProvidersPage() {
   const providers = data?.providers || [];
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">AI Providers</h1>
@@ -110,15 +113,15 @@ export function ProvidersPage() {
             Configure upstream AI credentials, customized endpoints, and synchronize live model catalogs.
           </p>
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)} className="flex items-center space-x-2">
-          <Plus className="h-4 w-4" />
+        <Button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2">
+          <Plus className="size-4" />
           <span>Add Custom OpenAI Provider</span>
         </Button>
       </div>
 
       {feedback && (
-        <div className="flex items-center space-x-2 text-sm bg-primary/10 border border-primary/30 text-primary p-3 rounded-lg">
-          <CheckCircle className="h-4 w-4 shrink-0" />
+        <div className="flex items-center gap-2 text-sm bg-primary/10 border border-primary/30 text-primary p-3 rounded-lg">
+          <CheckCircle className="size-4 shrink-0" />
           <span>{feedback}</span>
         </div>
       )}
@@ -133,86 +136,90 @@ export function ProvidersPage() {
             const isShowingKey = showKey[p.id] ?? false;
 
             return (
-              <Card key={p.id} className="border-border/80 bg-card/60 backdrop-blur-sm">
-                <CardHeader className="flex flex-row items-start justify-between pb-3">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <CardTitle className="text-lg">{p.name}</CardTitle>
-                      {p.isBuiltIn ? (
-                        <Badge variant="secondary" className="text-[10px]">Built-in</Badge>
+              <Card key={p.id} className="border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between">
+                <div>
+                  <CardHeader className="flex flex-row items-start justify-between pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg">{p.name}</CardTitle>
+                        {p.isBuiltIn ? (
+                          <Badge variant="secondary" className="text-[10px]">Built-in</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] text-primary border-primary/30">Custom OpenAI</Badge>
+                        )}
+                      </div>
+                      <CardDescription className="text-xs font-mono mt-1">id: {p.id}</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {!isConfigured ? (
+                        <Badge variant="secondary" className="text-[10px]">Not Configured</Badge>
+                      ) : p.isEnabled ? (
+                        <Badge variant="success" className="text-[10px]">Active</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[10px] text-primary border-primary/30">Custom OpenAI</Badge>
+                        <Badge variant="destructive" className="text-[10px]">Disabled</Badge>
                       )}
+                      <div className="flex items-center gap-1.5">
+                        <Switch
+                          checked={p.isEnabled}
+                          onCheckedChange={(checked) => handleToggle(p, checked)}
+                          disabled={!isConfigured}
+                        />
+                        <span className="text-[11px] text-muted-foreground select-none">
+                          {p.isEnabled ? 'On' : 'Off'}
+                        </span>
+                      </div>
                     </div>
-                    <CardDescription className="text-xs font-mono mt-1">id: {p.id}</CardDescription>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    {!isConfigured ? (
-                      <Badge variant="secondary">Not Configured</Badge>
-                    ) : p.isEnabled ? (
-                      <Badge variant="success">Active</Badge>
-                    ) : (
-                      <Badge variant="destructive">Disabled</Badge>
-                    )}
-                    <div className="flex items-center space-x-1.5">
-                      <Switch
-                        checked={p.isEnabled}
-                        onCheckedChange={(checked) => handleToggle(p, checked)}
-                        disabled={!isConfigured}
-                      />
-                      <span className="text-[11px] text-muted-foreground select-none">
-                        {p.isEnabled ? 'On' : 'Off'}
-                      </span>
-                    </div>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
 
-                <CardContent className="space-y-4 text-sm">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground flex items-center justify-between">
-                      <span>API Key</span>
-                      <span className="text-[10px] text-muted-foreground flex items-center">
-                        <ShieldCheck className="h-3 w-3 mr-1 text-emerald-400" /> Encrypted at rest
-                      </span>
-                    </label>
-                    <div className="flex space-x-2">
+                  <CardContent className="flex flex-col gap-4 text-sm">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-medium text-muted-foreground flex items-center justify-between">
+                        <span>API Key</span>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <ShieldCheck className="size-3 text-emerald-400" />
+                          <span>Encrypted at rest</span>
+                        </span>
+                      </label>
+                      <div className="flex gap-2">
+                        <Input
+                          type={isShowingKey ? 'text' : 'password'}
+                          placeholder={isConfigured ? '••••••••••••••••••••••••' : 'Enter upstream API key...'}
+                          value={keyVal}
+                          onChange={(e) => setEditingKey({ ...editingKey, [p.id]: e.target.value })}
+                          className="font-mono text-xs"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setShowKey({ ...showKey, [p.id]: !isShowingKey })}
+                          type="button"
+                          className="size-9 shrink-0"
+                        >
+                          {isShowingKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">Endpoint Base URL</label>
                       <Input
-                        type={isShowingKey ? 'text' : 'password'}
-                        placeholder={isConfigured ? '••••••••••••••••••••••••' : 'Enter upstream API key...'}
-                        value={keyVal}
-                        onChange={(e) => setEditingKey({ ...editingKey, [p.id]: e.target.value })}
+                        type="text"
+                        value={editingUrl[p.id] ?? p.baseUrl}
+                        onChange={(e) => setEditingUrl({ ...editingUrl, [p.id]: e.target.value })}
+                        placeholder={p.defaultBaseUrl}
                         className="font-mono text-xs"
                       />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setShowKey({ ...showKey, [p.id]: !isShowingKey })}
-                        type="button"
-                      >
-                        {isShowingKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
                     </div>
-                  </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Endpoint Base URL</label>
-                    <Input
-                      type="text"
-                      value={editingUrl[p.id] ?? p.baseUrl}
-                      onChange={(e) => setEditingUrl({ ...editingUrl, [p.id]: e.target.value })}
-                      placeholder={p.defaultBaseUrl}
-                      className="font-mono text-xs"
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {p.supportedCapabilities.map((cap) => (
-                      <span key={cap} className="px-2 py-0.5 rounded text-[11px] bg-secondary text-secondary-foreground font-mono">
-                        {cap}
-                      </span>
-                    ))}
-                  </div>
-                </CardContent>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {p.supportedCapabilities.map((cap) => (
+                        <span key={cap} className="px-2 py-0.5 rounded text-[11px] bg-secondary text-secondary-foreground font-mono">
+                          {cap}
+                        </span>
+                      ))}
+                    </div>
+                  </CardContent>
+                </div>
 
                 <CardFooter className="flex justify-between border-t border-border/50 pt-4">
                   <Button
@@ -220,10 +227,10 @@ export function ProvidersPage() {
                     size="sm"
                     onClick={() => handleSync(p)}
                     disabled={!isConfigured || syncingId === p.id}
-                    className="flex items-center space-x-1.5 text-xs"
+                    className="flex items-center gap-1.5 text-xs"
                   >
-                    <RefreshCw className={`h-3.5 w-3.5 ${syncingId === p.id ? 'animate-spin' : ''}`} />
-                    <span>Test & Sync Models</span>
+                    <RefreshCw className={`size-3.5 ${syncingId === p.id ? 'animate-spin' : ''}`} />
+                    <span>Test &amp; Sync Models</span>
                   </Button>
                   <Button size="sm" onClick={() => handleSave(p)} className="text-xs">
                     Save Changes
@@ -237,7 +244,7 @@ export function ProvidersPage() {
 
       {/* Add Custom Provider Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <form onSubmit={handleCreateCustomProvider}>
+        <form onSubmit={handleCreateCustomProvider} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>Add Custom OpenAI-Compatible Provider</DialogTitle>
             <DialogDescription>
@@ -245,8 +252,8 @@ export function ProvidersPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground">Provider Name</label>
               <Input
                 placeholder="e.g. DeepSeek AI"
@@ -261,7 +268,7 @@ export function ProvidersPage() {
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground">Provider Slug ID (alphanumeric)</label>
               <Input
                 placeholder="e.g. deepseek"
@@ -272,7 +279,7 @@ export function ProvidersPage() {
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground">Base URL</label>
               <Input
                 placeholder="e.g. https://api.deepseek.com/v1"
@@ -283,7 +290,7 @@ export function ProvidersPage() {
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground">API Key (optional for local models)</label>
               <Input
                 type="password"

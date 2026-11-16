@@ -7,7 +7,7 @@ import { Input } from '../components/ui/Input.js';
 import { Badge } from '../components/ui/Badge.js';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table.js';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/Dialog.js';
-import { Key, Plus, Trash2, Copy, Check, Terminal, Code2, AlertTriangle } from 'lucide-react';
+import { Key, Plus, Trash2, Copy, Check, Code2, AlertTriangle } from 'lucide-react';
 
 export function KeysPage() {
   const queryClient = useQueryClient();
@@ -62,7 +62,7 @@ const client = new OpenAI({
 });
 
 const completion = await client.chat.completions.create({
-  model: 'groq/llama-3.3-70b-versatile', // or custom alias e.g. 'fast-chat'
+  model: 'groq/llama-3.3-70b-versatile', // or short name / alias e.g. 'llama-3.3-70b-versatile'
   messages: [{ role: 'user', content: 'Explain zero-latency routing in one sentence.' }],
   stream: true,
 });
@@ -99,7 +99,7 @@ for chunk in stream:
   }'`;
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Gateway API Keys</h1>
@@ -107,14 +107,14 @@ for chunk in stream:
             Provision unified <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">sk-gw-...</code> keys for downstream client applications and services.
           </p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="flex items-center space-x-2">
-          <Plus className="h-4 w-4" />
+        <Button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2">
+          <Plus className="size-4" />
           <span>Generate New Key</span>
         </Button>
       </div>
 
       {/* Keys Table */}
-      <Card className="border-border/80">
+      <Card className="border-border/80 overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -160,9 +160,9 @@ for chunk in stream:
                       variant="ghost"
                       size="sm"
                       onClick={() => deleteMutation.mutate(k.id)}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-950/20"
+                      className="text-red-400 hover:text-red-300 hover:bg-destructive/10 size-8 p-0"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="size-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -173,15 +173,16 @@ for chunk in stream:
       </Card>
 
       {/* Quickstart Code Snippets */}
-      <Card className="border-border/80 bg-card/60 backdrop-blur-sm">
+      <Card className="border-border/80 bg-card/60 backdrop-blur-sm shadow-sm">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Code2 className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">OpenAI SDK Quickstart</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Code2 className="size-5 text-primary" />
+              <CardTitle className="text-base font-semibold">OpenAI SDK Quickstart</CardTitle>
             </div>
-            <div className="flex space-x-1 bg-muted p-1 rounded-lg">
+            <div className="flex gap-1 bg-muted p-1 rounded-lg">
               <button
+                type="button"
                 onClick={() => setSelectedSnippetTab('ts')}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                   selectedSnippetTab === 'ts' ? 'bg-background text-foreground shadow' : 'text-muted-foreground'
@@ -190,6 +191,7 @@ for chunk in stream:
                 TypeScript
               </button>
               <button
+                type="button"
                 onClick={() => setSelectedSnippetTab('python')}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                   selectedSnippetTab === 'python' ? 'bg-background text-foreground shadow' : 'text-muted-foreground'
@@ -198,6 +200,7 @@ for chunk in stream:
                 Python
               </button>
               <button
+                type="button"
                 onClick={() => setSelectedSnippetTab('curl')}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                   selectedSnippetTab === 'curl' ? 'bg-background text-foreground shadow' : 'text-muted-foreground'
@@ -207,7 +210,7 @@ for chunk in stream:
               </button>
             </div>
           </div>
-          <CardDescription>
+          <CardDescription className="text-xs">
             Point standard OpenAI SDK clients directly to this gateway. All routing, model resolution, and streaming are handled natively.
           </CardDescription>
         </CardHeader>
@@ -226,9 +229,9 @@ for chunk in stream:
                       : curlSnippet;
                 handleCopy(code, 'snippet');
               }}
-              className="absolute right-3 top-3 h-8 text-xs flex items-center space-x-1"
+              className="absolute right-3 top-3 h-8 text-xs flex items-center gap-1.5"
             >
-              {copiedText === 'snippet' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+              {copiedText === 'snippet' ? <Check className="size-3.5 text-emerald-400" /> : <Copy className="size-3.5" />}
               <span>{copiedText === 'snippet' ? 'Copied' : 'Copy'}</span>
             </Button>
             <pre className="text-xs font-mono text-foreground/90 overflow-x-auto pr-16 leading-relaxed">
@@ -242,7 +245,7 @@ for chunk in stream:
 
       {/* Create Key Modal */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <form onSubmit={handleCreate}>
+        <form onSubmit={handleCreate} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>Generate Gateway API Key</DialogTitle>
             <DialogDescription>
@@ -250,8 +253,8 @@ for chunk in stream:
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground">Key Name / Client Tag</label>
               <Input
                 placeholder="e.g. Production Mobile App"
@@ -274,10 +277,10 @@ for chunk in stream:
 
       {/* Newly Created Key Display Modal */}
       <Dialog open={Boolean(newlyCreatedKey)} onOpenChange={() => setNewlyCreatedKey(null)}>
-        <div>
+        <div className="flex flex-col gap-4">
           <DialogHeader>
-            <div className="flex items-center space-x-2 text-emerald-400 mb-1">
-              <Check className="h-5 w-5" />
+            <div className="flex items-center gap-2 text-emerald-400 mb-1">
+              <Check className="size-5" />
               <DialogTitle className="text-lg">Gateway Key Created</DialogTitle>
             </div>
             <DialogDescription>
@@ -285,7 +288,7 @@ for chunk in stream:
             </DialogDescription>
           </DialogHeader>
 
-          <div className="my-4 p-3 rounded-lg bg-secondary/80 border border-border flex items-center justify-between">
+          <div className="my-2 p-3 rounded-lg bg-secondary/80 border border-border flex items-center justify-between">
             <span className="font-mono text-xs text-primary break-all select-all">{newlyCreatedKey}</span>
             <Button
               variant="outline"
@@ -293,12 +296,12 @@ for chunk in stream:
               onClick={() => newlyCreatedKey && handleCopy(newlyCreatedKey, 'new-key')}
               className="ml-3 shrink-0"
             >
-              {copiedText === 'new-key' ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+              {copiedText === 'new-key' ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
             </Button>
           </div>
 
-          <div className="flex items-start space-x-2 text-xs text-amber-400/90 bg-amber-950/20 border border-amber-900/40 p-3 rounded-md mb-4">
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 text-xs text-amber-400/90 bg-amber-950/20 border border-amber-900/40 p-3 rounded-md">
+            <AlertTriangle className="size-4 shrink-0 mt-0.5" />
             <span>Store this key securely in your environment variables. Never commit it to source control.</span>
           </div>
 

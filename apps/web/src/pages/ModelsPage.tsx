@@ -60,16 +60,16 @@ export function ModelsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Models & Routable Aliases</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Models &amp; Routable Aliases</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Browse discovered provider models, configure short aliases (e.g. <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">fast-chat</code>), and manage availability.
           </p>
         </div>
         <div className="relative w-full sm:w-72">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input
             placeholder="Search models, providers, aliases..."
             value={searchTerm}
@@ -79,7 +79,7 @@ export function ModelsPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card/70 overflow-hidden shadow">
+      <div className="rounded-xl border border-border bg-card/70 overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -118,8 +118,8 @@ export function ModelsPage() {
                     </TableCell>
 
                     <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Cpu className="h-4 w-4 text-primary shrink-0" />
+                      <div className="flex items-center gap-2">
+                        <Cpu className="size-4 text-primary shrink-0" />
                         <div>
                           <div className="font-mono text-xs font-semibold">{m.slug}</div>
                           <div className="text-[11px] text-muted-foreground">{m.displayName}</div>
@@ -159,8 +159,8 @@ export function ModelsPage() {
                     </TableCell>
 
                     <TableCell>
-                      <div className="flex items-center space-x-1.5 max-w-[200px]">
-                        <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <div className="flex items-center gap-1.5 max-w-[200px]">
+                        <Tag className="size-3.5 text-muted-foreground shrink-0" />
                         <Input
                           placeholder="e.g. fast-chat"
                           value={currentAliasVal}
@@ -180,12 +180,12 @@ export function ModelsPage() {
                         size="sm"
                         onClick={() => handleCopy(m.customAlias || m.slug)}
                         title="Copy model identifier"
-                        className="h-8 px-2"
+                        className="size-8 p-0"
                       >
                         {copiedSlug === (m.customAlias || m.slug) ? (
-                          <Check className="h-3.5 w-3.5 text-emerald-400" />
+                          <Check className="size-3.5 text-emerald-400" />
                         ) : (
-                          <Copy className="h-3.5 w-3.5" />
+                          <Copy className="size-3.5" />
                         )}
                       </Button>
                     </TableCell>
