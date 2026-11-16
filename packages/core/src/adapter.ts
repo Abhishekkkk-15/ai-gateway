@@ -1,0 +1,45 @@
+import type {
+  ModelCapability,
+  ProviderConfig,
+  UnifiedModel,
+  OpenAIChatCompletionRequest,
+  OpenAISpeechRequest,
+} from './types.js';
+
+export interface ProviderAdapter {
+  readonly id: string;
+  readonly name: string;
+  readonly defaultBaseUrl: string;
+  readonly supportedCapabilities: ModelCapability[];
+
+  /** Fetch live available models from provider API or return curated defaults */
+  listModels(config: ProviderConfig, signal?: AbortSignal): Promise<Omit<UnifiedModel, 'slug' | 'isEnabled'>[]>;
+
+  /** Standard & SSE Streaming Chat Completions (OpenAI format in -> OpenAI format out) */
+  chatCompletions?(
+    request: OpenAIChatCompletionRequest,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response>;
+
+  /** Speech-to-Text mapped to POST /v1/audio/transcriptions */
+  transcribeAudio?(
+    formData: FormData,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response>;
+
+  /** Text-to-Speech mapped to POST /v1/audio/speech */
+  synthesizeSpeech?(
+    request: OpenAISpeechRequest,
+    config: ProviderConfig,
+    signal?: AbortSignal
+  ): Promise<Response>;
+
+  /** Optional real-time WebSocket connection handler for bidirectional streaming */
+  streamSpeechWebSocket?(
+    ws: unknown,
+    config: ProviderConfig,
+    params: { voiceId: string; modelId?: string }
+  ): Promise<void>;
+}
