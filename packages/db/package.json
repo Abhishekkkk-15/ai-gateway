@@ -1,0 +1,31 @@
+{
+  "name": "@ai-gateway/db",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-gateway/core": "workspace:*",
+    "@neondatabase/serverless": "^0.10.4",
+    "drizzle-orm": "^0.40.0"
+  },
+  "devDependencies": {
+    "@ai-gateway/tsconfig": "workspace:*",
+    "@types/node": "^22.13.9",
+    "drizzle-kit": "^0.30.5",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.7"
+  }
+}
