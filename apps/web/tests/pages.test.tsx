@@ -87,10 +87,21 @@ describe('Feature Pages (Playground, Logs & Models)', () => {
     expect(screen.getByText('TTS Synthesis Model')).toBeDefined();
     expect(screen.getByText('Synthesize Audio')).toBeDefined();
 
+    // Test TTS Stream-Input Mode Toggle
+    const ttsStreamBtn = screen.getByText('Stream-Input (WS)');
+    fireEvent.click(ttsStreamBtn);
+    expect(screen.getByText('Stream Text Chunks')).toBeDefined();
+    expect(screen.getByText('Time to First Audio (TTFA)')).toBeDefined();
+
     // Switch to STT
     const sttButton = screen.getByRole('tab', { name: /stt/i });
     fireEvent.click(sttButton);
     expect(screen.getByText('Speech-to-Text Transcription')).toBeDefined();
+
+    // Test STT Realtime Stream Mode Toggle
+    const sttStreamBtn = screen.getByText('Realtime Stream (WS)');
+    fireEvent.click(sttStreamBtn);
+    expect(screen.getByText('Start Streaming Audio (Mic)')).toBeDefined();
   });
 
   it('renders LogsPage with telemetry headers and search filter', async () => {

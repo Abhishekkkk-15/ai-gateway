@@ -45,6 +45,10 @@ import {
   RefreshCw,
   AudioLines,
   Sliders,
+  Radio,
+  Square,
+  FileAudio,
+  Layers,
 } from 'lucide-react';
 
 const PROMPT_SUGGESTIONS = [
@@ -123,10 +127,30 @@ export function PlaygroundPage() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
 
+  // Decoupled TTS mode ('batch' HTTP synthesis vs 'stream-input' WebSocket chunks)
+  const [ttsMode, setTtsMode] = useState<'batch' | 'stream-input'>('batch');
+  const [isTtsStreaming, setIsTtsStreaming] = useState(false);
+  const [ttsStreamInputTokens, setTtsStreamInputTokens] = useState(
+    'Streaming chunk-based text to speech directly through the gateway.'
+  );
+  const [ttsAudioChunksReceived, setTtsAudioChunksReceived] = useState(0);
+  const [ttsFirstChunkLatencyMs, setTtsFirstChunkLatencyMs] = useState<number | null>(null);
+  const ttsWsRef = useRef<WebSocket | null>(null);
+
   // STT state
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [sttText, setSttText] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
+
+  // Decoupled STT mode ('batch' file upload vs 'realtime' streaming mic)
+  const [sttMode, setSttMode] = useState<'batch' | 'realtime'>('batch');
+  const [isSttStreaming, setIsSttStreaming] = useState(false);
+  const [sttPartialTranscript, setSttPartialTranscript] = useState('');
+  const [sttCommittedTranscripts, setSttCommittedTranscripts] = useState<string[]>([]);
+  const sttWsRef = useRef<WebSocket | null>(null);
+  const sttAudioCtxRef = useRef<AudioContext | null>(null);
+  const sttMediaStreamRef = useRef<MediaStream | null>(null);
+  const sttProcessorRef = useRef<ScriptProcessorNode | null>(null);
 
   // Fetch available models and keys to pre-fill
   const { data: modelsData } = useQuery({
@@ -309,6 +333,225 @@ export function PlaygroundPage() {
       setIsTranscribing(false);
     }
   };
+
+  const stopSttStream = () => {
+    if (sttProcessorRef.current) {
+      try {
+        sttProcessorRef.current.disconnect();
+      } catch {}
+      sttProcessorRef.current = null;
+    }
+    if (sttMediaStreamRef.current) {
+      try {
+        sttMediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      } catch {}
+      sttMediaStreamRef.current = null;
+    }
+    if (sttAudioCtxRef.current) {
+      try {
+        void sttAudioCtxRef.current.close();
+      } catch {}
+      sttAudioCtxRef.current = null;
+    }
+    if (sttWsRef.current) {
+      try {
+        if (sttWsRef.current.readyState === WebSocket.OPEN) {
+          sttWsRef.current.send(JSON.stringify({ type: 'commit' }));
+        }
+        sttWsRef.current.close();
+      } catch {}
+      sttWsRef.current = null;
+    }
+    setIsSttStreaming(false);
+  };
+
+  const startSttStream = async () => {
+    if (isSttStreaming) return;
+    try {
+      if (typeof window === 'undefined') return;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Microphone access is not available in this browser environment.');
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true },
+      });
+      sttMediaStreamRef.current = stream;
+
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) throw new Error('Web Audio API not supported.');
+      const audioCtx = new AudioCtx({ sampleRate: 16000 });
+      sttAudioCtxRef.current = audioCtx;
+
+      const keyToUse = gatewayKey || (keys.length > 0 ? keys[0].id : 'sk-gw-test-key');
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/v1/speech-to-text/realtime?api_key=${encodeURIComponent(
+        keyToUse
+      )}&model_id=scribe_v2_realtime&audio_format=pcm_16000`;
+
+      const ws = new WebSocket(wsUrl);
+      sttWsRef.current = ws;
+
+      ws.onopen = () => {
+        setIsSttStreaming(true);
+        toast.success('Connected to Realtime STT WebSocket');
+
+        const source = audioCtx.createMediaStreamSource(stream);
+        const processor = audioCtx.createScriptProcessor(2048, 1, 1);
+        sttProcessorRef.current = processor;
+
+        processor.onaudioprocess = (e) => {
+          if (ws.readyState !== WebSocket.OPEN) return;
+          const channel = e.inputBuffer.getChannelData(0);
+          const pcm16 = new Int16Array(channel.length);
+          for (let i = 0; i < channel.length; i++) {
+            const s = Math.max(-1, Math.min(1, channel[i]));
+            pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+          }
+          let binary = '';
+          const bytes = new Uint8Array(pcm16.buffer);
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = window.btoa(binary);
+
+          ws.send(
+            JSON.stringify({
+              message_type: 'input_audio_chunk',
+              audio_base_64: base64,
+              commit: false,
+            })
+          );
+        };
+
+        source.connect(processor);
+        processor.connect(audioCtx.destination);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.message_type === 'partial_transcript' && msg.text) {
+            setSttPartialTranscript(msg.text);
+          } else if (msg.message_type === 'committed_transcript' && msg.text) {
+            setSttCommittedTranscripts((prev) => [...prev, msg.text]);
+            setSttPartialTranscript('');
+          }
+        } catch {}
+      };
+
+      ws.onerror = () => {
+        toast.error('STT WebSocket error');
+        stopSttStream();
+      };
+      ws.onclose = () => {
+        stopSttStream();
+      };
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not start mic stream');
+      stopSttStream();
+    }
+  };
+
+  const startTtsTokenStream = () => {
+    if (isTtsStreaming || !ttsStreamInputTokens.trim()) return;
+    setIsTtsStreaming(true);
+    setTtsAudioChunksReceived(0);
+    setTtsFirstChunkLatencyMs(null);
+
+    const keyToUse = gatewayKey || (keys.length > 0 ? keys[0].id : 'sk-gw-test-key');
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    const effectiveVoice =
+      selectedVoice === 'custom' ? customVoiceId.trim() || '21m00Tcm4TlvDq8ikWAM' : selectedVoice;
+    const wsUrl = `${protocol}//${host}/v1/text-to-speech/${encodeURIComponent(
+      effectiveVoice
+    )}/stream-input?api_key=${encodeURIComponent(keyToUse)}&model_id=${encodeURIComponent(
+      ttsModel
+    )}`;
+
+    const ws = new WebSocket(wsUrl);
+    ttsWsRef.current = ws;
+    const startTime = Date.now();
+
+    ws.onopen = () => {
+      // Send initial configuration message
+      ws.send(
+        JSON.stringify({
+          text: ' ',
+          voice_settings: { stability: 0.5, similarity_boost: 0.8 },
+        })
+      );
+
+      // Stream words with delay to simulate an LLM generating token chunks
+      const words = ttsStreamInputTokens.trim().split(/\s+/);
+      let idx = 0;
+      const interval = setInterval(() => {
+        if (ws.readyState !== WebSocket.OPEN) {
+          clearInterval(interval);
+          return;
+        }
+        if (idx < words.length) {
+          ws.send(JSON.stringify({ text: words[idx] + ' ' }));
+          idx++;
+        } else {
+          clearInterval(interval);
+          ws.send(JSON.stringify({ text: '' })); // End of stream marker
+        }
+      }, 70);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.audio) {
+          setTtsAudioChunksReceived((c) => {
+            if (c === 0) {
+              setTtsFirstChunkLatencyMs(Date.now() - startTime);
+            }
+            return c + 1;
+          });
+
+          // Play incoming audio chunk
+          const binary = window.atob(msg.audio);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: 'audio/mp3' });
+          const url = URL.createObjectURL(blob);
+          const audio = new Audio(url);
+          void audio.play().catch(() => {});
+        }
+
+        if (msg.is_final) {
+          setIsTtsStreaming(false);
+          toast.success('Audio chunks received and played');
+        }
+      } catch {}
+    };
+
+    ws.onerror = () => {
+      toast.error('TTS WebSocket connection error');
+      setIsTtsStreaming(false);
+    };
+    ws.onclose = () => {
+      setIsTtsStreaming(false);
+    };
+  };
+
+  useEffect(() => {
+    return () => {
+      stopSttStream();
+      if (ttsWsRef.current) {
+        try {
+          ttsWsRef.current.close();
+        } catch {}
+      }
+    };
+  }, []);
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
@@ -612,19 +855,37 @@ export function PlaygroundPage() {
       {activeTab === 'tts' && (
         <Card className="border-border/80 shadow-sm">
           <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Volume2 className="size-4 text-primary" />
                   Text-to-Speech Synthesis
                 </CardTitle>
                 <CardDescription>
-                  Converts text to streaming audio binary with sub-millisecond routing (ElevenLabs &amp; OpenAI adapters).
+                  Decoupled TTS: Generate complete audio via HTTP or stream token chunks via WebSocket.
                 </CardDescription>
               </div>
-              <Badge variant="outline" className="font-mono text-xs self-start sm:self-auto border-border">
-                Voice ID: {selectedVoice === 'custom' ? (customVoiceId || 'custom') : selectedVoice}
-              </Badge>
+
+              {/* Mode Toggle */}
+              <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-lg border border-border/60 self-start sm:self-auto">
+                <Button
+                  variant={ttsMode === 'batch' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setTtsMode('batch')}
+                  className="h-7 text-xs px-2.5"
+                >
+                  Batch (HTTP)
+                </Button>
+                <Button
+                  variant={ttsMode === 'stream-input' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setTtsMode('stream-input')}
+                  className="h-7 text-xs px-2.5 gap-1 text-primary font-semibold"
+                >
+                  <Radio className="size-3 text-rose-500 animate-pulse" />
+                  Stream-Input (WS)
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
@@ -740,7 +1001,7 @@ export function PlaygroundPage() {
                   </Select>
                 </div>
 
-                {/* 3. Custom Voice ID Input (shown when 'custom' is selected) */}
+                {/* 3. Custom Voice ID Input */}
                 {selectedVoice === 'custom' && (
                   <div className="flex flex-col gap-1.5 md:col-span-2 pt-2 border-t border-border/40">
                     <div className="flex items-center justify-between">
@@ -748,7 +1009,7 @@ export function PlaygroundPage() {
                         <span>Enter Custom Voice ID</span>
                       </Label>
                       <span className="text-[11px] text-muted-foreground">
-                        Paste any ElevenLabs voice ID (e.g. cloned voice) or custom voice identifier
+                        Paste any ElevenLabs voice ID or custom voice identifier
                       </span>
                     </div>
                     <Input
@@ -770,85 +1031,144 @@ export function PlaygroundPage() {
                     ElevenLabs Paid Plan Required for this Voice
                   </AlertTitle>
                   <AlertDescription className="text-amber-200/90 leading-relaxed text-[11px] mt-0.5">
-                    This is a community <strong>&quot;Voice Library&quot;</strong> voice. ElevenLabs returns <InlineCode>&quot;Free users cannot use library voices via the API&quot;</InlineCode> if your ElevenLabs subscription is on the Free tier. If you do not have a paid subscription, switch to one of the <strong>Default Premade Voices</strong> (e.g. George, Rachel, Sarah, Roger, Liam, Alice).
+                    This is a community <strong>&quot;Voice Library&quot;</strong> voice requiring a paid ElevenLabs plan.
                   </AlertDescription>
                 </Alert>
               )}
-
-              {/* Informational Tip */}
-              <Alert className="border-border/60 bg-background/40 text-[11px] text-muted-foreground py-2.5">
-                <Info className="size-3.5 text-primary" />
-                <AlertDescription className="text-[11px] text-muted-foreground">
-                  <strong>Free Tier Notice:</strong> ElevenLabs restricts public Voice Library access to paid plans. Default premade voices (George, Rachel, Sarah, Roger, Liam, etc.) are free and work with all accounts.
-                </AlertDescription>
-              </Alert>
             </div>
 
-            {/* Text Input Area */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold text-muted-foreground">Text to Speak</Label>
-                <span className="text-[11px] text-muted-foreground font-mono">
-                  {ttsText.length} characters
-                </span>
-              </div>
-              <Textarea
-                value={ttsText}
-                onChange={(e) => setTtsText(e.target.value)}
-                rows={4}
-                placeholder="Enter text to synthesize into high quality speech..."
-                className="w-full bg-background/50 p-3 text-sm leading-relaxed"
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={handleSynthesizeTts}
-                disabled={isSynthesizing || !ttsText.trim()}
-                className="flex items-center gap-2 shadow-sm"
-              >
-                {isSynthesizing ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    <span>Synthesizing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Volume2 className="size-4" />
-                    <span>Synthesize Audio</span>
-                  </>
-                )}
-              </Button>
-
-              {audioUrl && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const a = document.createElement('a');
-                    a.href = audioUrl;
-                    a.download = `speech-${Date.now()}.mp3`;
-                    a.click();
-                  }}
-                  className="text-xs flex items-center gap-1.5"
-                >
-                  Download MP3
-                </Button>
-              )}
-            </div>
-
-            {/* Audio Player */}
-            {audioUrl && (
-              <div className="p-4 rounded-xl border border-border/80 bg-muted/20 flex flex-col gap-2">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="font-semibold text-foreground flex items-center gap-1.5">
-                    <AudioLines className="size-3.5 text-primary" />
-                    Generated Audio Output
-                  </span>
-                  <span className="font-mono text-[11px]">MP3 Stream</span>
+            {/* BATCH SYNTHESIS MODE */}
+            {ttsMode === 'batch' && (
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-muted-foreground">Text to Speak (HTTP)</Label>
+                    <span className="text-[11px] text-muted-foreground font-mono">
+                      {ttsText.length} characters
+                    </span>
+                  </div>
+                  <Textarea
+                    value={ttsText}
+                    onChange={(e) => setTtsText(e.target.value)}
+                    rows={4}
+                    placeholder="Enter text to synthesize into high quality speech..."
+                    className="w-full bg-background/50 p-3 text-sm leading-relaxed"
+                  />
                 </div>
-                <audio controls src={audioUrl} className="w-full rounded-lg" autoPlay />
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={handleSynthesizeTts}
+                    disabled={isSynthesizing || !ttsText.trim()}
+                    className="flex items-center gap-2 shadow-sm"
+                  >
+                    {isSynthesizing ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        <span>Synthesizing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="size-4" />
+                        <span>Synthesize Audio</span>
+                      </>
+                    )}
+                  </Button>
+
+                  {audioUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const a = document.createElement('a');
+                        a.href = audioUrl;
+                        a.download = `speech-${Date.now()}.mp3`;
+                        a.click();
+                      }}
+                      className="text-xs flex items-center gap-1.5"
+                    >
+                      Download MP3
+                    </Button>
+                  )}
+                </div>
+
+                {audioUrl && (
+                  <div className="p-4 rounded-xl border border-border/80 bg-muted/20 flex flex-col gap-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="font-semibold text-foreground flex items-center gap-1.5">
+                        <AudioLines className="size-3.5 text-primary" />
+                        Generated Audio Output
+                      </span>
+                      <span className="font-mono text-[11px]">MP3 Stream</span>
+                    </div>
+                    <audio controls src={audioUrl} className="w-full rounded-lg" autoPlay />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* STREAM-INPUT WEBSOCKET MODE */}
+            {ttsMode === 'stream-input' && (
+              <div className="flex flex-col gap-4">
+                <Alert className="border-border/60 bg-background/40">
+                  <Info className="size-3.5 text-primary" />
+                  <AlertDescription className="text-[11px] text-muted-foreground">
+                    <strong>Stream-Input WebSocket Protocol:</strong> Streams text token-by-token into{' '}
+                    <InlineCode>/v1/text-to-speech/:voiceId/stream-input</InlineCode> and plays base64 audio chunks back with sub-100ms latency.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-muted-foreground">Text Tokens to Stream</Label>
+                    <Badge variant="outline" className="text-[10px] font-mono">
+                      Simulates streaming LLM tokens
+                    </Badge>
+                  </div>
+                  <Textarea
+                    value={ttsStreamInputTokens}
+                    onChange={(e) => setTtsStreamInputTokens(e.target.value)}
+                    rows={3}
+                    placeholder="Enter text to stream in chunk by chunk..."
+                    className="w-full bg-background/50 p-3 text-sm leading-relaxed"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={startTtsTokenStream}
+                    disabled={isTtsStreaming || !ttsStreamInputTokens.trim()}
+                    className="flex items-center gap-2 shadow-sm bg-primary text-primary-foreground"
+                  >
+                    {isTtsStreaming ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        <span>Streaming Tokens...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Radio className="size-4 text-rose-400" />
+                        <span>Stream Text Chunks</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Real-time Streaming Metrics */}
+                <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border border-border/80 bg-muted/20">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] uppercase font-mono text-muted-foreground">Time to First Audio (TTFA)</span>
+                    <span className="text-base font-bold font-mono text-emerald-400">
+                      {ttsFirstChunkLatencyMs !== null ? `${ttsFirstChunkLatencyMs}ms` : '—'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] uppercase font-mono text-muted-foreground">Audio Chunks Received</span>
+                    <span className="text-base font-bold font-mono text-foreground">
+                      {ttsAudioChunksReceived}
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
@@ -859,41 +1179,165 @@ export function PlaygroundPage() {
       {activeTab === 'stt' && (
         <Card className="border-border/80 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Mic className="size-4 text-primary" />
-              Speech-to-Text Transcription
-            </CardTitle>
-            <CardDescription>Upload an audio file (mp3, wav, m4a) to transcribe via Whisper or Scribe</CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Mic className="size-4 text-primary" />
+                  Speech-to-Text Transcription
+                </CardTitle>
+                <CardDescription>
+                  Decoupled STT: Transcribe audio files via HTTP or stream raw microphone chunks via WebSocket.
+                </CardDescription>
+              </div>
+
+              {/* Mode Toggle */}
+              <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-lg border border-border/60 self-start sm:self-auto">
+                <Button
+                  variant={sttMode === 'batch' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSttMode('batch')}
+                  className="h-7 text-xs px-2.5"
+                >
+                  File Upload (HTTP)
+                </Button>
+                <Button
+                  variant={sttMode === 'realtime' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSttMode('realtime')}
+                  className="h-7 text-xs px-2.5 gap-1 text-primary font-semibold"
+                >
+                  <Radio className="size-3 text-rose-500 animate-pulse" />
+                  Realtime Stream (WS)
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <input
-              type="file"
-              accept="audio/*"
-              onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-              className="text-xs file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
-            />
-            <Button
-              onClick={handleTranscribeStt}
-              disabled={!audioFile || isTranscribing}
-              className="flex items-center gap-2 self-start"
-            >
-              {isTranscribing ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  <span>Transcribing...</span>
-                </>
-              ) : (
-                <>
-                  <Mic className="size-4" />
-                  <span>Transcribe Audio</span>
-                </>
-              )}
-            </Button>
+            {/* BATCH FILE UPLOAD MODE */}
+            {sttMode === 'batch' && (
+              <div className="flex flex-col gap-4">
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
+                  className="text-xs file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
+                />
+                <Button
+                  onClick={handleTranscribeStt}
+                  disabled={!audioFile || isTranscribing}
+                  className="flex items-center gap-2 self-start"
+                >
+                  {isTranscribing ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      <span>Transcribing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="size-4" />
+                      <span>Transcribe Audio</span>
+                    </>
+                  )}
+                </Button>
 
-            {sttText && (
-              <div className="p-4 rounded-lg bg-black/40 border border-border/80 flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground font-semibold">Transcription Result:</span>
-                <p className="text-sm font-sans leading-relaxed">{sttText}</p>
+                {sttText && (
+                  <div className="p-4 rounded-lg bg-black/40 border border-border/80 flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground font-semibold">Transcription Result:</span>
+                    <p className="text-sm font-sans leading-relaxed">{sttText}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* REALTIME STREAMING WEBSOCKET MODE */}
+            {sttMode === 'realtime' && (
+              <div className="flex flex-col gap-4">
+                <Alert className="border-border/60 bg-background/40">
+                  <Info className="size-3.5 text-primary" />
+                  <AlertDescription className="text-[11px] text-muted-foreground">
+                    <strong>Realtime STT WebSocket Protocol:</strong> Streams microphone chunks into{' '}
+                    <InlineCode>/v1/speech-to-text/realtime</InlineCode> and renders live partial &amp; committed transcripts as you speak.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="flex items-center gap-3">
+                  {!isSttStreaming ? (
+                    <Button
+                      onClick={startSttStream}
+                      className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white"
+                    >
+                      <Radio className="size-4" />
+                      <span>Start Streaming Audio (Mic)</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={stopSttStream}
+                      variant="destructive"
+                      className="flex items-center gap-2"
+                    >
+                      <Square className="size-4" />
+                      <span>Stop &amp; Commit Speech</span>
+                    </Button>
+                  )}
+                  {isSttStreaming && (
+                    <Badge variant="outline" className="border-emerald-500/40 text-emerald-400 gap-1.5 animate-pulse">
+                      <span className="size-2 rounded-full bg-emerald-400" />
+                      Streaming Microphone Audio (PCM16 @ 16kHz)
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Live Interim Partial Transcript */}
+                {isSttStreaming && (
+                  <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-[11px] text-primary font-semibold">
+                      <span>Interim Speech (Live Partial)</span>
+                      <span className="font-mono text-[10px] animate-pulse">listening...</span>
+                    </div>
+                    <p className="text-sm italic text-foreground">
+                      {sttPartialTranscript ? `"${sttPartialTranscript}"` : 'Listening for voice...'}
+                    </p>
+                  </div>
+                )}
+
+                {/* Committed Final Transcripts */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Committed Final Transcripts ({sttCommittedTranscripts.length})
+                    </span>
+                    {sttCommittedTranscripts.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSttCommittedTranscripts([])}
+                        className="h-5 px-1.5 text-[10px] text-muted-foreground"
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+
+                  {sttCommittedTranscripts.length === 0 ? (
+                    <div className="p-4 rounded-lg border border-dashed border-border/80 text-center text-xs text-muted-foreground">
+                      No speech segments committed yet. Click &quot;Start Streaming Audio&quot; and speak.
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                      {sttCommittedTranscripts.map((text, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3 rounded-lg bg-black/30 border border-border/80 text-xs text-foreground leading-relaxed flex items-start gap-2"
+                        >
+                          <Badge variant="secondary" className="text-[10px] font-mono shrink-0">
+                            #{idx + 1}
+                          </Badge>
+                          <span>{text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </CardContent>

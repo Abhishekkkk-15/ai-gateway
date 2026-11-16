@@ -34,6 +34,7 @@ import { v1ConversationsRoutes } from './routes/v1/conversations.js';
 import { v1AssistantsRoutes } from './routes/v1/assistants.js';
 import { v1ThreadsRoutes } from './routes/v1/threads.js';
 import { v1RealtimeRoutes } from './routes/v1/realtime.js';
+import { v1RealtimeAudioRoutes } from './routes/v1/realtime-audio.js';
 import { v1FineTuningRoutes } from './routes/v1/fine-tuning.js';
 import { v1WebhooksRoutes } from './routes/v1/webhooks.js';
 import { StorageService } from './services/storage.js';
@@ -171,6 +172,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await app.register(v1AssistantsRoutes);
   await app.register(v1ThreadsRoutes);
   await app.register(v1RealtimeRoutes);
+  await app.register(v1RealtimeAudioRoutes);
   await app.register(v1FineTuningRoutes);
   await app.register(v1WebhooksRoutes);
 
