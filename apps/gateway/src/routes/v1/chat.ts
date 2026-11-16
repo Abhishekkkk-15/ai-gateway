@@ -35,10 +35,13 @@ export const v1ChatRoutes: FastifyPluginAsync = async (fastify) => {
       // Handle client disconnect abortion
       const abortController = new AbortController();
       request.raw.on('close', () => {
-        if (!request.raw.destroyed) {
+        if (!reply.raw.writableEnded) {
           abortController.abort();
         }
       });
+      if (request.signal) {
+        request.signal.addEventListener('abort', () => abortController.abort());
+      }
 
       // Prepare request for upstream provider (use internal model.id)
       const upstreamPayload: OpenAIChatCompletionRequest = {

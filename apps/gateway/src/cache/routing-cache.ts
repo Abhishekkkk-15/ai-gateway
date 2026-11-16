@@ -147,6 +147,10 @@ export class RoutingCache {
     }
   }
 
+  getProvider(id: string): ProviderConfig | undefined {
+    return this.providersMap.get(id);
+  }
+
   resolveModel(slugOrAlias: string): ResolvedRoute | null {
     const key = slugOrAlias.trim();
     // Direct slug match

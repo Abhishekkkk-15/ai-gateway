@@ -130,4 +130,83 @@ describe('/v1 Routes', () => {
 
     globalThis.fetch = originalFetch;
   });
+
+  it('normalizes upstream 429 rate limit error into standard OpenAI error envelope', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response('Rate limit reached on upstream', {
+        status: 429,
+        headers: { 'Content-Type': 'text/plain' },
+      })
+    );
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/chat/completions',
+      headers: { Authorization: `Bearer ${validKey}` },
+      payload: {
+        model: 'fast-chat',
+        messages: [{ role: 'user', content: 'hello' }],
+      },
+    });
+
+    expect(res.statusCode).toBe(429);
+    const body = JSON.parse(res.body);
+    expect(body.error).toBeDefined();
+    expect(body.error.type).toBe('rate_limit_error');
+
+    globalThis.fetch = originalFetch;
+  });
+
+  it('aborts upstream signal when client disconnects before response completes', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockImplementation((_url, opts: { signal?: AbortSignal }) => {
+      capturedSignal = opts?.signal;
+      return new Promise((_resolve, reject) => {
+        opts?.signal?.addEventListener('abort', () => {
+          reject(new DOMException('The operation was aborted', 'AbortError'));
+        });
+      });
+    });
+
+    const testApp = await buildServer({ skipDbHydration: true });
+    testApp.routingCache.setGatewayKeyForTesting(keyHash, {
+      id: 'key-1',
+      name: 'Test Key',
+      keyHash,
+      prefix: 'sk-gw-test',
+      createdAt: new Date(),
+      isEnabled: true,
+    });
+    testApp.routingCache.setModelForTesting('mock/test-chat', {
+      model: { id: 'test-chat', providerId: 'mock', slug: 'mock/test-chat', displayName: 'Test', capabilities: ['chat'], isEnabled: true },
+      provider: { id: 'mock', name: 'Mock', adapterType: 'openai-compatible', apiKey: 'k', isEnabled: true },
+      adapter: testApp.providerRegistry.getGenericAdapter(),
+    });
+
+    testApp.addHook('preHandler', (req, _rep, done) => {
+      setTimeout(() => {
+        req.raw.emit('close');
+      }, 15);
+      done();
+    });
+
+    await testApp.ready();
+
+    await testApp.inject({
+      method: 'POST',
+      url: '/v1/chat/completions',
+      headers: { Authorization: `Bearer ${validKey}` },
+      payload: {
+        model: 'mock/test-chat',
+        messages: [{ role: 'user', content: 'test' }],
+      },
+    });
+
+    expect(capturedSignal?.aborted).toBe(true);
+
+    await testApp.close();
+    globalThis.fetch = originalFetch;
+  });
 });

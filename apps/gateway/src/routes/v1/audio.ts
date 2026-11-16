@@ -22,9 +22,9 @@ export const v1AudioRoutes: FastifyPluginAsync = async (fastify) => {
       const requestedModel = body.model || 'eleven_flash_v2_5';
       const route = fastify.routingCache.resolveModel(requestedModel);
 
-      // Resolve adapter (either routed or explicit elevenlabs adapter)
+      // Resolve adapter & provider (routed model, or configured elevenlabs provider)
       const adapter = route?.adapter || fastify.providerRegistry.get('elevenlabs') || fastify.providerRegistry.getGenericAdapter();
-      const provider = route?.provider || {
+      const provider = route?.provider || fastify.routingCache.getProvider('elevenlabs') || {
         id: 'elevenlabs',
         name: 'ElevenLabs',
         adapterType: 'elevenlabs',
@@ -34,10 +34,13 @@ export const v1AudioRoutes: FastifyPluginAsync = async (fastify) => {
 
       const abortController = new AbortController();
       request.raw.on('close', () => {
-        if (!request.raw.destroyed) {
+        if (!reply.raw.writableEnded) {
           abortController.abort();
         }
       });
+      if (request.signal) {
+        request.signal.addEventListener('abort', () => abortController.abort());
+      }
 
       try {
         if (!adapter.synthesizeSpeech) {
@@ -104,7 +107,7 @@ export const v1AudioRoutes: FastifyPluginAsync = async (fastify) => {
 
         const route = fastify.routingCache.resolveModel(requestedModel);
         const adapter = route?.adapter || fastify.providerRegistry.get('groq') || fastify.providerRegistry.getGenericAdapter();
-        const provider = route?.provider || {
+        const provider = route?.provider || fastify.routingCache.getProvider('groq') || {
           id: 'groq',
           name: 'Groq',
           adapterType: 'groq',
@@ -119,8 +122,15 @@ export const v1AudioRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         const upstreamResponse = await adapter.transcribeAudio(formData, provider);
-        const data = await upstreamResponse.json();
 
+        if (!upstreamResponse.ok) {
+          const errText = await upstreamResponse.text().catch(() => 'Audio transcription error');
+          return reply.status(upstreamResponse.status).send(
+            createOpenAIError(errText, upstreamResponse.status, 'transcription_error')
+          );
+        }
+
+        const data = await upstreamResponse.json();
         return reply.status(upstreamResponse.status).send(data);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Transcription failed';
