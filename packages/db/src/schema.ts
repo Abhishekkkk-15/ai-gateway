@@ -112,6 +112,28 @@ export const batchesTable = pgTable('batches', {
   expiresAt: timestamp('expires_at', { withTimezone: true }),
 });
 
+export const vectorStoresTable = pgTable('vector_stores', {
+  id: text('id').primaryKey(), // e.g. 'vs_abc123'
+  name: text('name').notNull(),
+  bytes: integer('bytes').notNull().default(0),
+  status: text('status').notNull().default('completed'), // 'completed' | 'in_progress' | 'expired'
+  fileCounts: jsonb('file_counts').$type<{ in_progress: number; completed: number; failed: number; cancelled: number; total: number }>().notNull(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastActiveAt: timestamp('last_active_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+});
+
+export const vectorStoreFilesTable = pgTable('vector_store_files', {
+  id: text('id').primaryKey(), // matches file_id
+  vectorStoreId: text('vector_store_id')
+    .notNull()
+    .references(() => vectorStoresTable.id, { onDelete: 'cascade' }),
+  usageBytes: integer('usage_bytes').notNull().default(0),
+  status: text('status').notNull().default('completed'), // 'in_progress' | 'completed' | 'cancelled' | 'failed'
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type ProviderRow = typeof providersTable.$inferSelect;
 export type InsertProviderRow = typeof providersTable.$inferInsert;
 export type ModelRow = typeof modelsTable.$inferSelect;
@@ -130,3 +152,7 @@ export type UploadPartRow = typeof uploadPartsTable.$inferSelect;
 export type InsertUploadPartRow = typeof uploadPartsTable.$inferInsert;
 export type BatchRow = typeof batchesTable.$inferSelect;
 export type InsertBatchRow = typeof batchesTable.$inferInsert;
+export type VectorStoreRow = typeof vectorStoresTable.$inferSelect;
+export type InsertVectorStoreRow = typeof vectorStoresTable.$inferInsert;
+export type VectorStoreFileRow = typeof vectorStoreFilesTable.$inferSelect;
+export type InsertVectorStoreFileRow = typeof vectorStoreFilesTable.$inferInsert;

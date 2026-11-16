@@ -27,8 +27,10 @@ import { v1ModerationsRoutes } from './routes/v1/moderations.js';
 import { v1FilesRoutes } from './routes/v1/files.js';
 import { v1UploadsRoutes } from './routes/v1/uploads.js';
 import { v1BatchesRoutes } from './routes/v1/batches.js';
+import { v1VectorStoresRoutes } from './routes/v1/vector-stores.js';
 import { StorageService } from './services/storage.js';
 import { BatchProcessorService } from './services/batch-processor.js';
+import { VectorStoreService } from './services/vector-store.js';
 import { adminAuthRoutes } from './routes/admin/auth.js';
 import { adminProvidersRoutes } from './routes/admin/providers.js';
 import { adminModelsRoutes } from './routes/admin/models.js';
@@ -44,6 +46,7 @@ declare module 'fastify' {
     providerRegistry: ProviderRegistry;
     storageService: StorageService;
     batchProcessorService: BatchProcessorService;
+    vectorStoreService: VectorStoreService;
   }
 }
 
@@ -104,10 +107,12 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   const telemetryQueue = new TelemetryQueue(db);
   const storageService = new StorageService(db);
   const batchProcessorService = new BatchProcessorService(db, storageService);
+  const vectorStoreService = new VectorStoreService(db, storageService);
   app.decorate('routingCache', routingCache);
   app.decorate('telemetryQueue', telemetryQueue);
   app.decorate('storageService', storageService);
   app.decorate('batchProcessorService', batchProcessorService);
+  app.decorate('vectorStoreService', vectorStoreService);
 
   // Register Core Middleware
   await app.register(cors, {
@@ -142,6 +147,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await app.register(v1FilesRoutes);
   await app.register(v1UploadsRoutes);
   await app.register(v1BatchesRoutes);
+  await app.register(v1VectorStoresRoutes);
 
   // Register Admin Routes
   await app.register(adminAuthRoutes);

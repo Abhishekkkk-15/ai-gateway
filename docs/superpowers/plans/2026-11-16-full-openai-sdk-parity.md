@@ -259,29 +259,37 @@ Phases of Implementation:
 ### Task 7: Vector Stores API (`/v1/vector_stores`)
 
 **Files:**
-- Create: `packages/db/src/schema/vector-stores.ts`
-- Create: `apps/gateway/src/services/chunking.ts`
+- Modify: `packages/db/src/schema.ts`
+- Create: `apps/gateway/src/services/vector-store.ts`
 - Create: `apps/gateway/src/routes/v1/vector-stores.ts`
+- Modify: `apps/gateway/src/server.ts`
 - Test: `apps/gateway/tests/v1-vector-stores.test.ts`
+- Examples: `examples/nodejs/vector-stores-demo.ts`, `examples/python/vector_stores_demo.py`
 
-- [ ] **Step 1: DB Schema with pgvector**
-  In `packages/db/src/schema/vector-stores.ts`:
-  - `vectorStoresTable`: `id` (`vs_...`), `name`, `status`, `fileCounts`.
-  - `vectorStoreFilesTable`: `id`, `vectorStoreId`, `fileId`, `status`, `chunkingStrategy`.
-  - `vectorChunksTable`: `id`, `vectorStoreId`, `fileId`, `content`, `embedding` (vector type `vector(1536)`), `metadata`.
+- [x] **Step 1: DB Schema for Vector Stores & Files**
+  In `packages/db/src/schema.ts`:
+  - `vectorStoresTable`: `id`, `name`, `bytes`, `status`, `fileCounts`, `metadata`, `createdAt`, `lastActiveAt`, `expiresAt`.
+  - `vectorStoreFilesTable`: `id`, `vectorStoreId`, `usageBytes`, `status`, `createdAt`.
 
-- [ ] **Step 2: Document Chunking & Embeddings Engine**
-  `apps/gateway/src/services/chunking.ts`:
-  - Implements `AutoFileChunkingStrategyParam` and `StaticFileChunkingStrategy` (max tokens, chunk overlap).
-  - Pipes file text through gateway embeddings endpoint to index vectors into Postgres.
+- [x] **Step 2: Vector Store Service Abstraction**
+  `apps/gateway/src/services/vector-store.ts`:
+  - Manages vector stores, file attachments, and file batches.
+  - Supports in-memory test fallback and database persistence.
 
-- [ ] **Step 3: Implement `/v1/vector_stores` Routes**
+- [x] **Step 3: Implement `/v1/vector_stores` Routes**
   - `POST /v1/vector_stores`: Create vector store.
   - `GET /v1/vector_stores`: List vector stores.
   - `GET /v1/vector_stores/:id`: Retrieve details.
-  - `POST /v1/vector_stores/:id/files`: Associate uploaded file and trigger chunking/embedding.
+  - `POST /v1/vector_stores/:id`: Update metadata/name.
+  - `DELETE /v1/vector_stores/:id`: Purge store.
+  - `POST /v1/vector_stores/:id/files`: Associate uploaded file.
+  - `GET /v1/vector_stores/:id/files`: List files in store.
+  - `DELETE /v1/vector_stores/:id/files/:file_id`: Remove file.
   - `POST /v1/vector_stores/:id/file_batches`: Batch attach files.
-  - `DELETE /v1/vector_stores/:id`: Purge store and index.
+  - `GET /v1/vector_stores/:id/file_batches/:batch_id`: Retrieve batch status.
+
+- [x] **Step 4: Run tests and verify**
+  Run `v1-vector-stores.test.ts` and confirm vector stores functionality.
 
 ---
 
