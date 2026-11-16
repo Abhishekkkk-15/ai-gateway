@@ -139,7 +139,9 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
 
       const rows = await fastify.db.select().from(providersTable).where(eq(providersTable.id, id)).limit(1);
       if (rows.length === 0) {
-        return reply.status(404).send({ error: 'Provider not found.' });
+        return reply.status(400).send({
+          error: `Provider '${id}' is not saved yet. Please enter your API key and click "Save Changes" first.`,
+        });
       }
 
       const providerRow = rows[0];

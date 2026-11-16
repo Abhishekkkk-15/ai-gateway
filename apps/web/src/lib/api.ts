@@ -50,12 +50,14 @@ export interface RequestLogView {
 const API_BASE = '';
 
 async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
+  if (options.body && typeof options.body === 'string') {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const res = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
     credentials: 'include',
   });
 

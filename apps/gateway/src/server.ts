@@ -53,6 +53,19 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
     bodyLimit: 50 * 1024 * 1024, // 50MB for audio uploads
   });
 
+  // Gracefully handle empty JSON bodies on POST/PUT
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body: string, done) => {
+    if (!body || body.trim() === '') {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(body));
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  });
+
   // Decorate configuration
   app.decorate('appConfig', config);
 
