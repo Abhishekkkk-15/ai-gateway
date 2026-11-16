@@ -240,4 +240,176 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   );
+
+  // GET /api/admin/providers/elevenlabs/voices
+  fastify.get(
+    '/api/admin/providers/elevenlabs/voices',
+    { preHandler: authenticateAdmin },
+    async (request, reply) => {
+      let apiKey = '';
+
+      if (fastify.db) {
+        const rows = await fastify.db
+          .select()
+          .from(providersTable)
+          .where(eq(providersTable.id, 'elevenlabs'))
+          .limit(1);
+
+        if (rows.length > 0 && rows[0].encryptedApiKey) {
+          const { decryptSecret } = await import('@ai-gateway/db');
+          apiKey = decryptSecret(rows[0].encryptedApiKey, fastify.appConfig.masterSecret);
+        }
+      }
+
+      if (!apiKey) {
+        return {
+          source: 'default',
+          voices: DEFAULT_ELEVENLABS_VOICES,
+        };
+      }
+
+      try {
+        const upstreamRes = await fetch('https://api.elevenlabs.io/v1/voices', {
+          headers: {
+            'xi-api-key': apiKey,
+          },
+        });
+
+        if (!upstreamRes.ok) {
+          return {
+            source: 'default_fallback',
+            voices: DEFAULT_ELEVENLABS_VOICES,
+          };
+        }
+
+        const data = (await upstreamRes.json()) as {
+          voices: Array<{
+            voice_id: string;
+            name: string;
+            category: string;
+            labels?: Record<string, string>;
+            description?: string;
+          }>;
+        };
+
+        const voices = (data.voices || []).map((v) => ({
+          id: v.voice_id,
+          name: v.name,
+          category: v.category || 'premade',
+          isFreeSupported: v.category !== 'library',
+          description:
+            v.description ||
+            (v.labels
+              ? Object.entries(v.labels)
+                  .map(([k, val]) => `${k}: ${val}`)
+                  .join(', ')
+              : v.category),
+        }));
+
+        return {
+          source: 'live',
+          voices,
+        };
+      } catch (err: unknown) {
+        return {
+          source: 'default_fallback',
+          voices: DEFAULT_ELEVENLABS_VOICES,
+        };
+      }
+    }
+  );
 };
+
+const DEFAULT_ELEVENLABS_VOICES = [
+  {
+    id: 'JBFqnCBsd6RMkjVDRZzb',
+    name: 'George',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Warm, British, captivating storyteller (Default Free)',
+  },
+  {
+    id: '21m00Tcm4TlvDq8ikWAM',
+    name: 'Rachel',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Calm, professional, warm (Default Free)',
+  },
+  {
+    id: 'EXAVITQu4vr4xnSDxMaL',
+    name: 'Sarah',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Soft, gentle, friendly (Default Free)',
+  },
+  {
+    id: 'CwhRBWXzGAHq8TQ4Fs17',
+    name: 'Roger',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Calm, steady, confident (Default Free)',
+  },
+  {
+    id: 'TX3LPaxmHKxFdv7VOQHJ',
+    name: 'Liam',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Young, natural, conversational (Default Free)',
+  },
+  {
+    id: 'Xb7hH8MSUJpSbSDYk0k2',
+    name: 'Alice',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Clear, confident, expressive (Default Free)',
+  },
+  {
+    id: 'SAz9YHcvj6GT2YYXdXww',
+    name: 'River',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Confident, neutral, relaxed (Default Free)',
+  },
+  {
+    id: 'FGY2WhTYpPnrIDTdsKH5',
+    name: 'Laura',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Enthusiastic, bright, warm (Default Free)',
+  },
+  {
+    id: 'IKne3meq5aSn9XLyUdCD',
+    name: 'Charlie',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Australian, casual, deep (Default Free)',
+  },
+  {
+    id: 'onwK4e9ZLuTAKqWW03F9',
+    name: 'Daniel',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Deep, authoritative, news (Default Free)',
+  },
+  {
+    id: 'pFZP5JQG7iQjIQuC4Bku',
+    name: 'Lily',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Velvety, warm narrator (Default Free)',
+  },
+  {
+    id: 'pqHfZKP75CvOlQylNhV4',
+    name: 'Bill',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Trustworthy, documentary (Default Free)',
+  },
+  {
+    id: 'nPczCjzI2devNBz1zQrb',
+    name: 'Brian',
+    category: 'premade',
+    isFreeSupported: true,
+    description: 'Deep, dynamic, professional (Default Free)',
+  },
+];

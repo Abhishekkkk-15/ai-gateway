@@ -163,6 +163,20 @@ export const api = {
     return fetchJson<{ logs: RequestLogView[] }>(`${API_BASE}/api/admin/logs?limit=${limit}`);
   },
 
+  // ElevenLabs Live Voices
+  async getElevenLabsVoices() {
+    return fetchJson<{
+      source: string;
+      voices: Array<{
+        id: string;
+        name: string;
+        category: string;
+        isFreeSupported: boolean;
+        description: string;
+      }>;
+    }>(`${API_BASE}/api/admin/providers/elevenlabs/voices`);
+  },
+
   // Test Chat Stream
   async chatStream(
     apiKey: string,

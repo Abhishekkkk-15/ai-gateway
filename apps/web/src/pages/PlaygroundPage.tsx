@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../lib/api.js';
@@ -34,6 +34,9 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  AlertTriangle,
+  Info,
+  RefreshCw,
   AudioLines,
   Sliders,
 } from 'lucide-react';
@@ -46,16 +49,31 @@ const PROMPT_SUGGESTIONS = [
 
 const PRESET_VOICES = [
   {
-    category: 'ElevenLabs Voices',
+    category: 'ElevenLabs Default Premade (Works on Free Plan)',
     voices: [
-      { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Calm, Warm (Default)' },
-      { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', description: 'Deep, Narrative' },
-      { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', description: 'Crisp, Professional' },
-      { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella', description: 'Expressive, Warm' },
-      { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh', description: 'Young, Conversational' },
-      { id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam', description: 'Dynamic, Versatile' },
-      { id: 'piTKgcLEGmPE4e6mEKli', name: 'Nicole', description: 'Soft, Whispering' },
-      { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold', description: 'Authoritative, Strong' },
+      { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', description: 'Warm, British (Default Free)' },
+      { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Calm, Professional (Default Free)' },
+      { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', description: 'Soft, Gentle, Friendly (Default Free)' },
+      { id: 'CwhRBWXzGAHq8TQ4Fs17', name: 'Roger', description: 'Calm, Steady, Confident (Default Free)' },
+      { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', description: 'Young, Natural (Default Free)' },
+      { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', description: 'Clear, Confident (Default Free)' },
+      { id: 'SAz9YHcvj6GT2YYXdXww', name: 'River', description: 'Confident, Neutral (Default Free)' },
+      { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura', description: 'Enthusiastic, Bright (Default Free)' },
+      { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', description: 'Australian, Casual (Default Free)' },
+      { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', description: 'Deep, News Broadcaster (Default Free)' },
+      { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', description: 'Velvety, Warm Narrator (Default Free)' },
+      { id: 'pqHfZKP75CvOlQylNhV4', name: 'Bill', description: 'Trustworthy, Documentary (Default Free)' },
+      { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', description: 'Deep, Dynamic, Professional (Default Free)' },
+    ],
+  },
+  {
+    category: 'ElevenLabs Community Library (Paid Subscription Required)',
+    voices: [
+      { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', description: 'Deep, Narrative [Paid Plan]' },
+      { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', description: 'Crisp, Professional [Paid Plan]' },
+      { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh', description: 'Conversational [Paid Plan]' },
+      { id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam', description: 'Dynamic, Versatile [Paid Plan]' },
+      { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold', description: 'Authoritative, Strong [Paid Plan]' },
     ],
   },
   {
@@ -113,10 +131,25 @@ export function PlaygroundPage() {
     queryKey: ['gateway-keys'],
     queryFn: () => api.getGatewayKeys(),
   });
+  const { data: elevenLabsVoicesData, refetch: refetchVoices, isFetching: isFetchingVoices } = useQuery({
+    queryKey: ['elevenlabs-voices'],
+    queryFn: () => api.getElevenLabsVoices(),
+    staleTime: 60000,
+  });
 
   const models = modelsData?.models || [];
   const keys = keysData?.keys || [];
   const enabledModels = models.filter((m) => m.isEnabled);
+
+  const liveVoices = elevenLabsVoicesData?.voices || [];
+
+  const isSelectedVoiceLibrary = useMemo(() => {
+    if (selectedVoice === 'custom') return false;
+    const libraryGroup = PRESET_VOICES.find((g) => g.category.includes('Library'));
+    if (libraryGroup?.voices.some((v) => v.id === selectedVoice)) return true;
+    const live = liveVoices.find((v) => v.id === selectedVoice);
+    return live ? !live.isFreeSupported : false;
+  }, [selectedVoice, liveVoices]);
 
   // Auto-scroll chat as tokens stream in
   useEffect(() => {
@@ -218,7 +251,12 @@ export function PlaygroundPage() {
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error?.message || `TTS failed with status ${res.status}`);
+        const msg =
+          errJson.error?.message ||
+          errJson.detail?.message ||
+          errJson.message ||
+          `TTS failed with status ${res.status}`;
+        throw new Error(msg);
       }
 
       const blob = await res.blob();
@@ -594,108 +632,161 @@ export function PlaygroundPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
             {/* Voice & Model Configuration Panel */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border border-border/80 bg-muted/20">
-              {/* 1. Voice ID Selection */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                    <AudioLines className="size-3.5 text-primary" />
-                    <span>Voice Preset / ID</span>
-                  </label>
-                  {selectedVoice !== 'custom' && (
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      {selectedVoice}
-                    </span>
-                  )}
-                </div>
-                <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                  <SelectTrigger className="h-9 text-xs bg-background/50">
-                    <SelectValue placeholder="Select a Voice" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRESET_VOICES.map((group) => (
-                      <SelectGroup key={group.category}>
-                        <SelectLabel className="text-xs font-sans text-muted-foreground">
-                          {group.category}
-                        </SelectLabel>
-                        {group.voices.map((v) => (
-                          <SelectItem key={v.id} value={v.id} className="text-xs">
-                            <span className="font-medium">{v.name}</span>
-                            <span className="text-muted-foreground ml-2 text-[11px]">
-                              — {v.description}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                    <SelectGroup>
-                      <SelectLabel className="text-xs font-sans text-muted-foreground">
-                        Custom Voice
-                      </SelectLabel>
-                      <SelectItem value="custom" className="text-xs font-medium text-primary">
-                        Other / Custom Voice ID...
-                      </SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* 2. TTS Model Selection */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <Sliders className="size-3.5 text-primary" />
-                  <span>TTS Synthesis Model</span>
-                </label>
-                <Select value={ttsModel} onValueChange={setTtsModel}>
-                  <SelectTrigger className="h-9 text-xs bg-background/50 font-mono">
-                    <SelectValue placeholder="Select TTS Model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel className="text-xs font-sans text-muted-foreground">ElevenLabs Models</SelectLabel>
-                      <SelectItem value="eleven_flash_v2_5" className="text-xs font-mono">
-                        eleven_flash_v2_5 (Ultra-low latency ~75ms)
-                      </SelectItem>
-                      <SelectItem value="eleven_multilingual_v2" className="text-xs font-mono">
-                        eleven_multilingual_v2 (High expressive quality)
-                      </SelectItem>
-                      <SelectItem value="eleven_turbo_v2_5" className="text-xs font-mono">
-                        eleven_turbo_v2_5 (Fast streaming)
-                      </SelectItem>
-                    </SelectGroup>
-                    <SelectGroup>
-                      <SelectLabel className="text-xs font-sans text-muted-foreground">OpenAI Models</SelectLabel>
-                      <SelectItem value="tts-1" className="text-xs font-mono">
-                        tts-1 (Standard)
-                      </SelectItem>
-                      <SelectItem value="tts-1-hd" className="text-xs font-mono">
-                        tts-1-hd (High Definition)
-                      </SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* 3. Custom Voice ID Input (shown when 'custom' is selected) */}
-              {selectedVoice === 'custom' && (
-                <div className="flex flex-col gap-1.5 md:col-span-2 pt-2 border-t border-border/40">
+            <div className="flex flex-col gap-4 p-4 rounded-xl border border-border/80 bg-muted/20">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1. Voice ID Selection */}
+                <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-primary flex items-center gap-1.5">
-                      <span>Enter Custom Voice ID</span>
+                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <AudioLines className="size-3.5 text-primary" />
+                      <span>Voice Preset / ID</span>
                     </label>
-                    <span className="text-[11px] text-muted-foreground">
-                      Paste any ElevenLabs voice ID (e.g. cloned voice) or custom voice identifier
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => void refetchVoices()}
+                        disabled={isFetchingVoices}
+                        className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+                        title="Sync Voices from ElevenLabs account"
+                      >
+                        <RefreshCw className={`size-3 mr-1 ${isFetchingVoices ? 'animate-spin' : ''}`} />
+                        <span>Sync</span>
+                      </Button>
+                      {selectedVoice !== 'custom' && (
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {selectedVoice}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                    <SelectTrigger className="h-9 text-xs bg-background/50">
+                      <SelectValue placeholder="Select a Voice" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {liveVoices.length > 0 && (
+                        <SelectGroup>
+                          <SelectLabel className="text-xs font-sans text-muted-foreground">
+                            Your ElevenLabs Account Voices
+                          </SelectLabel>
+                          {liveVoices.map((v) => (
+                            <SelectItem key={v.id} value={v.id} className="text-xs">
+                              <span className="font-medium">{v.name}</span>
+                              <span className="text-muted-foreground ml-2 text-[11px]">
+                                — {v.category} {v.isFreeSupported ? '(Free)' : '[Paid Plan]'}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      )}
+                      {PRESET_VOICES.map((group) => (
+                        <SelectGroup key={group.category}>
+                          <SelectLabel className="text-xs font-sans text-muted-foreground">
+                            {group.category}
+                          </SelectLabel>
+                          {group.voices.map((v) => (
+                            <SelectItem key={v.id} value={v.id} className="text-xs">
+                              <span className="font-medium">{v.name}</span>
+                              <span className="text-muted-foreground ml-2 text-[11px]">
+                                — {v.description}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
+                      <SelectGroup>
+                        <SelectLabel className="text-xs font-sans text-muted-foreground">
+                          Custom Voice
+                        </SelectLabel>
+                        <SelectItem value="custom" className="text-xs font-medium text-primary">
+                          Other / Custom Voice ID...
+                        </SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 2. TTS Model Selection */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Sliders className="size-3.5 text-primary" />
+                    <span>TTS Synthesis Model</span>
+                  </label>
+                  <Select value={ttsModel} onValueChange={setTtsModel}>
+                    <SelectTrigger className="h-9 text-xs bg-background/50 font-mono">
+                      <SelectValue placeholder="Select TTS Model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel className="text-xs font-sans text-muted-foreground">ElevenLabs Models</SelectLabel>
+                        <SelectItem value="eleven_flash_v2_5" className="text-xs font-mono">
+                          eleven_flash_v2_5 (Ultra-low latency ~75ms)
+                        </SelectItem>
+                        <SelectItem value="eleven_multilingual_v2" className="text-xs font-mono">
+                          eleven_multilingual_v2 (High expressive quality)
+                        </SelectItem>
+                        <SelectItem value="eleven_turbo_v2_5" className="text-xs font-mono">
+                          eleven_turbo_v2_5 (Fast streaming)
+                        </SelectItem>
+                      </SelectGroup>
+                      <SelectGroup>
+                        <SelectLabel className="text-xs font-sans text-muted-foreground">OpenAI Models</SelectLabel>
+                        <SelectItem value="tts-1" className="text-xs font-mono">
+                          tts-1 (Standard)
+                        </SelectItem>
+                        <SelectItem value="tts-1-hd" className="text-xs font-mono">
+                          tts-1-hd (High Definition)
+                        </SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 3. Custom Voice ID Input (shown when 'custom' is selected) */}
+                {selectedVoice === 'custom' && (
+                  <div className="flex flex-col gap-1.5 md:col-span-2 pt-2 border-t border-border/40">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                        <span>Enter Custom Voice ID</span>
+                      </label>
+                      <span className="text-[11px] text-muted-foreground">
+                        Paste any ElevenLabs voice ID (e.g. cloned voice) or custom voice identifier
+                      </span>
+                    </div>
+                    <Input
+                      placeholder="e.g. 21m00Tcm4TlvDq8ikWAM or custom_voice_slug"
+                      value={customVoiceId}
+                      onChange={(e) => setCustomVoiceId(e.target.value)}
+                      className="font-mono text-xs bg-background/50 h-9"
+                      autoFocus
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Warning if a Library Voice is Selected */}
+              {isSelectedVoiceLibrary && (
+                <div className="flex items-start gap-2.5 p-3 rounded-lg border border-amber-500/40 bg-amber-500/10 text-xs text-amber-200">
+                  <AlertTriangle className="size-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-semibold text-amber-300">
+                      ElevenLabs Paid Plan Required for this Voice
+                    </span>
+                    <span className="text-amber-200/90 leading-relaxed text-[11px]">
+                      This is a community <strong>&quot;Voice Library&quot;</strong> voice. ElevenLabs returns <code>&quot;Free users cannot use library voices via the API&quot;</code> if your ElevenLabs subscription is on the Free tier. If you do not have a paid subscription, switch to one of the <strong>Default Premade Voices</strong> (e.g. George, Rachel, Sarah, Roger, Liam, Alice).
                     </span>
                   </div>
-                  <Input
-                    placeholder="e.g. 21m00Tcm4TlvDq8ikWAM or custom_voice_slug"
-                    value={customVoiceId}
-                    onChange={(e) => setCustomVoiceId(e.target.value)}
-                    className="font-mono text-xs bg-background/50 h-9"
-                    autoFocus
-                  />
                 </div>
               )}
+
+              {/* Informational Tip */}
+              <div className="flex items-start gap-2 p-2.5 rounded-lg border border-border/60 bg-background/40 text-[11px] text-muted-foreground">
+                <Info className="size-3.5 text-primary shrink-0 mt-0.5" />
+                <span>
+                  <strong>Free Tier Notice:</strong> ElevenLabs restricts public Voice Library access to paid plans. Default premade voices (George, Rachel, Sarah, Roger, Liam, etc.) are free and work with all accounts.
+                </span>
+              </div>
             </div>
 
             {/* Text Input Area */}

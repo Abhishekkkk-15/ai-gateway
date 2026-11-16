@@ -60,8 +60,20 @@ export const v1AudioRoutes: FastifyPluginAsync = async (fastify) => {
 
         if (!upstreamResponse.ok) {
           const errText = await upstreamResponse.text().catch(() => 'Audio synthesis error');
+          let cleanMessage = errText;
+          try {
+            const parsed = JSON.parse(errText);
+            cleanMessage =
+              parsed?.detail?.message ||
+              parsed?.error?.message ||
+              parsed?.message ||
+              errText;
+          } catch {
+            // Keep original string if not JSON
+          }
+
           return reply.status(upstreamResponse.status).send(
-            createOpenAIError(errText, upstreamResponse.status, 'audio_synthesis_error')
+            createOpenAIError(cleanMessage, upstreamResponse.status, 'audio_synthesis_error')
           );
         }
 
