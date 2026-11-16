@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api, type RequestLogView } from '../lib/api.js';
+import { api } from '../lib/api.js';
 import { Card, CardContent } from '../components/ui/card.js';
 import {
   Table,
@@ -12,27 +12,67 @@ import {
 } from '../components/ui/table.js';
 import { Badge } from '../components/ui/badge.js';
 import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 import { Skeleton } from '../components/ui/skeleton.js';
-import { Activity, Zap, Timer, CheckCircle2, AlertCircle, Search } from 'lucide-react';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis,
+} from '../components/ui/pagination.js';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '../components/ui/select.js';
+import {
+  Activity,
+  Timer,
+  CheckCircle2,
+  AlertCircle,
+  Search,
+  ChevronsLeft,
+  ChevronsRight,
+  X,
+} from 'lucide-react';
+import { cn } from '../lib/utils.js';
 
 export function LogsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'error'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
   const { data, isLoading } = useQuery({
     queryKey: ['telemetry-logs'],
-    queryFn: () => api.getLogs(100),
+    queryFn: () => api.getLogs(500),
     refetchInterval: 5000, // auto-refresh logs every 5s
   });
 
   const logs = data?.logs || [];
 
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setCurrentPage(1);
+  };
+
+  const handleStatusChange = (val: 'all' | 'success' | 'error') => {
+    setStatusFilter(val);
+    setCurrentPage(1);
+  };
+
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
+      const q = search.trim().toLowerCase();
       const matchesSearch =
-        search === '' ||
-        log.modelSlug.toLowerCase().includes(search.toLowerCase()) ||
-        log.providerId.toLowerCase().includes(search.toLowerCase());
+        q === '' ||
+        log.modelSlug.toLowerCase().includes(q) ||
+        log.providerId.toLowerCase().includes(q);
 
       const isSuccess = log.statusCode >= 200 && log.statusCode < 300;
       const matchesStatus =
@@ -44,12 +84,39 @@ export function LogsPage() {
     });
   }, [logs, search, statusFilter]);
 
-  // Aggregate stats
+  // Aggregate stats over total fetched logs
   const totalCount = logs.length;
   const successCount = logs.filter((l) => l.statusCode >= 200 && l.statusCode < 300).length;
   const successRate = totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 100;
   const avgLatency =
     totalCount > 0 ? Math.round(logs.reduce((acc, l) => acc + l.latencyMs, 0) / totalCount) : 0;
+
+  // Pagination calculation
+  const totalFiltered = filteredLogs.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedLogs = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredLogs.slice(start, start + pageSize);
+  }, [filteredLogs, safeCurrentPage, pageSize]);
+
+  const fromRecord = totalFiltered === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const toRecord = Math.min(safeCurrentPage * pageSize, totalFiltered);
+
+  // Generate page numbers
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (safeCurrentPage <= 3) {
+      return [1, 2, 3, 'ellipsis', totalPages];
+    }
+    if (safeCurrentPage >= totalPages - 2) {
+      return [1, 'ellipsis', totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, 'ellipsis', safeCurrentPage, 'ellipsis', totalPages];
+  }, [totalPages, safeCurrentPage]);
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
@@ -103,13 +170,23 @@ export function LogsPage() {
               <Input
                 placeholder="Filter by model slug or provider ID..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-9 text-xs font-mono bg-background/50"
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-9 pr-8 h-9 text-xs font-mono bg-background/50"
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => handleSearchChange('')}
+                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-1.5 w-full sm:w-auto">
               <button
-                onClick={() => setStatusFilter('all')}
+                type="button"
+                onClick={() => handleStatusChange('all')}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                   statusFilter === 'all'
                     ? 'bg-primary text-primary-foreground shadow-sm'
@@ -119,7 +196,8 @@ export function LogsPage() {
                 All
               </button>
               <button
-                onClick={() => setStatusFilter('success')}
+                type="button"
+                onClick={() => handleStatusChange('success')}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                   statusFilter === 'success'
                     ? 'bg-emerald-600 text-white shadow-sm'
@@ -129,7 +207,8 @@ export function LogsPage() {
                 2xx Success
               </button>
               <button
-                onClick={() => setStatusFilter('error')}
+                type="button"
+                onClick={() => handleStatusChange('error')}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                   statusFilter === 'error'
                     ? 'bg-destructive text-destructive-foreground shadow-sm'
@@ -143,18 +222,18 @@ export function LogsPage() {
         </CardContent>
       </Card>
 
-      {/* Logs Table Card */}
-      <Card className="border-border/80 shadow-sm overflow-hidden">
+      {/* Logs Table Card (Official shadcn Table Primitive) */}
+      <Card className="border-border/80 shadow-sm overflow-hidden flex flex-col">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Timestamp</TableHead>
+              <TableHead className="w-28">Timestamp</TableHead>
               <TableHead>Model Slug</TableHead>
-              <TableHead>Provider</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Mode</TableHead>
-              <TableHead>TTFT</TableHead>
-              <TableHead>Total Latency</TableHead>
+              <TableHead className="w-28">Provider</TableHead>
+              <TableHead className="w-20">Status</TableHead>
+              <TableHead className="w-20">Mode</TableHead>
+              <TableHead className="w-24">TTFT</TableHead>
+              <TableHead className="w-28 text-right">Total Latency</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -179,12 +258,12 @@ export function LogsPage() {
                   <TableCell>
                     <Skeleton className="h-5 w-14" />
                   </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-5 w-16" />
+                  <TableCell className="text-right">
+                    <Skeleton className="h-5 w-16 ml-auto" />
                   </TableCell>
                 </TableRow>
               ))
-            ) : filteredLogs.length === 0 ? (
+            ) : paginatedLogs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-1.5 py-6">
@@ -195,11 +274,25 @@ export function LogsPage() {
                         ? 'Try clearing your filters to see historical requests.'
                         : 'Run a prompt in the Playground or send an OpenAI SDK request to capture telemetry.'}
                     </span>
+                    {(search || statusFilter !== 'all') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSearch('');
+                          setStatusFilter('all');
+                          setCurrentPage(1);
+                        }}
+                        className="mt-2 text-xs"
+                      >
+                        Reset Filters
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
-              filteredLogs.map((log) => {
+              paginatedLogs.map((log) => {
                 const isSuccess = log.statusCode >= 200 && log.statusCode < 300;
                 return (
                   <TableRow key={log.id} className="hover:bg-muted/40 transition-colors">
@@ -242,7 +335,7 @@ export function LogsPage() {
                     <TableCell className="font-mono text-xs text-amber-500">
                       {log.ttftMs ? `${log.ttftMs}ms` : '—'}
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-primary font-semibold">
+                    <TableCell className="font-mono text-xs text-primary font-semibold text-right">
                       {log.latencyMs}ms
                     </TableCell>
                   </TableRow>
@@ -251,6 +344,133 @@ export function LogsPage() {
             )}
           </TableBody>
         </Table>
+
+        {/* Official shadcn Pagination Component Toolbar */}
+        {!isLoading && totalFiltered > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border/40 bg-card/40 text-xs">
+            {/* Left: Range and Totals */}
+            <div className="flex items-center gap-1.5 text-muted-foreground order-2 sm:order-1">
+              <span>
+                Showing <span className="font-semibold text-foreground">{fromRecord}</span> to{' '}
+                <span className="font-semibold text-foreground">{toRecord}</span> of{' '}
+                <span className="font-semibold text-foreground">{totalFiltered}</span> logs
+              </span>
+              {totalFiltered !== logs.length && (
+                <span className="text-[11px] text-muted-foreground/80 font-mono">
+                  (filtered from {logs.length})
+                </span>
+              )}
+            </div>
+
+            {/* Center: shadcn Pagination Links */}
+            <div className="order-1 sm:order-2">
+              <Pagination>
+                <PaginationContent className="gap-1">
+                  {/* First page button */}
+                  <PaginationItem>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="size-8 text-muted-foreground hover:text-foreground"
+                      disabled={safeCurrentPage === 1}
+                      onClick={() => setCurrentPage(1)}
+                      title="First page"
+                    >
+                      <ChevronsLeft className="size-4" />
+                    </Button>
+                  </PaginationItem>
+
+                  {/* Previous page */}
+                  <PaginationItem>
+                    <PaginationPrevious
+                      className={cn(
+                        "h-8 px-2.5 text-xs",
+                        safeCurrentPage === 1 && "pointer-events-none opacity-50"
+                      )}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (safeCurrentPage > 1) setCurrentPage(safeCurrentPage - 1);
+                      }}
+                    />
+                  </PaginationItem>
+
+                  {/* Page numbers with ellipsis */}
+                  {pageNumbers.map((p, idx) =>
+                    p === 'ellipsis' ? (
+                      <PaginationItem key={`ellipsis-${idx}`}>
+                        <PaginationEllipsis className="size-8" />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          isActive={p === safeCurrentPage}
+                          className="size-8 text-xs font-mono"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(p as number);
+                          }}
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
+
+                  {/* Next page */}
+                  <PaginationItem>
+                    <PaginationNext
+                      className={cn(
+                        "h-8 px-2.5 text-xs",
+                        safeCurrentPage === totalPages && "pointer-events-none opacity-50"
+                      )}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (safeCurrentPage < totalPages) setCurrentPage(safeCurrentPage + 1);
+                      }}
+                    />
+                  </PaginationItem>
+
+                  {/* Last page button */}
+                  <PaginationItem>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="size-8 text-muted-foreground hover:text-foreground"
+                      disabled={safeCurrentPage === totalPages}
+                      onClick={() => setCurrentPage(totalPages)}
+                      title="Last page"
+                    >
+                      <ChevronsRight className="size-4" />
+                    </Button>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+
+            {/* Right: Page Size Selector */}
+            <div className="flex items-center gap-2 order-3">
+              <span className="text-muted-foreground whitespace-nowrap">Rows per page</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(val) => {
+                  setPageSize(Number(val));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-[72px] text-xs font-mono bg-background/50">
+                  <SelectValue placeholder={String(pageSize)} />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {[10, 25, 50, 100].map((size) => (
+                    <SelectItem key={size} value={String(size)} className="text-xs font-mono">
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

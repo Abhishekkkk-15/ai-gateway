@@ -166,8 +166,10 @@ export const api = {
   },
 
   // Logs
-  async getLogs(limit = 100) {
-    return fetchJson<{ logs: RequestLogView[] }>(`${API_BASE}/api/admin/logs?limit=${limit}`);
+  async getLogs(limit = 50, offset = 0) {
+    return fetchJson<{ logs: RequestLogView[]; total?: number; limit?: number; offset?: number }>(
+      `${API_BASE}/api/admin/logs?limit=${limit}&offset=${offset}`
+    );
   },
 
   // ElevenLabs Live Voices

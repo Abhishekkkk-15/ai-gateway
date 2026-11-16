@@ -32,6 +32,15 @@ import {
   DropdownMenuSeparator,
 } from '../components/ui/dropdown-menu.js';
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis,
+} from '../components/ui/pagination.js';
+import {
   Search,
   Tag,
   Copy,
@@ -44,7 +53,10 @@ import {
   Loader2,
   X,
   SlidersHorizontal,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
+import { cn } from '../lib/utils.js';
 
 export function ModelsPage() {
   const queryClient = useQueryClient();
@@ -55,6 +67,8 @@ export function ModelsPage() {
   const [selectedCapability, setSelectedCapability] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all');
   const [sortBy, setSortBy] = useState<'slug' | 'context' | 'provider'>('slug');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(15);
 
   // Inline editing state
   const [editingAliases, setEditingAliases] = useState<Record<string, string>>({});
@@ -168,9 +182,36 @@ export function ModelsPage() {
     setSelectedCapability('all');
     setStatusFilter('all');
     setSortBy('slug');
+    setCurrentPage(1);
   };
 
   const activeCount = models.filter((m) => m.isEnabled).length;
+
+  // Pagination execution
+  const totalFiltered = filteredModels.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedModels = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredModels.slice(start, start + pageSize);
+  }, [filteredModels, safeCurrentPage, pageSize]);
+
+  const fromRecord = totalFiltered === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const toRecord = Math.min(safeCurrentPage * pageSize, totalFiltered);
+
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (safeCurrentPage <= 3) {
+      return [1, 2, 3, 'ellipsis', totalPages];
+    }
+    if (safeCurrentPage >= totalPages - 2) {
+      return [1, 'ellipsis', totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, 'ellipsis', safeCurrentPage, 'ellipsis', totalPages];
+  }, [totalPages, safeCurrentPage]);
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
@@ -210,13 +251,19 @@ export function ModelsPage() {
             <Input
               placeholder="Search by slug, alias, provider..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               className="pl-9 pr-8 text-xs font-mono h-9 bg-background/50"
             />
             {search && (
               <button
                 type="button"
-                onClick={() => setSearch('')}
+                onClick={() => {
+                  setSearch('');
+                  setCurrentPage(1);
+                }}
                 className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
               >
                 <X className="size-4" />
@@ -225,7 +272,13 @@ export function ModelsPage() {
           </div>
 
           {/* 2. Provider Filter */}
-          <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+          <Select
+            value={selectedProvider}
+            onValueChange={(val) => {
+              setSelectedProvider(val);
+              setCurrentPage(1);
+            }}
+          >
             <SelectTrigger className="h-9 text-xs bg-background/50 font-mono">
               <SelectValue placeholder="Filter by Provider" />
             </SelectTrigger>
@@ -247,7 +300,13 @@ export function ModelsPage() {
           </Select>
 
           {/* 3. Capability Filter */}
-          <Select value={selectedCapability} onValueChange={setSelectedCapability}>
+          <Select
+            value={selectedCapability}
+            onValueChange={(val) => {
+              setSelectedCapability(val);
+              setCurrentPage(1);
+            }}
+          >
             <SelectTrigger className="h-9 text-xs bg-background/50">
               <SelectValue placeholder="Filter by Capability" />
             </SelectTrigger>
@@ -292,7 +351,10 @@ export function ModelsPage() {
             <span className="text-muted-foreground font-medium text-[11px] mr-1">Status:</span>
             <button
               type="button"
-              onClick={() => setStatusFilter('all')}
+              onClick={() => {
+                setStatusFilter('all');
+                setCurrentPage(1);
+              }}
               className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                 statusFilter === 'all'
                   ? 'bg-primary text-primary-foreground shadow-sm'
@@ -303,7 +365,10 @@ export function ModelsPage() {
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter('enabled')}
+              onClick={() => {
+                setStatusFilter('enabled');
+                setCurrentPage(1);
+              }}
               className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                 statusFilter === 'enabled'
                   ? 'bg-emerald-600 text-white shadow-sm'
@@ -314,7 +379,10 @@ export function ModelsPage() {
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter('disabled')}
+              onClick={() => {
+                setStatusFilter('disabled');
+                setCurrentPage(1);
+              }}
               className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                 statusFilter === 'disabled'
                   ? 'bg-destructive text-destructive-foreground shadow-sm'
@@ -397,7 +465,7 @@ export function ModelsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredModels.map((m) => {
+              paginatedModels.map((m) => {
                 const currentAliasVal = editingAliases[m.slug] ?? m.customAlias ?? '';
                 const isToggling =
                   toggleMutation.isPending && toggleMutation.variables?.slug === m.slug;
@@ -533,6 +601,133 @@ export function ModelsPage() {
             )}
           </TableBody>
         </Table>
+
+        {/* Official shadcn Pagination Component Toolbar */}
+        {!isLoading && totalFiltered > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border/40 bg-card/40 text-xs">
+            {/* Left: Range and Totals */}
+            <div className="flex items-center gap-1.5 text-muted-foreground order-2 sm:order-1">
+              <span>
+                Showing <span className="font-semibold text-foreground">{fromRecord}</span> to{' '}
+                <span className="font-semibold text-foreground">{toRecord}</span> of{' '}
+                <span className="font-semibold text-foreground">{totalFiltered}</span> models
+              </span>
+              {totalFiltered !== models.length && (
+                <span className="text-[11px] text-muted-foreground/80 font-mono">
+                  (filtered from {models.length})
+                </span>
+              )}
+            </div>
+
+            {/* Center: shadcn Pagination Links */}
+            <div className="order-1 sm:order-2">
+              <Pagination>
+                <PaginationContent className="gap-1">
+                  {/* First page button */}
+                  <PaginationItem>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="size-8 text-muted-foreground hover:text-foreground"
+                      disabled={safeCurrentPage === 1}
+                      onClick={() => setCurrentPage(1)}
+                      title="First page"
+                    >
+                      <ChevronsLeft className="size-4" />
+                    </Button>
+                  </PaginationItem>
+
+                  {/* Previous page */}
+                  <PaginationItem>
+                    <PaginationPrevious
+                      className={cn(
+                        "h-8 px-2.5 text-xs",
+                        safeCurrentPage === 1 && "pointer-events-none opacity-50"
+                      )}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (safeCurrentPage > 1) setCurrentPage(safeCurrentPage - 1);
+                      }}
+                    />
+                  </PaginationItem>
+
+                  {/* Page numbers with ellipsis */}
+                  {pageNumbers.map((p, idx) =>
+                    p === 'ellipsis' ? (
+                      <PaginationItem key={`ellipsis-${idx}`}>
+                        <PaginationEllipsis className="size-8" />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          isActive={p === safeCurrentPage}
+                          className="size-8 text-xs font-mono"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(p as number);
+                          }}
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
+
+                  {/* Next page */}
+                  <PaginationItem>
+                    <PaginationNext
+                      className={cn(
+                        "h-8 px-2.5 text-xs",
+                        safeCurrentPage === totalPages && "pointer-events-none opacity-50"
+                      )}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (safeCurrentPage < totalPages) setCurrentPage(safeCurrentPage + 1);
+                      }}
+                    />
+                  </PaginationItem>
+
+                  {/* Last page button */}
+                  <PaginationItem>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="size-8 text-muted-foreground hover:text-foreground"
+                      disabled={safeCurrentPage === totalPages}
+                      onClick={() => setCurrentPage(totalPages)}
+                      title="Last page"
+                    >
+                      <ChevronsRight className="size-4" />
+                    </Button>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+
+            {/* Right: Page Size Selector */}
+            <div className="flex items-center gap-2 order-3">
+              <span className="text-muted-foreground whitespace-nowrap">Rows per page</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(val) => {
+                  setPageSize(Number(val));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-[72px] text-xs font-mono bg-background/50">
+                  <SelectValue placeholder={String(pageSize)} />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {[10, 15, 25, 50, 100].map((size) => (
+                    <SelectItem key={size} value={String(size)} className="text-xs font-mono">
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
