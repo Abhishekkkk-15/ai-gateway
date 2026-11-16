@@ -148,12 +148,7 @@ for await (const chunk of stream) {
 }`;
     }
     if (codeTab === 'rust') {
-      return `// Add dependencies in Cargo.toml:
-// async-openai = "0.27"
-// tokio = { version = "1", features = ["full"] }
-// futures = "0.3"
-
-use async_openai::{
+      return `use async_openai::{
     config::OpenAIConfig,
     types::{ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs},
     Client,
