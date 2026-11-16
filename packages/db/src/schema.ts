@@ -134,6 +134,33 @@ export const vectorStoreFilesTable = pgTable('vector_store_files', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const conversationsTable = pgTable('conversations', {
+  id: text('id').primaryKey(), // e.g. 'conv_abc123'
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const conversationItemsTable = pgTable('conversation_items', {
+  id: text('id').primaryKey(), // e.g. 'item_abc123'
+  conversationId: text('conversation_id')
+    .notNull()
+    .references(() => conversationsTable.id, { onDelete: 'cascade' }),
+  role: text('role').notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const responsesTable = pgTable('responses', {
+  id: text('id').primaryKey(), // e.g. 'resp_abc123'
+  conversationId: text('conversation_id'),
+  model: text('model').notNull(),
+  status: text('status').notNull().default('completed'),
+  outputText: text('output_text').notNull(),
+  usage: jsonb('usage').$type<{ prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }>(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type ProviderRow = typeof providersTable.$inferSelect;
 export type InsertProviderRow = typeof providersTable.$inferInsert;
 export type ModelRow = typeof modelsTable.$inferSelect;
@@ -156,3 +183,9 @@ export type VectorStoreRow = typeof vectorStoresTable.$inferSelect;
 export type InsertVectorStoreRow = typeof vectorStoresTable.$inferInsert;
 export type VectorStoreFileRow = typeof vectorStoreFilesTable.$inferSelect;
 export type InsertVectorStoreFileRow = typeof vectorStoreFilesTable.$inferInsert;
+export type ConversationRow = typeof conversationsTable.$inferSelect;
+export type InsertConversationRow = typeof conversationsTable.$inferInsert;
+export type ConversationItemRow = typeof conversationItemsTable.$inferSelect;
+export type InsertConversationItemRow = typeof conversationItemsTable.$inferInsert;
+export type ResponseRow = typeof responsesTable.$inferSelect;
+export type InsertResponseRow = typeof responsesTable.$inferInsert;

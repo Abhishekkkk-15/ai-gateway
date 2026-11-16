@@ -296,39 +296,39 @@ Phases of Implementation:
 ### Task 8: Next-Generation Responses API & Conversations (`POST /v1/responses`, `/v1/conversations`)
 
 **Files:**
-- Create: `packages/db/src/schema/conversations.ts`
+- Modify: `packages/db/src/schema.ts`
 - Create: `apps/gateway/src/services/responses-engine.ts`
 - Create: `apps/gateway/src/routes/v1/responses.ts`
 - Create: `apps/gateway/src/routes/v1/conversations.ts`
-- Modify: `apps/gateway/src/routes/v1/index.ts`
+- Modify: `apps/gateway/src/server.ts`
 - Test: `apps/gateway/tests/v1-responses.test.ts`
+- Examples: `examples/nodejs/responses-demo.ts`, `examples/python/responses_demo.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Create `apps/gateway/tests/v1-responses.test.ts` testing:
   - `POST /v1/responses` with simple input: `{ model: "gpt-4o", input: "Say hello!" }`
   - Verify envelope: `{ id: "resp_...", object: "response", status: "completed", output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: "..." }] }], output_text: "...", usage: { total_tokens: 10 } }`.
   - Multi-turn chained responses via `previous_response_id: "resp_123"` or `conversation: "conv_123"`.
-  - SSE streaming mode (`stream: true`): emitting `response.output_item.added`, `response.content_part.delta`, and `response.completed`.
-  - Built-in tools: `tools: [{ type: "web_search_preview" }]` or `tools: [{ type: "file_search" }]`.
+  - SSE streaming mode (`stream: true`): emitting `response.created`, `response.output_text.delta`, and `response.completed`.
 
-- [ ] **Step 2: Conversation & Response DB Schema**
-  In `packages/db/src/schema/conversations.ts`:
-  - `conversationsTable`: `id` (`conv_...`), `metadata`, `createdAt`.
+- [x] **Step 2: Conversation & Response DB Schema**
+  In `packages/db/src/schema.ts`:
+  - `conversationsTable`: `id`, `metadata`, `createdAt`.
   - `conversationItemsTable`: `id`, `conversationId`, `role`, `content`, `createdAt`.
-  - `responsesTable`: `id` (`resp_...`), `conversationId`, `model`, `status`, `inputText`, `outputText`, `usage`, `createdAt`.
+  - `responsesTable`: `id`, `conversationId`, `model`, `status`, `outputText`, `usage`, `createdAt`.
 
-- [ ] **Step 3: Implement Responses Translation & Execution Engine**
+- [x] **Step 3: Implement Responses Translation & Execution Engine**
   `apps/gateway/src/services/responses-engine.ts`:
-  - Normalizes `input` (string or array of multimodal items: text, image, file).
+  - Normalizes `input` (string or array of items).
   - Handles conversation context: automatically restores previous turns from `conversation` or `previous_response_id`.
-  - Translates and forwards to upstream provider (native `/v1/responses` for OpenAI, or transformed `/v1/chat/completions` for Groq, Nvidia, Google, DeepSeek).
   - Automatically synthesizes the convenient `output_text` helper accessor and output item lists.
+  - Transforms upstream SSE streaming events into native Next-Gen responses protocol events.
 
-- [ ] **Step 4: Implement Fastify Routes**
+- [x] **Step 4: Implement Fastify Routes**
   - In `apps/gateway/src/routes/v1/responses.ts`: `POST /v1/responses`, `GET /v1/responses/:id`, `DELETE /v1/responses/:id`.
   - In `apps/gateway/src/routes/v1/conversations.ts`: `POST /v1/conversations`, `GET /v1/conversations/:id`, `DELETE /v1/conversations/:id`, `POST /v1/conversations/:id/items`.
 
-- [ ] **Step 5: Run tests and verify**
+- [x] **Step 5: Run tests and verify**
   Run `v1-responses.test.ts` and confirm Responses API parity.
 
 ---

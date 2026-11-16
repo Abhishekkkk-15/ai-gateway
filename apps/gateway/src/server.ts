@@ -28,9 +28,12 @@ import { v1FilesRoutes } from './routes/v1/files.js';
 import { v1UploadsRoutes } from './routes/v1/uploads.js';
 import { v1BatchesRoutes } from './routes/v1/batches.js';
 import { v1VectorStoresRoutes } from './routes/v1/vector-stores.js';
+import { v1ResponsesRoutes } from './routes/v1/responses.js';
+import { v1ConversationsRoutes } from './routes/v1/conversations.js';
 import { StorageService } from './services/storage.js';
 import { BatchProcessorService } from './services/batch-processor.js';
 import { VectorStoreService } from './services/vector-store.js';
+import { ResponsesEngineService } from './services/responses-engine.js';
 import { adminAuthRoutes } from './routes/admin/auth.js';
 import { adminProvidersRoutes } from './routes/admin/providers.js';
 import { adminModelsRoutes } from './routes/admin/models.js';
@@ -47,6 +50,7 @@ declare module 'fastify' {
     storageService: StorageService;
     batchProcessorService: BatchProcessorService;
     vectorStoreService: VectorStoreService;
+    responsesEngineService: ResponsesEngineService;
   }
 }
 
@@ -108,11 +112,13 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   const storageService = new StorageService(db);
   const batchProcessorService = new BatchProcessorService(db, storageService);
   const vectorStoreService = new VectorStoreService(db, storageService);
+  const responsesEngineService = new ResponsesEngineService(db);
   app.decorate('routingCache', routingCache);
   app.decorate('telemetryQueue', telemetryQueue);
   app.decorate('storageService', storageService);
   app.decorate('batchProcessorService', batchProcessorService);
   app.decorate('vectorStoreService', vectorStoreService);
+  app.decorate('responsesEngineService', responsesEngineService);
 
   // Register Core Middleware
   await app.register(cors, {
@@ -148,6 +154,8 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await app.register(v1UploadsRoutes);
   await app.register(v1BatchesRoutes);
   await app.register(v1VectorStoresRoutes);
+  await app.register(v1ResponsesRoutes);
+  await app.register(v1ConversationsRoutes);
 
   // Register Admin Routes
   await app.register(adminAuthRoutes);
