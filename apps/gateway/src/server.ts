@@ -30,10 +30,13 @@ import { v1BatchesRoutes } from './routes/v1/batches.js';
 import { v1VectorStoresRoutes } from './routes/v1/vector-stores.js';
 import { v1ResponsesRoutes } from './routes/v1/responses.js';
 import { v1ConversationsRoutes } from './routes/v1/conversations.js';
+import { v1AssistantsRoutes } from './routes/v1/assistants.js';
+import { v1ThreadsRoutes } from './routes/v1/threads.js';
 import { StorageService } from './services/storage.js';
 import { BatchProcessorService } from './services/batch-processor.js';
 import { VectorStoreService } from './services/vector-store.js';
 import { ResponsesEngineService } from './services/responses-engine.js';
+import { AssistantRunnerService } from './services/assistant-runner.js';
 import { adminAuthRoutes } from './routes/admin/auth.js';
 import { adminProvidersRoutes } from './routes/admin/providers.js';
 import { adminModelsRoutes } from './routes/admin/models.js';
@@ -51,6 +54,7 @@ declare module 'fastify' {
     batchProcessorService: BatchProcessorService;
     vectorStoreService: VectorStoreService;
     responsesEngineService: ResponsesEngineService;
+    assistantRunnerService: AssistantRunnerService;
   }
 }
 
@@ -113,12 +117,14 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   const batchProcessorService = new BatchProcessorService(db, storageService);
   const vectorStoreService = new VectorStoreService(db, storageService);
   const responsesEngineService = new ResponsesEngineService(db);
+  const assistantRunnerService = new AssistantRunnerService(db);
   app.decorate('routingCache', routingCache);
   app.decorate('telemetryQueue', telemetryQueue);
   app.decorate('storageService', storageService);
   app.decorate('batchProcessorService', batchProcessorService);
   app.decorate('vectorStoreService', vectorStoreService);
   app.decorate('responsesEngineService', responsesEngineService);
+  app.decorate('assistantRunnerService', assistantRunnerService);
 
   // Register Core Middleware
   await app.register(cors, {
@@ -156,6 +162,8 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await app.register(v1VectorStoresRoutes);
   await app.register(v1ResponsesRoutes);
   await app.register(v1ConversationsRoutes);
+  await app.register(v1AssistantsRoutes);
+  await app.register(v1ThreadsRoutes);
 
   // Register Admin Routes
   await app.register(adminAuthRoutes);

@@ -161,6 +161,47 @@ export const responsesTable = pgTable('responses', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const assistantsTable = pgTable('assistants', {
+  id: text('id').primaryKey(), // e.g. 'asst_abc123'
+  name: text('name'),
+  model: text('model').notNull(),
+  instructions: text('instructions'),
+  tools: jsonb('tools').$type<Array<{ type: string; [key: string]: unknown }>>().default([]),
+  toolResources: jsonb('tool_resources').$type<Record<string, unknown>>(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const threadsTable = pgTable('threads', {
+  id: text('id').primaryKey(), // e.g. 'thread_abc123'
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const threadMessagesTable = pgTable('thread_messages', {
+  id: text('id').primaryKey(), // e.g. 'msg_abc123'
+  threadId: text('thread_id')
+    .notNull()
+    .references(() => threadsTable.id, { onDelete: 'cascade' }),
+  role: text('role').notNull(), // 'user' | 'assistant'
+  content: jsonb('content').$type<Array<{ type: string; text?: { value: string; annotations: any[] } }>>().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const runsTable = pgTable('runs', {
+  id: text('id').primaryKey(), // e.g. 'run_abc123'
+  threadId: text('thread_id')
+    .notNull()
+    .references(() => threadsTable.id, { onDelete: 'cascade' }),
+  assistantId: text('assistant_id'),
+  model: text('model').notNull(),
+  status: text('status').notNull().default('completed'),
+  instructions: text('instructions'),
+  tools: jsonb('tools').$type<Array<{ type: string }>>().default([]),
+  usage: jsonb('usage').$type<{ prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type ProviderRow = typeof providersTable.$inferSelect;
 export type InsertProviderRow = typeof providersTable.$inferInsert;
 export type ModelRow = typeof modelsTable.$inferSelect;
@@ -189,3 +230,11 @@ export type ConversationItemRow = typeof conversationItemsTable.$inferSelect;
 export type InsertConversationItemRow = typeof conversationItemsTable.$inferInsert;
 export type ResponseRow = typeof responsesTable.$inferSelect;
 export type InsertResponseRow = typeof responsesTable.$inferInsert;
+export type AssistantRow = typeof assistantsTable.$inferSelect;
+export type InsertAssistantRow = typeof assistantsTable.$inferInsert;
+export type ThreadRow = typeof threadsTable.$inferSelect;
+export type InsertThreadRow = typeof threadsTable.$inferInsert;
+export type ThreadMessageRow = typeof threadMessagesTable.$inferSelect;
+export type InsertThreadMessageRow = typeof threadMessagesTable.$inferInsert;
+export type RunRow = typeof runsTable.$inferSelect;
+export type InsertRunRow = typeof runsTable.$inferInsert;

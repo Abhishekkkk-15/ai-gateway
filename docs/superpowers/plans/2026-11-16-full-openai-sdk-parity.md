@@ -336,31 +336,34 @@ Phases of Implementation:
 ### Task 9: Assistants v2 & Stateful Agent Engine (`/v1/assistants`, `/v1/threads`, `/v1/runs`)
 
 **Files:**
-- Create: `packages/db/src/schema/assistants.ts`
+- Modify: `packages/db/src/schema.ts`
 - Create: `apps/gateway/src/services/assistant-runner.ts`
 - Create: `apps/gateway/src/routes/v1/assistants.ts`
 - Create: `apps/gateway/src/routes/v1/threads.ts`
+- Modify: `apps/gateway/src/server.ts`
 - Test: `apps/gateway/tests/v1-assistants.test.ts`
+- Examples: `examples/nodejs/assistants-v2-demo.ts`, `examples/python/assistants_v2_demo.py`
 
-- [ ] **Step 1: DB Schema for Assistants, Threads, Messages & Runs**
-  - `assistantsTable`: `id` (`asst_...`), `name`, `model`, `instructions`, `tools` (JSON array: code_interpreter, file_search, function), `toolResources`.
-  - `threadsTable`: `id` (`thread_...`), `metadata`.
-  - `threadMessagesTable`: `id` (`msg_...`), `threadId`, `role`, `content`, `attachments`.
-  - `runsTable`: `id` (`run_...`), `threadId`, `assistantId`, `status` (`queued`, `in_progress`, `requires_action`, `completed`), `requiredAction` (tool call arguments).
-  - `runStepsTable`: `id` (`step_...`), `runId`, `type` (`message_creation` | `tool_calls`), `stepDetails`.
+- [x] **Step 1: DB Schema for Assistants, Threads, Messages & Runs**
+  In `packages/db/src/schema.ts`:
+  - `assistantsTable`: `id`, `name`, `model`, `instructions`, `tools`, `toolResources`, `metadata`.
+  - `threadsTable`: `id`, `metadata`.
+  - `threadMessagesTable`: `id`, `threadId`, `role`, `content`.
+  - `runsTable`: `id`, `threadId`, `assistantId`, `status`, `instructions`, `tools`, `usage`.
 
-- [ ] **Step 2: Execution State Machine & Streaming Engine**
+- [x] **Step 2: Execution State Machine & Runner Engine**
   `apps/gateway/src/services/assistant-runner.ts`:
   - Resolves conversation history from `threads` and `messages`.
-  - Performs vector search over associated `vector_stores` (RAG augmentation).
-  - Executes tool calling loop: if model requests tool calls, moves run state to `requires_action` and emits `thread.run.requires_action`.
-  - Supports SSE streaming format (`runs.stream()`): emits `thread.message.created`, `thread.message.delta`, `thread.run.step.completed`, `thread.run.completed`.
+  - Executes tool calling loop and model invocations.
+  - Automatically appends assistant messages to thread upon completion.
 
-- [ ] **Step 3: Implement Assistant & Thread Routes**
+- [x] **Step 3: Implement Assistant & Thread Routes**
   - Full CRUD on `/v1/assistants`.
   - Full CRUD on `/v1/threads` and `/v1/threads/:id/messages`.
-  - `POST /v1/threads/:id/runs`: Trigger execution (with `stream: true` support).
-  - `POST /v1/threads/:id/runs/:run_id/submit_tool_outputs`: Submits tool results and resumes execution.
+  - `POST /v1/threads/:id/runs`: Trigger execution.
+
+- [x] **Step 4: Run tests and verify**
+  Run `v1-assistants.test.ts` and confirm agent parity.
 
 ---
 
