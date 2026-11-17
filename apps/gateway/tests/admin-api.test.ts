@@ -61,6 +61,15 @@ describe('Admin REST API (/api/admin/*)', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(Array.isArray(body.providers)).toBe(true);
+
+    // OpenAI-compatible presets appear without dedicated packages
+    const groq = body.providers.find((p: { id: string }) => p.id === 'groq');
+    const nvidia = body.providers.find((p: { id: string }) => p.id === 'nvidia');
+    expect(groq?.adapterType).toBe('openai-compatible');
+    expect(groq?.isPreset).toBe(true);
+    expect(nvidia?.adapterType).toBe('openai-compatible');
+    expect(Array.isArray(body.presets)).toBe(true);
+    expect(body.presets.some((p: { id: string }) => p.id === 'groq')).toBe(true);
   });
 
   it('creates and manages gateway keys via /api/admin/gateway-keys', async () => {

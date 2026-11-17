@@ -66,6 +66,8 @@ export function ProvidersPage() {
     updateMutation.mutate({
       id: provider.id,
       data: {
+        name: provider.name,
+        adapterType: provider.adapterType || 'openai-compatible',
         apiKey: key !== undefined ? key : undefined,
         baseUrl: url !== undefined ? url : provider.baseUrl,
         isEnabled: true,
@@ -198,7 +200,14 @@ export function ProvidersPage() {
                       )}
                     </div>
                   </div>
-                  <CardDescription className="text-xs font-mono">{p.id}</CardDescription>
+                  <CardDescription className="text-xs font-mono flex items-center gap-2 flex-wrap">
+                    <span>{p.id}</span>
+                    {p.adapterType === 'openai-compatible' && (
+                      <Badge variant="secondary" className="text-[10px] font-mono">
+                        openai-compatible
+                      </Badge>
+                    )}
+                  </CardDescription>
                 </CardHeader>
 
                 <CardContent className="flex flex-col gap-4 flex-1">

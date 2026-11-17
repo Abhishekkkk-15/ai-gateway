@@ -25,10 +25,8 @@ Built for **Render** (ephemeral container filesystem) with persistent state in *
 - **Zero-DB Latency on Hot Path**: The `/v1/*` proxy pipeline resolves keys, models, and provider routes strictly from an in-memory `Map` cache (<0.1ms overhead). Postgres is never queried on the hot path.
 - **Render Ephemeral Recovery**: On container startup, the gateway immediately hydrates its in-memory routing cache from Neon Serverless Postgres.
 - **Zero-Buffering Streaming**: Undici `ReadableStream` / SSE chunks pipe directly to client HTTP responses with native `AbortSignal` cancellation upon client disconnect.
-- **Dynamic OpenAI-Compatible Providers**: Connect **any** OpenAI-compatible provider (DeepSeek, Together AI, Mistral, Ollama, Perplexity, vLLM, self-hosted LLMs) instantly through the Web UI without writing or deploying new packages.
-- **Curated Dedicated Adapters**:
-  - **Groq**: High-throughput Chat Completions (SSE/JSON) + Whisper STT.
-  - **NVIDIA NIM**: NVIDIA NIM Chat Completions (SSE/JSON).
+- **Dynamic OpenAI-Compatible Providers**: Connect **any** OpenAI-compatible provider (Groq, NVIDIA NIM, DeepSeek, Together AI, Mistral, Ollama, Perplexity, vLLM, self-hosted LLMs) via presets or custom base URL + API key in the Web UI — all routed through `GenericOpenAIAdapter` (fetch), no dedicated packages required.
+- **Dedicated Adapters** (non-standard protocols):
   - **Google Gemini**: OpenAI-compatible endpoint with model normalization (`gemini-2.5-flash`, etc.).
   - **ElevenLabs**: Expressive streaming Text-to-Speech (`/v1/audio/speech`) and Scribe STT (`/v1/audio/transcriptions`).
 - **Non-Blocking Telemetry**: Request metrics (TTFT, latency, status code, model, token usage) are buffered and persisted asynchronously without delaying client responses.
@@ -47,13 +45,14 @@ ai-gateway/
 │   ├── gateway/                  # Fastify low-latency API server (Render-ready)
 │   └── web/                      # React 19 + Vite + shadcn/ui admin console
 ├── packages/
-│   ├── core/                     # ProviderAdapter interface, GenericOpenAIAdapter, ProviderRegistry, types
+│   ├── core/                     # ProviderAdapter, GenericOpenAIAdapter, OpenAI-compatible presets, types
 │   ├── db/                       # Neon Serverless Postgres + Drizzle ORM + AES-256-GCM crypto helpers
-│   ├── provider-groq/            # Groq adapter (Chat + Whisper STT)
-│   ├── provider-nvidia/          # NVIDIA NIM adapter (Chat)
 │   ├── provider-google/          # Google Gemini adapter (Chat + model normalization)
 │   ├── provider-elevenlabs/      # ElevenLabs adapter (TTS stream + Scribe STT)
 │   └── tsconfig/                 # Shared TypeScript configurations
+│
+│   # Groq, NVIDIA NIM, DeepSeek, etc. are OpenAI-compatible presets (DB + GenericOpenAIAdapter),
+│   # not dedicated packages — add them in the admin UI like any custom provider.
 ├── render.yaml                   # Render 1-click Blueprint
 ├── Dockerfile                    # Multi-stage container build
 └── .env.example

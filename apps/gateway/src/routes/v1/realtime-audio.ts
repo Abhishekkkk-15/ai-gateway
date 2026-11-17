@@ -159,16 +159,13 @@ export const v1RealtimeAudioRoutes: FastifyPluginAsync = async (fastify) => {
           const route =
             fastify.routingCache.resolveModel('whisper-large-v3-turbo') ||
             fastify.routingCache.resolveModel('groq/whisper-large-v3-turbo');
-          const adapter =
-            route?.adapter ||
-            fastify.providerRegistry.get('groq') ||
-            fastify.providerRegistry.getGenericAdapter();
+          const adapter = route?.adapter || fastify.providerRegistry.getGenericAdapter();
           const provider =
             route?.provider ||
             fastify.routingCache.getProvider('groq') || {
               id: 'groq',
               name: 'Groq',
-              adapterType: 'groq',
+              adapterType: 'openai-compatible',
               apiKey: '',
               isEnabled: true,
             };

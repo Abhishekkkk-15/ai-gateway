@@ -10,8 +10,6 @@ import fs from 'node:fs';
 import { loadConfig, type AppConfig } from './config.js';
 import { configureUndiciAgent } from './undici-agent.js';
 import { ProviderRegistry } from '@ai-gateway/core';
-import { GroqAdapter } from '@ai-gateway/provider-groq';
-import { NvidiaAdapter } from '@ai-gateway/provider-nvidia';
 import { GoogleAdapter } from '@ai-gateway/provider-google';
 import { ElevenLabsAdapter } from '@ai-gateway/provider-elevenlabs';
 import { getDb, initializeSchema, type DbClient } from '@ai-gateway/db';
@@ -95,10 +93,9 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   // Decorate configuration
   app.decorate('appConfig', config);
 
-  // Setup Provider Registry & Register All Adapters
+  // Setup Provider Registry & Register Adapters
+  // OpenAI-compatible providers (Groq, NVIDIA, custom) use GenericOpenAIAdapter via presets/DB.
   const registry = new ProviderRegistry();
-  registry.register(new GroqAdapter());
-  registry.register(new NvidiaAdapter());
   registry.register(new GoogleAdapter());
   registry.register(new ElevenLabsAdapter());
   app.decorate('providerRegistry', registry);

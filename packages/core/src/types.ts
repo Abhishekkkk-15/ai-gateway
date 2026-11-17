@@ -15,7 +15,7 @@ export interface UnifiedModel {
 export interface ProviderConfig {
   id: string;
   name: string;
-  adapterType: string;        // 'groq' | 'nvidia' | 'google' | 'elevenlabs' | 'openai-compatible'
+  adapterType: string;        // 'openai-compatible' | 'google' | 'elevenlabs' | …
   baseUrl?: string;
   apiKey: string;
   extraHeaders?: Record<string, string>;

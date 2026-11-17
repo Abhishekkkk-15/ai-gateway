@@ -8,6 +8,7 @@ export interface ProviderView {
   isEnabled: boolean;
   supportedCapabilities: string[];
   isBuiltIn: boolean;
+  isPreset?: boolean;
 }
 
 export interface ModelView {

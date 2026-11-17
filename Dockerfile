@@ -18,8 +18,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json .npmrc ./
 COPY packages/tsconfig ./packages/tsconfig
 COPY packages/core/package.json ./packages/core/
 COPY packages/db/package.json ./packages/db/
-COPY packages/provider-groq/package.json ./packages/provider-groq/
-COPY packages/provider-nvidia/package.json ./packages/provider-nvidia/
 COPY packages/provider-google/package.json ./packages/provider-google/
 COPY packages/provider-elevenlabs/package.json ./packages/provider-elevenlabs/
 COPY apps/gateway/package.json ./apps/gateway/

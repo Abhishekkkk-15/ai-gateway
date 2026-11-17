@@ -131,6 +131,36 @@ describe('/v1 Routes', () => {
     globalThis.fetch = originalFetch;
   });
 
+  it('strips store:true before forwarding chat completions upstream', async () => {
+    const originalFetch = globalThis.fetch;
+    let upstreamBody: Record<string, unknown> | undefined;
+
+    globalThis.fetch = vi.fn().mockImplementation(async (_url, opts: { body?: string }) => {
+      upstreamBody = opts?.body ? JSON.parse(opts.body) : undefined;
+      return new Response(
+        JSON.stringify({ id: 'chatcmpl-store', choices: [{ message: { content: 'ok' } }] }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/chat/completions',
+      headers: { Authorization: `Bearer ${validKey}` },
+      payload: {
+        model: 'fast-chat',
+        store: true,
+        messages: [{ role: 'user', content: 'hello' }],
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(upstreamBody?.model).toBe('test-chat');
+    expect(upstreamBody?.store).toBeUndefined();
+
+    globalThis.fetch = originalFetch;
+  });
+
   it('normalizes upstream 429 rate limit error into standard OpenAI error envelope', async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue(

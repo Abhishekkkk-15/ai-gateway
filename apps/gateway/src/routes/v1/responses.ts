@@ -2,22 +2,30 @@ import type { FastifyPluginAsync } from 'fastify';
 import { authenticateGatewayKey } from './auth.js';
 import { createOpenAIError } from '@ai-gateway/core';
 
+const STATELESS_MSG =
+  'This gateway runs in stateless mode and does not store responses or conversations. Send the full context in `input` on each request. `previous_response_id` and `conversation` are not supported.';
+
 export const v1ResponsesRoutes: FastifyPluginAsync = async (fastify) => {
-  // POST /v1/responses (Create next-generation response)
+  // POST /v1/responses (stateless create)
   fastify.post<{
     Body: {
       model?: string;
-      input?: string | any[];
+      input?: string | unknown[];
       previous_response_id?: string;
       conversation?: string;
       instructions?: string;
       stream?: boolean;
+      temperature?: number;
+      max_output_tokens?: number;
+      tools?: unknown[];
+      tool_choice?: unknown;
     };
   }>(
     '/v1/responses',
     { preHandler: authenticateGatewayKey },
     async (request, reply) => {
       const body = request.body;
+
       if (!body || !body.model) {
         return reply.status(400).send(
           createOpenAIError('The model parameter is required.', 400, 'invalid_request_error')
@@ -26,7 +34,17 @@ export const v1ResponsesRoutes: FastifyPluginAsync = async (fastify) => {
 
       if (body.input === undefined || body.input === null || body.input === '') {
         return reply.status(400).send(
-          createOpenAIError('The input parameter is required and cannot be empty.', 400, 'invalid_request_error')
+          createOpenAIError(
+            'The input parameter is required and cannot be empty.',
+            400,
+            'invalid_request_error'
+          )
+        );
+      }
+
+      if (body.previous_response_id || body.conversation) {
+        return reply.status(400).send(
+          createOpenAIError(STATELESS_MSG, 400, 'invalid_request_error', 'stateless_unsupported')
         );
       }
 
@@ -56,10 +74,12 @@ export const v1ResponsesRoutes: FastifyPluginAsync = async (fastify) => {
           provider,
           adapter,
           input: body.input,
-          previousResponseId: body.previous_response_id,
-          conversationId: body.conversation,
           instructions: body.instructions,
           stream: body.stream,
+          temperature: body.temperature,
+          maxOutputTokens: body.max_output_tokens,
+          tools: body.tools,
+          toolChoice: body.tool_choice,
           signal: abortController.signal,
         });
 
@@ -69,7 +89,7 @@ export const v1ResponsesRoutes: FastifyPluginAsync = async (fastify) => {
           reply.raw.setHeader('Connection', 'keep-alive');
           reply.raw.setHeader('X-Accel-Buffering', 'no');
 
-          const reader = (result.stream as any).getReader();
+          const reader = result.stream.getReader();
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -77,44 +97,54 @@ export const v1ResponsesRoutes: FastifyPluginAsync = async (fastify) => {
           }
           reply.raw.end();
           return reply;
-        } else {
-          return reply.status(200).send(result.data);
         }
+
+        return reply.status(200).send(result.data);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Responses execution failed';
-        return reply.status(500).send(createOpenAIError(message, 500, 'responses_error'));
+        const status = message.includes('Unsupported') || message.includes('required') ? 400 : 500;
+        return reply
+          .status(status)
+          .send(
+            createOpenAIError(
+              message,
+              status,
+              status === 400 ? 'invalid_request_error' : 'responses_error'
+            )
+          );
       }
     }
   );
 
-  // GET /v1/responses/:response_id
+  // GET /v1/responses/:response_id — not supported in stateless mode
   fastify.get<{ Params: { response_id: string } }>(
     '/v1/responses/:response_id',
     { preHandler: authenticateGatewayKey },
-    async (request, reply) => {
-      const { response_id } = request.params;
-      const resp = await fastify.responsesEngineService.getResponse(response_id);
-      if (!resp) {
-        return reply.status(404).send(
-          createOpenAIError(`No such response: '${response_id}'`, 404, 'invalid_request_error')
-        );
-      }
-      return reply.status(200).send(resp);
+    async (_request, reply) => {
+      return reply.status(400).send(
+        createOpenAIError(
+          'This gateway runs in stateless mode and does not store responses. Retrieve is not supported.',
+          400,
+          'invalid_request_error',
+          'stateless_unsupported'
+        )
+      );
     }
   );
 
-  // DELETE /v1/responses/:response_id
+  // DELETE /v1/responses/:response_id — not supported in stateless mode
   fastify.delete<{ Params: { response_id: string } }>(
     '/v1/responses/:response_id',
     { preHandler: authenticateGatewayKey },
-    async (request, reply) => {
-      const { response_id } = request.params;
-      await fastify.responsesEngineService.deleteResponse(response_id);
-      return reply.status(200).send({
-        id: response_id,
-        object: 'response.deleted',
-        deleted: true,
-      });
+    async (_request, reply) => {
+      return reply.status(400).send(
+        createOpenAIError(
+          'This gateway runs in stateless mode and does not store responses. Delete is not supported.',
+          400,
+          'invalid_request_error',
+          'stateless_unsupported'
+        )
+      );
     }
   );
 };

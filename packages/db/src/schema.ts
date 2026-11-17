@@ -4,7 +4,7 @@ import type { ModelCapability } from '@ai-gateway/core';
 export const providersTable = pgTable('providers', {
   id: text('id').primaryKey(), // e.g. 'groq', 'nvidia', 'custom-deepseek'
   name: text('name').notNull(),
-  adapterType: text('adapter_type').notNull(), // 'groq', 'nvidia', 'google', 'elevenlabs', 'openai-compatible'
+  adapterType: text('adapter_type').notNull(), // 'openai-compatible' | 'google' | 'elevenlabs' | …
   baseUrl: text('base_url'),
   encryptedApiKey: text('encrypted_api_key').notNull(),
   extraHeaders: jsonb('extra_headers').$type<Record<string, string>>(),

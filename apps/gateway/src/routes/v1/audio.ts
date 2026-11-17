@@ -120,11 +120,11 @@ export const v1AudioRoutes: FastifyPluginAsync = async (fastify) => {
         const route = fastify.routingCache.resolveModel(requestedModel);
         const upstreamModelId = route ? route.model.id : requestedModel.replace(/^[a-z0-9_-]+\//, '');
         formData.set('model', upstreamModelId);
-        const adapter = route?.adapter || fastify.providerRegistry.get('groq') || fastify.providerRegistry.getGenericAdapter();
+        const adapter = route?.adapter || fastify.providerRegistry.getGenericAdapter();
         const provider = route?.provider || fastify.routingCache.getProvider('groq') || {
           id: 'groq',
           name: 'Groq',
-          adapterType: 'groq',
+          adapterType: 'openai-compatible',
           apiKey: '',
           isEnabled: true,
         };
@@ -179,14 +179,11 @@ export const v1AudioRoutes: FastifyPluginAsync = async (fastify) => {
         const route = fastify.routingCache.resolveModel(requestedModel);
         const upstreamModelId = route ? route.model.id : requestedModel.replace(/^[a-z0-9_-]+\//, '');
         formData.set('model', upstreamModelId);
-        const adapter =
-          route?.adapter ||
-          fastify.providerRegistry.get('groq') ||
-          fastify.providerRegistry.getGenericAdapter();
+        const adapter = route?.adapter || fastify.providerRegistry.getGenericAdapter();
         const provider = route?.provider || fastify.routingCache.getProvider('groq') || {
           id: 'groq',
           name: 'Groq',
-          adapterType: 'groq',
+          adapterType: 'openai-compatible',
           apiKey: '',
           isEnabled: true,
         };

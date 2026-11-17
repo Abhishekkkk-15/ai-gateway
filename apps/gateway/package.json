@@ -16,8 +16,6 @@
     "@ai-gateway/db": "workspace:*",
     "@ai-gateway/provider-elevenlabs": "workspace:*",
     "@ai-gateway/provider-google": "workspace:*",
-    "@ai-gateway/provider-groq": "workspace:*",
-    "@ai-gateway/provider-nvidia": "workspace:*",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^10.1.0",
     "@fastify/multipart": "^9.0.3",

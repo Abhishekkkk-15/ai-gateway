@@ -44,9 +44,11 @@ export const v1ChatRoutes: FastifyPluginAsync = async (fastify) => {
         request.signal.addEventListener('abort', () => abortController.abort());
       }
 
-      // Prepare request for upstream provider (use internal model.id)
+      // Prepare request for upstream provider (use internal model.id).
+      // Stored completions are not supported (ephemeral / Render-friendly) — strip `store`.
+      const { store: _store, ...bodyWithoutStore } = body;
       const upstreamPayload: OpenAIChatCompletionRequest = {
-        ...body,
+        ...bodyWithoutStore,
         model: model.id,
       };
 

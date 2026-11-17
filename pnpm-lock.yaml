@@ -38,12 +38,6 @@ importers:
       '@ai-gateway/provider-google':
         specifier: workspace:*
         version: link:../../packages/provider-google
-      '@ai-gateway/provider-groq':
-        specifier: workspace:*
-        version: link:../../packages/provider-groq
-      '@ai-gateway/provider-nvidia':
-        specifier: workspace:*
-        version: link:../../packages/provider-nvidia
       '@fastify/cookie':
         specifier: ^11.0.2
         version: 11.1.5
@@ -285,44 +279,6 @@ importers:
         version: 3.2.7(@types/node@22.20.5)(jiti@1.21.7)(jsdom@26.1.0)(tsx@4.23.15)
 
   packages/provider-google:
-    dependencies:
-      '@ai-gateway/core':
-        specifier: workspace:*
-        version: link:../core
-    devDependencies:
-      '@ai-gateway/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      '@types/node':
-        specifier: ^22.13.9
-        version: 22.20.5
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
-      vitest:
-        specifier: ^3.0.7
-        version: 3.2.7(@types/node@22.20.5)(jiti@1.21.7)(jsdom@26.1.0)(tsx@4.23.15)
-
-  packages/provider-groq:
-    dependencies:
-      '@ai-gateway/core':
-        specifier: workspace:*
-        version: link:../core
-    devDependencies:
-      '@ai-gateway/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      '@types/node':
-        specifier: ^22.13.9
-        version: 22.20.5
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
-      vitest:
-        specifier: ^3.0.7
-        version: 3.2.7(@types/node@22.20.5)(jiti@1.21.7)(jsdom@26.1.0)(tsx@4.23.15)
-
-  packages/provider-nvidia:
     dependencies:
       '@ai-gateway/core':
         specifier: workspace:*

@@ -8,12 +8,16 @@ import {
   type InsertProviderRow,
   type InsertModelRow,
 } from '@ai-gateway/db';
-import type { ProviderConfig } from '@ai-gateway/core';
+import {
+  OPENAI_COMPATIBLE_PRESETS,
+  getOpenAICompatiblePreset,
+  type ProviderConfig,
+} from '@ai-gateway/core';
 
 export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/admin/providers
   fastify.get('/api/admin/providers', { preHandler: authenticateAdmin }, async () => {
-    // Registered adapters from code
+    // Registered adapters from code (non-OpenAI-compatible dedicated adapters)
     const registeredAdapters = fastify.providerRegistry.list();
 
     // Stored configs from DB (if available)
@@ -27,12 +31,31 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const dbProvidersMap = new Map(dbProviders.map((p) => [p.id, p]));
-
-    // Combine built-in adapters with stored DB providers
     const providersList = [];
+    const seenIds = new Set<string>();
 
-    // First include all built-in adapters
+    // OpenAI-compatible presets (Groq, NVIDIA, etc.) — same path as custom providers
+    for (const preset of OPENAI_COMPATIBLE_PRESETS) {
+      const stored = dbProvidersMap.get(preset.id);
+      providersList.push({
+        id: preset.id,
+        name: stored?.name || preset.name,
+        adapterType: 'openai-compatible',
+        defaultBaseUrl: preset.defaultBaseUrl,
+        baseUrl: stored?.baseUrl || preset.defaultBaseUrl,
+        isConfigured: Boolean(stored?.encryptedApiKey),
+        isEnabled: stored ? stored.isEnabled : false,
+        supportedCapabilities: preset.supportedCapabilities,
+        isBuiltIn: true,
+        isPreset: true,
+      });
+      seenIds.add(preset.id);
+      dbProvidersMap.delete(preset.id);
+    }
+
+    // Dedicated adapters (e.g. google, elevenlabs) — skip generic openai-compatible registry entry
     for (const adapter of registeredAdapters) {
+      if (adapter.id === 'openai-compatible' || seenIds.has(adapter.id)) continue;
       const stored = dbProvidersMap.get(adapter.id);
       providersList.push({
         id: adapter.id,
@@ -44,11 +67,13 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
         isEnabled: stored ? stored.isEnabled : false,
         supportedCapabilities: adapter.supportedCapabilities,
         isBuiltIn: true,
+        isPreset: false,
       });
+      seenIds.add(adapter.id);
       dbProvidersMap.delete(adapter.id);
     }
 
-    // Then include any additional custom providers (e.g. custom OpenAI-compatible providers)
+    // Remaining custom OpenAI-compatible providers from DB
     for (const [, stored] of dbProvidersMap) {
       providersList.push({
         id: stored.id,
@@ -60,10 +85,11 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
         isEnabled: stored.isEnabled,
         supportedCapabilities: ['chat'],
         isBuiltIn: false,
+        isPreset: false,
       });
     }
 
-    return { providers: providersList };
+    return { providers: providersList, presets: OPENAI_COMPATIBLE_PRESETS };
   });
 
   // PUT /api/admin/providers/:id
@@ -100,7 +126,10 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
       encryptedApiKey = encryptSecret(body.apiKey.trim(), fastify.appConfig.masterSecret);
     }
 
-    const adapter = fastify.providerRegistry.get(body.adapterType || id) || fastify.providerRegistry.getGenericAdapter();
+    const preset = getOpenAICompatiblePreset(id);
+    const adapter =
+      fastify.providerRegistry.get(body.adapterType || id) ||
+      fastify.providerRegistry.getGenericAdapter();
 
     let isEnabled = true;
     if (body.isEnabled !== undefined) {
@@ -113,11 +142,19 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
+    const resolvedAdapterType =
+      body.adapterType ||
+      existing?.adapterType ||
+      (preset ? 'openai-compatible' : adapter.id);
+
     const providerPayload: InsertProviderRow = {
       id,
-      name: body.name || existing?.name || adapter.name,
-      adapterType: body.adapterType || existing?.adapterType || adapter.id,
-      baseUrl: body.baseUrl !== undefined ? body.baseUrl : existing?.baseUrl || adapter.defaultBaseUrl,
+      name: body.name || existing?.name || preset?.name || adapter.name,
+      adapterType: resolvedAdapterType,
+      baseUrl:
+        body.baseUrl !== undefined
+          ? body.baseUrl
+          : existing?.baseUrl || preset?.defaultBaseUrl || adapter.defaultBaseUrl,
       encryptedApiKey,
       isEnabled,
       extraHeaders: body.extraHeaders || existing?.extraHeaders || null,
