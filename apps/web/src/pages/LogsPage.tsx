@@ -11,7 +11,20 @@ import {
   TableCell,
 } from '../components/ui/table.js';
 import { Badge } from '../components/ui/badge.js';
-import { Input } from '../components/ui/input.js';
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from '../components/ui/empty.js';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '../components/ui/input-group.js';
 import { Button } from '../components/ui/button.js';
 import { Skeleton } from '../components/ui/skeleton.js';
 import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
@@ -120,39 +133,36 @@ export function LogsPage() {
   }, [totalPages, safeCurrentPage]);
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
+    <div className="page-shell">
       {/* Page Title & Live Indicators */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Request Telemetry &amp; Logs</h1>
-            <Badge
-              variant="outline"
-              className="gap-1.5 text-[11px] font-mono border-border"
-            >
-              <span className="size-1.5 rounded-full bg-emerald-500" />
+            <h1 className="page-title">Request Telemetry &amp; Logs</h1>
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-chart-2" />
               Live (5s)
-            </Badge>
+            </span>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="page-description">
             Request metrics, upstream latencies, status codes, and TTFT distributions.
           </p>
         </div>
 
         {/* Quick summary badges */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <Badge variant="secondary" className="gap-1 font-mono text-xs">
+          <Badge variant="secondary" className="gap-1">
             <Activity className="size-3 text-muted-foreground" />
             <span>{totalCount} Logs</span>
           </Badge>
           <Badge
-            variant={successRate >= 95 ? 'outline' : 'destructive'}
-            className="gap-1 font-mono text-xs border-emerald-500/30 text-emerald-500 bg-emerald-500/10"
+            variant={successRate >= 95 ? 'success' : 'destructive'}
+            className="gap-1"
           >
             <CheckCircle2 className="size-3" />
             <span>{successRate}% Success</span>
           </Badge>
-          <Badge variant="secondary" className="gap-1 font-mono text-xs">
+          <Badge variant="secondary" className="gap-1">
             <Timer className="size-3 text-primary" />
             <span>Avg {avgLatency}ms</span>
           </Badge>
@@ -160,27 +170,31 @@ export function LogsPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <Card className="border-border/80 shadow-sm bg-card/60">
+      <Card className="border-border bg-card">
         <CardContent className="p-3">
           <div className="flex flex-col sm:flex-row items-center gap-3">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-              <Input
+            <InputGroup className="flex-1 w-full">
+              <InputGroupAddon>
+                <Search />
+              </InputGroupAddon>
+              <InputGroupInput
                 placeholder="Filter by model slug or provider ID..."
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-9 pr-8 h-9 text-xs font-mono bg-background/50"
+                className="text-xs font-mono"
               />
               {search && (
-                <button
-                  type="button"
-                  onClick={() => handleSearchChange('')}
-                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="size-4" />
-                </button>
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    size="icon-xs"
+                    aria-label="Clear search"
+                    onClick={() => handleSearchChange('')}
+                  >
+                    <X />
+                  </InputGroupButton>
+                </InputGroupAddon>
               )}
-            </div>
+            </InputGroup>
             <ToggleGroup
               type="single"
               value={statusFilter}
@@ -199,14 +213,14 @@ export function LogsPage() {
               <ToggleGroupItem
                 value="success"
                 aria-label="Success logs"
-                className="h-8 px-3 text-xs data-[state=on]:bg-emerald-600 data-[state=on]:text-white"
+                className="h-8 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
               >
                 2xx Success
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="error"
                 aria-label="Error logs"
-                className="h-8 px-3 text-xs data-[state=on]:bg-destructive data-[state=on]:text-destructive-foreground"
+                className="h-8 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
               >
                 Errors
               </ToggleGroupItem>
@@ -216,7 +230,7 @@ export function LogsPage() {
       </Card>
 
       {/* Logs Table Card (Official shadcn Table Primitive) */}
-      <Card className="border-border/80 shadow-sm overflow-hidden flex flex-col">
+      <Card className="border-border overflow-hidden flex flex-col">
         <Table>
           <TableHeader>
             <TableRow>
@@ -258,30 +272,36 @@ export function LogsPage() {
               ))
             ) : paginatedLogs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center justify-center gap-1.5 py-6">
-                    <AlertCircle className="size-6 text-muted-foreground/40" />
-                    <span className="text-sm font-medium text-foreground">No telemetry logs found</span>
-                    <span className="text-xs text-muted-foreground">
-                      {search || statusFilter !== 'all'
-                        ? 'Try clearing your filters to see historical requests.'
-                        : 'Run a prompt in the Playground or send an OpenAI SDK request to capture telemetry.'}
-                    </span>
+                <TableCell colSpan={7} className="p-0">
+                  <Empty>
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <AlertCircle />
+                      </EmptyMedia>
+                      <EmptyTitle>No telemetry logs found</EmptyTitle>
+                      <EmptyDescription>
+                        {search || statusFilter !== 'all'
+                          ? 'Try clearing your filters to see historical requests.'
+                          : 'Run a prompt in the Playground or send an OpenAI SDK request to capture telemetry.'}
+                      </EmptyDescription>
+                    </EmptyHeader>
                     {(search || statusFilter !== 'all') && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSearch('');
-                          setStatusFilter('all');
-                          setCurrentPage(1);
-                        }}
-                        className="mt-2 text-xs"
-                      >
-                        Reset Filters
-                      </Button>
+                      <EmptyContent>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSearch('');
+                            setStatusFilter('all');
+                            setCurrentPage(1);
+                          }}
+                          className="text-xs"
+                        >
+                          Reset Filters
+                        </Button>
+                      </EmptyContent>
                     )}
-                  </div>
+                  </Empty>
                 </TableCell>
               </TableRow>
             ) : (
@@ -298,18 +318,14 @@ export function LogsPage() {
                     </TableCell>
                     <TableCell className="font-mono text-xs font-semibold">{log.modelSlug}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wide">
+                      <Badge variant="secondary" className="font-mono uppercase">
                         {log.providerId}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={isSuccess ? 'outline' : 'destructive'}
-                        className={`font-mono text-[10px] ${
-                          isSuccess
-                            ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'
-                            : ''
-                        }`}
+                        variant={isSuccess ? 'success' : 'destructive'}
+                        className="font-mono"
                       >
                         {log.statusCode}
                       </Badge>
@@ -317,15 +333,15 @@ export function LogsPage() {
                     <TableCell className="text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         {log.isStreaming ? (
-                          <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal">
+                          <Badge variant="secondary" className="font-normal">
                             Stream
                           </Badge>
                         ) : (
-                          <span className="text-[11px]">JSON</span>
+                          <span className="text-xs">JSON</span>
                         )}
                       </span>
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-amber-500">
+                    <TableCell className="font-mono text-xs text-chart-3">
                       {log.ttftMs ? `${log.ttftMs}ms` : '—'}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-primary font-semibold text-right">
@@ -340,7 +356,7 @@ export function LogsPage() {
 
         {/* Official shadcn Pagination Component Toolbar */}
         {!isLoading && totalFiltered > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border/40 bg-card/40 text-xs">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border bg-card text-xs">
             {/* Left: Range and Totals */}
             <div className="flex items-center gap-1.5 text-muted-foreground order-2 sm:order-1">
               <span>
@@ -349,7 +365,7 @@ export function LogsPage() {
                 <span className="font-semibold text-foreground">{totalFiltered}</span> logs
               </span>
               {totalFiltered !== logs.length && (
-                <span className="text-[11px] text-muted-foreground/80 font-mono">
+                <span className="text-xs text-muted-foreground">
                   (filtered from {logs.length})
                 </span>
               )}
@@ -369,7 +385,7 @@ export function LogsPage() {
                       onClick={() => setCurrentPage(1)}
                       title="First page"
                     >
-                      <ChevronsLeft className="size-4" />
+                      <ChevronsLeft />
                     </Button>
                   </PaginationItem>
 
@@ -433,7 +449,7 @@ export function LogsPage() {
                       onClick={() => setCurrentPage(totalPages)}
                       title="Last page"
                     >
-                      <ChevronsRight className="size-4" />
+                      <ChevronsRight />
                     </Button>
                   </PaginationItem>
                 </PaginationContent>
@@ -450,7 +466,7 @@ export function LogsPage() {
                   setCurrentPage(1);
                 }}
               >
-                <SelectTrigger className="h-8 w-[72px] text-xs font-mono bg-background/50">
+                <SelectTrigger className="h-8 w-[72px] text-xs font-mono">
                   <SelectValue placeholder={String(pageSize)} />
                 </SelectTrigger>
                 <SelectContent align="end">

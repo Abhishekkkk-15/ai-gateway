@@ -13,7 +13,7 @@ import { KeysPage } from './pages/KeysPage.js';
 import { PlaygroundPage } from './pages/PlaygroundPage.js';
 import { LogsPage } from './pages/LogsPage.js';
 import { api } from './lib/api.js';
-import { Loader2 } from 'lucide-react';
+import { Spinner } from './components/ui/spinner.js';
 
 export function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -57,7 +57,7 @@ export function App() {
   if (isAuthenticated === null) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground text-sm font-mono gap-2">
-        <Loader2 className="size-4 animate-spin text-primary" />
+        <Spinner className="text-primary" />
         <span>Connecting to gateway...</span>
       </div>
     );

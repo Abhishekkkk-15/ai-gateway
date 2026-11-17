@@ -67,15 +67,12 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="hover:bg-transparent">
               <NavLink to="/overview" className="flex items-center gap-3">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold shadow-sm shrink-0">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
                   <Zap className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-bold tracking-tight">AI Gateway</span>
-                  <span className="truncate text-[11px] text-muted-foreground flex items-center gap-1.5">
-                    <span className="size-1.5 rounded-full bg-emerald-500" />
-                    <span>Online</span>
-                  </span>
+                  <span className="truncate font-semibold tracking-tight">AI Gateway</span>
+                  <span className="truncate text-xs text-muted-foreground">Admin console</span>
                 </div>
               </NavLink>
             </SidebarMenuButton>

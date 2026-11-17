@@ -42,6 +42,6 @@ describe('Dashboard-01 Shell (AppSidebar & SiteHeader)', () => {
     );
 
     expect(screen.getByText('Overview & Telemetry')).toBeDefined();
-    expect(screen.getByText('42 Models Live')).toBeDefined();
+    expect(screen.getByText('42 models enabled')).toBeDefined();
   });
 });

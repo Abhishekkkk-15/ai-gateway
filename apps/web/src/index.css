@@ -88,8 +88,23 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     min-height: 100vh;
+  }
+}
+
+@layer components {
+  /* Calm density page shell — solid surfaces, no soft opacity stacks */
+  .page-shell {
+    @apply mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 md:p-6;
+  }
+
+  .page-title {
+    @apply text-xl font-semibold tracking-tight;
+  }
+
+  .page-description {
+    @apply mt-1 text-sm text-muted-foreground;
   }
 }
 

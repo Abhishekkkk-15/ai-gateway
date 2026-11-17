@@ -14,6 +14,13 @@ import {
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Skeleton } from '../components/ui/skeleton.js';
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from '../components/ui/empty.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import {
   Table,
@@ -111,12 +118,12 @@ export function OverviewPage({
       : [];
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
+    <div className="page-shell">
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="page-title">Overview</h1>
+          <p className="page-description">
             Request metrics, latency distributions, and active provider status.
           </p>
         </div>
@@ -124,16 +131,14 @@ export function OverviewPage({
           <Button
             size="sm"
             onClick={() => handleNav('playground')}
-            className="flex items-center gap-1.5 shadow-sm"
           >
             <span>Open Playground</span>
-            <ArrowUpRight className="size-3.5" />
+            <ArrowUpRight />
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleNav('providers')}
-            className="flex items-center gap-1.5"
           >
             <span>Configure Providers</span>
           </Button>
@@ -143,7 +148,7 @@ export function OverviewPage({
       {/* KPI Section Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Requests */}
-        <Card className="border-border/80 shadow-sm hover:border-border transition-colors">
+        <Card className="border-border hover:border-border transition-colors">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Requests
@@ -163,7 +168,7 @@ export function OverviewPage({
         </Card>
 
         {/* Card 2: Active Models */}
-        <Card className="border-border/80 shadow-sm hover:border-border transition-colors">
+        <Card className="border-border hover:border-border transition-colors">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Active Models
@@ -188,7 +193,7 @@ export function OverviewPage({
         </Card>
 
         {/* Card 3: Providers Live */}
-        <Card className="border-border/80 shadow-sm hover:border-border transition-colors">
+        <Card className="border-border hover:border-border transition-colors">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Configured Providers
@@ -213,7 +218,7 @@ export function OverviewPage({
         </Card>
 
         {/* Card 4: Avg Latency & TTFT */}
-        <Card className="border-border/80 shadow-sm hover:border-border transition-colors">
+        <Card className="border-border hover:border-border transition-colors">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Avg Latency / TTFT
@@ -233,17 +238,17 @@ export function OverviewPage({
                 <div className="text-2xl font-bold tracking-tight flex items-baseline gap-2">
                   <span>{avgLatency > 0 ? `${avgLatency}ms` : '—'}</span>
                   {avgTtft > 0 && (
-                    <span className="text-sm font-medium font-mono text-amber-500">
+                    <span className="text-sm font-medium font-mono text-chart-3">
                       / {avgTtft}ms TTFT
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 font-mono">
+                <p className="text-xs text-muted-foreground mt-1">
                   <span>Latency: {avgLatency}ms</span>
                   {validTtftLogs.length > 0 ? (
                     <>
                       <span className="mx-1 text-muted-foreground/40">·</span>
-                      <span className="text-amber-500">
+                      <span className="text-chart-3">
                         TTFT: {avgTtft}ms ({validTtftLogs.length} stream{validTtftLogs.length === 1 ? '' : 's'})
                       </span>
                     </>
@@ -261,7 +266,7 @@ export function OverviewPage({
       </div>
 
       {/* Interactive Telemetry Chart */}
-      <Card className="border-border/80 shadow-sm">
+      <Card className="border-border">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 gap-4">
           <div>
             <CardTitle className="text-base font-semibold">Latency &amp; TTFT Distribution</CardTitle>
@@ -282,33 +287,41 @@ export function OverviewPage({
         </CardHeader>
         <CardContent>
           {chartData.length === 0 ? (
-            <div className="h-[280px] w-full flex flex-col items-center justify-center text-center p-6 border border-dashed rounded-lg border-border/60">
-              <Activity className="size-8 text-muted-foreground/30 mb-2" />
-              <p className="text-sm font-medium text-foreground">No telemetry recorded yet</p>
-              <p className="text-xs text-muted-foreground max-w-sm mt-1">
-                Requests processed by the gateway will display real-time latency and TTFT metrics here.
-              </p>
-            </div>
+            <Empty className="h-[280px] border">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Activity />
+                </EmptyMedia>
+                <EmptyTitle>No telemetry recorded yet</EmptyTitle>
+                <EmptyDescription>
+                  Requests processed by the gateway will display real-time latency and TTFT metrics here.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : metricTab === 'volume' && validTtftLogs.length === 0 ? (
-            <div className="h-[280px] w-full flex flex-col items-center justify-center text-center p-6 border border-dashed rounded-lg border-border/60">
-              <Timer className="size-8 text-muted-foreground/30 mb-2" />
-              <p className="text-sm font-medium text-foreground">No streaming requests recorded in recent window</p>
-              <p className="text-xs text-muted-foreground max-w-sm mt-1">
-                TTFT (Time to First Token) is recorded on streaming SSE and WebSocket connections. All recent requests used standard HTTP buffering.
-              </p>
-            </div>
+            <Empty className="h-[280px] border">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Timer />
+                </EmptyMedia>
+                <EmptyTitle>No streaming requests recorded in recent window</EmptyTitle>
+                <EmptyDescription>
+                  TTFT (Time to First Token) is recorded on streaming SSE and WebSocket connections. All recent requests used standard HTTP buffering.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className="h-[280px] w-full pt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="latencyGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                      <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0.0} />
                     </linearGradient>
                     <linearGradient id="ttftGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.0} />
+                      <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="hsl(var(--chart-3))" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
@@ -333,8 +346,8 @@ export function OverviewPage({
                         return (
                           <div className="rounded-lg border border-border bg-popover p-2.5 shadow-md text-xs font-mono">
                             <p className="font-semibold text-foreground mb-1">{data.time}</p>
-                            <p className="text-emerald-500">Total Latency: {data.latency}ms</p>
-                            <p className="text-amber-500">
+                            <p className="text-chart-2">Total Latency: {data.latency}ms</p>
+                            <p className="text-chart-3">
                               TTFT: {data.ttft > 0 ? `${data.ttft}ms` : '— (non-streaming)'}
                             </p>
                             {data.status && (
@@ -349,7 +362,7 @@ export function OverviewPage({
                   <Area
                     type="monotone"
                     dataKey={metricTab === 'latency' ? 'latency' : 'ttft'}
-                    stroke={metricTab === 'latency' ? '#10b981' : '#f59e0b'}
+                    stroke={metricTab === 'latency' ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-3))'}
                     strokeWidth={2}
                     fill={metricTab === 'latency' ? 'url(#latencyGradient)' : 'url(#ttftGradient)'}
                   />
@@ -358,9 +371,9 @@ export function OverviewPage({
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex items-center justify-between border-t border-border/60 py-3 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5 font-mono">
-            <span className="size-2 rounded-full bg-emerald-500" />
+        <CardFooter className="flex items-center justify-between border-t border-border py-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <span className="size-2 rounded-full bg-chart-2" />
             <span>Batched telemetry logging active</span>
           </div>
           <Button
@@ -370,13 +383,13 @@ export function OverviewPage({
             className="text-xs h-7 text-muted-foreground hover:text-foreground"
           >
             <span>View All Logs</span>
-            <ArrowUpRight className="size-3 ml-1" />
+            <ArrowUpRight />
           </Button>
         </CardFooter>
       </Card>
 
       {/* Recent Invocations Table */}
-      <Card className="border-border/80 shadow-sm">
+      <Card className="border-border">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base font-semibold">Recent Invocations</CardTitle>
@@ -414,8 +427,18 @@ export function OverviewPage({
                 ))
               ) : logs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-6 text-center text-muted-foreground font-sans italic">
-                    No requests recorded yet. Test an inference in the Playground or send an OpenAI SDK call.
+                  <TableCell colSpan={6} className="p-0">
+                    <Empty>
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <Activity />
+                        </EmptyMedia>
+                        <EmptyTitle>No requests recorded yet</EmptyTitle>
+                        <EmptyDescription>
+                          Test an inference in the Playground or send an OpenAI SDK call.
+                        </EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -428,23 +451,19 @@ export function OverviewPage({
                       </TableCell>
                       <TableCell className="py-2.5 font-semibold text-foreground font-mono text-xs">{log.modelSlug}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="text-[10px] uppercase font-mono">
+                        <Badge variant="secondary" className="text-xs uppercase font-mono">
                           {log.providerId}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={isSuccess ? 'outline' : 'destructive'}
-                          className={`text-[10px] font-mono ${
-                            isSuccess
-                              ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'
-                              : ''
-                          }`}
+                          variant={isSuccess ? 'success' : 'destructive'}
+                          className="text-xs font-mono"
                         >
                           {log.statusCode}
                         </Badge>
                       </TableCell>
-                      <TableCell className="py-2.5 text-amber-500 font-mono text-xs">{log.ttftMs ? `${log.ttftMs}ms` : '—'}</TableCell>
+                      <TableCell className="py-2.5 text-chart-3 font-mono text-xs">{log.ttftMs ? `${log.ttftMs}ms` : '—'}</TableCell>
                       <TableCell className="py-2.5 text-primary font-semibold font-mono text-xs text-right">{log.latencyMs}ms</TableCell>
                     </TableRow>
                   );

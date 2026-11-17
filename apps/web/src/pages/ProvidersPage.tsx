@@ -12,10 +12,25 @@ import {
 } from '../components/ui/card.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
-import { Label } from '../components/ui/label.js';
 import { Badge } from '../components/ui/badge.js';
 import { Switch } from '../components/ui/switch.js';
 import { Skeleton } from '../components/ui/skeleton.js';
+import { Spinner } from '../components/ui/spinner.js';
+import { Field, FieldGroup, FieldLabel } from '../components/ui/field.js';
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from '../components/ui/empty.js';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '../components/ui/input-group.js';
 import {
   Dialog,
   DialogContent,
@@ -24,7 +39,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '../components/ui/dialog.js';
-import { Eye, EyeOff, RefreshCw, Plus, CheckCircle, ShieldCheck, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, RefreshCw, Plus, ShieldCheck, Server } from 'lucide-react';
 
 export function ProvidersPage() {
   const queryClient = useQueryClient();
@@ -33,7 +48,6 @@ export function ProvidersPage() {
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
-  // Add Custom Provider Dialog State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isCreatingCustom, setIsCreatingCustom] = useState(false);
   const [customId, setCustomId] = useState('');
@@ -128,27 +142,24 @@ export function ProvidersPage() {
   const providers = data?.providers || [];
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
+    <div className="page-shell">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">AI Model Providers</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="page-title">AI Model Providers</h1>
+          <p className="page-description">
             Manage upstream providers, credentials, and synchronized model catalogs.
           </p>
         </div>
-        <Button
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
-        >
-          <Plus className="size-4" />
-          <span>Add Custom Provider</span>
+        <Button onClick={() => setIsAddModalOpen(true)} className="self-start sm:self-auto">
+          <Plus />
+          Add Custom Provider
         </Button>
       </div>
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="border-border/80 p-6 flex flex-col gap-4">
+            <Card key={i} className="border-border p-6 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <Skeleton className="h-6 w-32" />
                 <Skeleton className="h-5 w-16" />
@@ -159,6 +170,24 @@ export function ProvidersPage() {
             </Card>
           ))}
         </div>
+      ) : providers.length === 0 ? (
+        <Empty className="border border-dashed">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Server />
+            </EmptyMedia>
+            <EmptyTitle>No providers configured</EmptyTitle>
+            <EmptyDescription>
+              Add a custom OpenAI-compatible provider to start routing requests.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button onClick={() => setIsAddModalOpen(true)}>
+              <Plus />
+              Add Custom Provider
+            </Button>
+          </EmptyContent>
+        </Empty>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {providers.map((p) => {
@@ -167,34 +196,27 @@ export function ProvidersPage() {
             const currentUrlVal = editingUrl[p.id] ?? p.baseUrl;
             const isKeyVisible = showKey[p.id] || false;
             const isSyncing = syncingId === p.id;
+            const isUpdating =
+              updateMutation.isPending && updateMutation.variables?.id === p.id;
 
             return (
               <Card
                 key={p.id}
-                className="border-border/80 flex flex-col justify-between shadow-sm hover:border-border transition-colors"
+                className="border-border flex flex-col justify-between hover:border-border transition-colors"
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-semibold">{p.name}</CardTitle>
                     <div className="flex items-center gap-2">
-                      <Badge
-                        variant={p.isEnabled ? 'outline' : 'secondary'}
-                        className={`text-[10px] font-mono ${
-                          p.isEnabled
-                            ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'
-                            : ''
-                        }`}
-                      >
+                      <Badge variant={p.isEnabled ? 'success' : 'secondary'}>
                         {p.isEnabled ? 'Active' : 'Disabled'}
                       </Badge>
-                      {updateMutation.isPending &&
-                      updateMutation.variables?.id === p.id &&
-                      updateMutation.variables?.data.isEnabled !== undefined ? (
-                        <Loader2 className="size-4 animate-spin text-primary" />
+                      {isUpdating && updateMutation.variables?.data.isEnabled !== undefined ? (
+                        <Spinner className="text-primary" />
                       ) : (
                         <Switch
                           checked={p.isEnabled}
-                          disabled={updateMutation.isPending && updateMutation.variables?.id === p.id}
+                          disabled={isUpdating}
                           onCheckedChange={(checked) => handleToggle(p, checked)}
                         />
                       )}
@@ -203,81 +225,85 @@ export function ProvidersPage() {
                   <CardDescription className="text-xs font-mono flex items-center gap-2 flex-wrap">
                     <span>{p.id}</span>
                     {p.adapterType === 'openai-compatible' && (
-                      <Badge variant="secondary" className="text-[10px] font-mono">
+                      <Badge variant="secondary" className="font-mono">
                         openai-compatible
                       </Badge>
                     )}
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="flex flex-col gap-4 flex-1">
-                  <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Base URL</Label>
-                    <Input
-                      value={currentUrlVal}
-                      onChange={(e) =>
-                        setEditingUrl({ ...editingUrl, [p.id]: e.target.value })
-                      }
-                      placeholder="https://..."
-                      className="font-mono text-xs"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-medium text-muted-foreground">API Key</Label>
-                      {hasKey && (
-                        <span className="text-[10px] text-emerald-500 flex items-center gap-1 font-mono">
-                          <ShieldCheck className="size-3" />
-                          <span>Encrypted</span>
-                        </span>
-                      )}
-                    </div>
-                    <div className="relative">
+                <CardContent className="flex-1">
+                  <FieldGroup className="gap-4">
+                    <Field>
+                      <FieldLabel className="text-xs text-muted-foreground">Base URL</FieldLabel>
                       <Input
-                        type={isKeyVisible ? 'text' : 'password'}
-                        value={currentKeyVal}
+                        value={currentUrlVal}
                         onChange={(e) =>
-                          setEditingKey({ ...editingKey, [p.id]: e.target.value })
+                          setEditingUrl({ ...editingUrl, [p.id]: e.target.value })
                         }
-                        placeholder={hasKey ? '••••••••••••••••••••••••' : 'Enter API Key...'}
-                        className="font-mono text-xs pr-9"
+                        placeholder="https://..."
+                        className="font-mono text-xs"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowKey({ ...showKey, [p.id]: !isKeyVisible })}
-                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-                      >
-                        {isKeyVisible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                      </button>
-                    </div>
-                  </div>
+                    </Field>
+
+                    <Field>
+                      <div className="flex items-center justify-between">
+                        <FieldLabel className="text-xs text-muted-foreground">API Key</FieldLabel>
+                        {hasKey && (
+                          <span className="text-xs text-chart-2 flex items-center gap-1">
+                            <ShieldCheck className="size-3" />
+                            <span>Encrypted</span>
+                          </span>
+                        )}
+                      </div>
+                      <InputGroup>
+                        <InputGroupInput
+                          type={isKeyVisible ? 'text' : 'password'}
+                          value={currentKeyVal}
+                          onChange={(e) =>
+                            setEditingKey({ ...editingKey, [p.id]: e.target.value })
+                          }
+                          placeholder={hasKey ? '••••••••••••••••••••••••' : 'Enter API Key...'}
+                          className="font-mono text-xs"
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupButton
+                            size="icon-xs"
+                            onClick={() => setShowKey({ ...showKey, [p.id]: !isKeyVisible })}
+                            aria-label={isKeyVisible ? 'Hide API key' : 'Show API key'}
+                          >
+                            {isKeyVisible ? <EyeOff /> : <Eye />}
+                          </InputGroupButton>
+                        </InputGroupAddon>
+                      </InputGroup>
+                    </Field>
+                  </FieldGroup>
                 </CardContent>
 
-                <CardFooter className="pt-2 flex items-center justify-between border-t border-border/40 gap-2">
+                <CardFooter className="pt-2 flex items-center justify-between border-t border-border gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleSync(p)}
                     disabled={isSyncing || !p.isEnabled}
-                    className="text-xs flex items-center gap-1.5"
+                    className="text-xs"
                   >
-                    <RefreshCw className={`size-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                    <span>{isSyncing ? 'Syncing...' : 'Sync Models'}</span>
+                    {isSyncing ? <Spinner /> : <RefreshCw />}
+                    {isSyncing ? 'Syncing...' : 'Sync Models'}
                   </Button>
                   <Button
                     size="sm"
                     onClick={() => handleSave(p)}
-                    disabled={updateMutation.isPending && updateMutation.variables?.id === p.id}
+                    disabled={isUpdating}
                     className="text-xs"
                   >
-                    {updateMutation.isPending && updateMutation.variables?.id === p.id ? (
+                    {isUpdating ? (
                       <>
-                        <Loader2 className="size-3.5 animate-spin mr-1.5" />
-                        <span>Saving...</span>
+                        <Spinner />
+                        Saving...
                       </>
                     ) : (
-                      <span>Save Changes</span>
+                      'Save Changes'
                     )}
                   </Button>
                 </CardFooter>
@@ -287,7 +313,6 @@ export function ProvidersPage() {
         </div>
       )}
 
-      {/* Add Custom Provider Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="sm:max-w-md">
           <form onSubmit={handleCreateCustomProvider} className="flex flex-col gap-4">
@@ -298,9 +323,9 @@ export function ProvidersPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex flex-col gap-4 py-2">
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Provider Name</Label>
+            <FieldGroup className="gap-4 py-2">
+              <Field>
+                <FieldLabel className="text-xs text-muted-foreground">Provider Name</FieldLabel>
                 <Input
                   placeholder="e.g. DeepSeek AI"
                   value={customName}
@@ -312,10 +337,10 @@ export function ProvidersPage() {
                   }}
                   required
                 />
-              </div>
+              </Field>
 
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Provider Slug ID (alphanumeric)</Label>
+              <Field>
+                <FieldLabel className="text-xs text-muted-foreground">Provider Slug ID (alphanumeric)</FieldLabel>
                 <Input
                   placeholder="e.g. deepseek"
                   value={customId}
@@ -323,10 +348,10 @@ export function ProvidersPage() {
                   required
                   className="font-mono text-xs"
                 />
-              </div>
+              </Field>
 
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Base URL</Label>
+              <Field>
+                <FieldLabel className="text-xs text-muted-foreground">Base URL</FieldLabel>
                 <Input
                   placeholder="e.g. https://api.deepseek.com/v1"
                   value={customBaseUrl}
@@ -334,10 +359,10 @@ export function ProvidersPage() {
                   required
                   className="font-mono text-xs"
                 />
-              </div>
+              </Field>
 
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">API Key (optional for local models)</Label>
+              <Field>
+                <FieldLabel className="text-xs text-muted-foreground">API Key (optional for local models)</FieldLabel>
                 <Input
                   type="password"
                   placeholder="sk-..."
@@ -345,8 +370,8 @@ export function ProvidersPage() {
                   onChange={(e) => setCustomApiKey(e.target.value)}
                   className="font-mono text-xs"
                 />
-              </div>
-            </div>
+              </Field>
+            </FieldGroup>
 
             <DialogFooter>
               <Button
@@ -360,11 +385,11 @@ export function ProvidersPage() {
               <Button type="submit" disabled={isCreatingCustom}>
                 {isCreatingCustom ? (
                   <>
-                    <Loader2 className="size-3.5 animate-spin mr-1.5" />
-                    <span>Registering...</span>
+                    <Spinner />
+                    Registering...
                   </>
                 ) : (
-                  <span>Register Provider</span>
+                  'Register Provider'
                 )}
               </Button>
             </DialogFooter>

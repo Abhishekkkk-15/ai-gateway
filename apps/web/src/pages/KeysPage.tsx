@@ -11,7 +11,15 @@ import {
 } from '../components/ui/card.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
-import { Label } from '../components/ui/label.js';
+import { Spinner } from '../components/ui/spinner.js';
+import { Field, FieldGroup, FieldLabel } from '../components/ui/field.js';
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from '../components/ui/empty.js';
 import { Badge } from '../components/ui/badge.js';
 import { Switch } from '../components/ui/switch.js';
 import { Skeleton } from '../components/ui/skeleton.js';
@@ -43,7 +51,6 @@ import {
   Code2,
   ShieldAlert,
   AlertTriangle,
-  Loader2,
 } from 'lucide-react';
 
 export function KeysPage() {
@@ -201,31 +208,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   }, [codeTab, testKeyPrefix]);
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
+    <div className="page-shell">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Gateway API Keys</h1>
+            <h1 className="page-title">Gateway API Keys</h1>
             <Badge variant="outline" className="text-xs font-mono">
               {keys.length} Keys Active
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="page-description">
             Generate and manage access tokens for client applications and upstream SDK access.
           </p>
         </div>
 
         <Button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
+          className="self-start sm:self-auto"
         >
-          <Plus className="size-4" />
+          <Plus />
           <span>Generate New Key</span>
         </Button>
       </div>
 
       {/* Keys Table Card */}
-      <Card className="border-border/80 shadow-sm overflow-hidden">
+      <Card className="border-border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -263,12 +270,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
               ))
             ) : keys.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-28 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center justify-center gap-1 py-4">
-                    <KeyRound className="size-6 text-muted-foreground/40 mb-1" />
-                    <span className="text-sm font-medium text-foreground">No gateway keys generated yet</span>
-                    <span className="text-xs text-muted-foreground">Click &quot;Generate New Key&quot; above to issue your first client token.</span>
-                  </div>
+                <TableCell colSpan={6} className="p-0">
+                  <Empty>
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <KeyRound />
+                      </EmptyMedia>
+                      <EmptyTitle>No gateway keys generated yet</EmptyTitle>
+                      <EmptyDescription>
+                        Click &quot;Generate New Key&quot; above to issue your first client token.
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
                 </TableCell>
               </TableRow>
             ) : (
@@ -285,7 +298,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {toggleMutation.isPending && toggleMutation.variables?.id === k.id ? (
-                        <Loader2 className="size-4 animate-spin text-primary" />
+                        <Spinner className="text-primary" />
                       ) : (
                         <Switch
                           checked={k.isEnabled}
@@ -296,12 +309,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         />
                       )}
                       <Badge
-                        variant="outline"
-                        className={`text-[10px] font-mono ${
-                          k.isEnabled
-                            ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'
-                            : 'border-border text-muted-foreground'
-                        }`}
+                        variant={k.isEnabled ? 'success' : 'secondary'}
                       >
                         {k.isEnabled ? 'Active' : 'Disabled'}
                       </Badge>
@@ -314,11 +322,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                       disabled={deleteMutation.isPending && deleteMutation.variables === k.id}
                       onClick={() => deleteMutation.mutate(k.id)}
                       className="text-destructive hover:bg-destructive/10 size-8 p-0"
+                      aria-label={`Revoke ${k.name}`}
                     >
                       {deleteMutation.isPending && deleteMutation.variables === k.id ? (
-                        <Loader2 className="size-4 animate-spin text-destructive" />
+                        <Spinner className="text-destructive" />
                       ) : (
-                        <Trash2 className="size-4" />
+                        <Trash2 />
                       )}
                     </Button>
                   </TableCell>
@@ -330,7 +339,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
       </Card>
 
       {/* Quickstart Code Snippets */}
-      <Card className="border-border/80 bg-card/60 backdrop-blur-sm shadow-sm">
+      <Card className="border-border bg-card">
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -346,7 +355,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             <Tabs value={codeTab} onValueChange={(val) => setCodeTab(val as 'python' | 'node' | 'rust' | 'curl')} className="self-start sm:self-auto">
               <TabsList className="h-8">
                 {(['python', 'node', 'rust', 'curl'] as const).map((tab) => (
-                  <TabsTrigger key={tab} value={tab} className="text-xs font-mono uppercase h-7 px-3">
+                  <TabsTrigger key={tab} value={tab} className="text-xs capitalize h-7 px-3">
                     {tab}
                   </TabsTrigger>
                 ))}
@@ -374,28 +383,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex flex-col gap-4 py-2">
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Key Name / Client ID</Label>
+            <FieldGroup className="gap-4 py-2">
+              <Field>
+                <FieldLabel htmlFor="new-key-name" className="text-xs text-muted-foreground">
+                  Key Name / Client ID
+                </FieldLabel>
                 <Input
+                  id="new-key-name"
                   placeholder="e.g. Production Backend, Dev Playground"
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
                   required
                 />
-              </div>
+              </Field>
 
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Rate Limit RPM (optional)</Label>
+              <Field>
+                <FieldLabel htmlFor="new-key-rpm" className="text-xs text-muted-foreground">
+                  Rate Limit RPM (optional)
+                </FieldLabel>
                 <Input
+                  id="new-key-rpm"
                   type="number"
                   placeholder="Unlimited (e.g. 60)"
                   value={newKeyRpm}
                   onChange={(e) => setNewKeyRpm(e.target.value ? Number(e.target.value) : '')}
                   className="font-mono text-xs"
                 />
-              </div>
-            </div>
+              </Field>
+            </FieldGroup>
 
             <DialogFooter>
               <Button
@@ -409,7 +424,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
               <Button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending ? (
                   <>
-                    <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                    <Spinner />
                     <span>Creating Key...</span>
                   </>
                 ) : (
@@ -426,7 +441,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         <DialogContent className="sm:max-w-md">
           <div className="flex flex-col gap-4">
             <DialogHeader>
-              <div className="flex items-center gap-2 text-emerald-500 mb-1">
+              <div className="flex items-center gap-2 text-chart-2 mb-1">
                 <Check className="size-5" />
                 <DialogTitle className="text-lg">Gateway Key Created</DialogTitle>
               </div>
@@ -439,9 +454,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
               <CodeBlock code={newlyCreatedKey} className="my-2" />
             )}
 
-            <Alert className="border-amber-500/20 bg-amber-500/10 text-amber-500 text-xs py-2.5">
-              <AlertTriangle className="size-4 text-amber-500" />
-              <AlertDescription className="text-amber-500 text-xs leading-relaxed">
+            <Alert className="border-chart-3/30 bg-chart-3/10 text-xs py-2.5">
+              <AlertTriangle className="size-4 text-chart-3" />
+              <AlertDescription className="text-muted-foreground text-xs leading-relaxed">
                 Store this key securely in your environment variables. Never commit it to source control.
               </AlertDescription>
             </Alert>

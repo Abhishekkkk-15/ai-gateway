@@ -5,9 +5,24 @@ import { api } from '../lib/api.js';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
-import { Label } from '../components/ui/label.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Badge } from '../components/ui/badge.js';
+import { Field, FieldGroup, FieldLabel } from '../components/ui/field.js';
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from '../components/ui/empty.js';
+import { Spinner } from '../components/ui/spinner.js';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from '../components/ui/input-group.js';
+import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
 import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert.js';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../components/ui/collapsible.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -37,8 +52,6 @@ import {
   Brain,
   ChevronDown,
   ChevronRight,
-  Loader2,
-  AlertCircle,
   AlertTriangle,
   Info,
   RefreshCw,
@@ -553,17 +566,17 @@ export function PlaygroundPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
+    <div className="page-shell">
       {/* Header and Mode Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Interactive Playground</h1>
-            <Badge variant="outline" className="text-[11px] font-mono">
+            <h1 className="page-title">Interactive Playground</h1>
+            <Badge variant="secondary">
               Chat + Experimental Audio
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="page-description">
             Primary surface: chat completions. TTS and STT are experimental and outside the curated OpenAI-compatible catalog.
           </p>
         </div>
@@ -578,14 +591,14 @@ export function PlaygroundPage() {
             <TabsTrigger value="tts" onClick={() => setActiveTab('tts')} className="text-xs gap-1.5 px-3">
               <Volume2 className="size-3.5" />
               <span>TTS</span>
-              <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px] font-normal">
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs font-normal">
                 Exp
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="stt" onClick={() => setActiveTab('stt')} className="text-xs gap-1.5 px-3">
               <Mic className="size-3.5" />
               <span>STT</span>
-              <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px] font-normal">
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs font-normal">
                 Exp
               </Badge>
             </TabsTrigger>
@@ -594,26 +607,31 @@ export function PlaygroundPage() {
       </div>
 
       {/* Target Configuration Bar */}
-      <Card className="border-border/80 shadow-sm bg-card/60 backdrop-blur-sm">
+      <Card className="border-border bg-card">
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">Gateway API Key</Label>
+          <FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Field className="gap-1.5">
+              <FieldLabel htmlFor="playground-gateway-key" className="text-xs font-semibold text-muted-foreground">
+                Gateway API Key
+              </FieldLabel>
               <Input
+                id="playground-gateway-key"
                 type="password"
                 placeholder={keys.length > 0 ? `Auto: ${keys[0].prefix}...` : 'sk-gw-...'}
                 value={gatewayKey}
                 onChange={(e) => setGatewayKey(e.target.value)}
-                className="font-mono text-xs bg-background/50 h-9"
+                className="font-mono text-xs h-9"
               />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">Select Model or Routable Alias</Label>
+            </Field>
+            <Field className="gap-1.5">
+              <FieldLabel htmlFor="playground-model" className="text-xs font-semibold text-muted-foreground">
+                Select Model or Routable Alias
+              </FieldLabel>
               <Select
                 value={selectedModel}
                 onValueChange={(val) => setSelectedModel(val)}
               >
-                <SelectTrigger className="h-9 font-mono text-xs bg-background/50">
+                <SelectTrigger id="playground-model" className="h-9 font-mono text-xs">
                   <SelectValue placeholder="Auto-select first enabled model" />
                 </SelectTrigger>
                 <SelectContent>
@@ -631,8 +649,8 @@ export function PlaygroundPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-            </div>
-          </div>
+            </Field>
+          </FieldGroup>
         </CardContent>
       </Card>
 
@@ -640,8 +658,8 @@ export function PlaygroundPage() {
       {activeTab === 'chat' && (
         <div className="flex flex-col gap-4">
           {/* Chat Transcript Container */}
-          <Card className="border-border/80 shadow-sm flex flex-col h-[520px]">
-            <CardHeader className="py-3 px-4 border-b border-border/60 flex flex-row items-center justify-between">
+          <Card className="border-border flex flex-col h-[520px]">
+            <CardHeader className="py-3 px-4 border-b border-border flex flex-row items-center justify-between">
               <div className="flex items-center gap-2">
                 <Bot className="size-4 text-primary" />
                 <CardTitle className="text-sm font-semibold">Inference Stream</CardTitle>
@@ -653,18 +671,15 @@ export function PlaygroundPage() {
               <div className="flex items-center gap-2">
                 {ttftMs !== null && (
                   <Badge
-                    variant="outline"
-                    className="flex items-center gap-1 text-[11px] font-mono border-amber-500/30 text-amber-500 bg-amber-500/10"
+                    variant="secondary"
+                    className="gap-1 font-mono"
                   >
                     <Zap className="size-3" />
                     <span>TTFT: {ttftMs}ms</span>
                   </Badge>
                 )}
                 {totalLatencyMs !== null && (
-                  <Badge
-                    variant="outline"
-                    className="flex items-center gap-1 text-[11px] font-mono border-primary/30 text-primary bg-primary/10"
-                  >
+                  <Badge variant="secondary" className="gap-1 font-mono">
                     <Timer className="size-3" />
                     <span>Total: {totalLatencyMs}ms</span>
                   </Badge>
@@ -678,7 +693,7 @@ export function PlaygroundPage() {
                     title="Copy output"
                   >
                     {copied ? (
-                      <Check className="size-3.5 text-emerald-500" />
+                      <Check className="size-3.5 text-chart-2" />
                     ) : (
                       <Copy className="size-3.5 text-muted-foreground" />
                     )}
@@ -698,29 +713,33 @@ export function PlaygroundPage() {
 
             <CardContent
               ref={scrollRef}
-              className="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-5 bg-background/40"
+              className="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-4"
             >
               {/* Empty state when no message sent */}
               {!userMessage && !assistantOutput && !isStreaming && (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-muted-foreground my-auto">
-                  <Bot className="size-8 text-muted-foreground/30 mb-2" />
-                  <p className="text-sm font-medium text-foreground">Playground Session</p>
-                  <p className="text-xs text-muted-foreground max-w-sm mt-1">
-                    Enter a prompt below or select an example to test model responses.
-                  </p>
-                </div>
+                <Empty className="flex-1">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <Bot />
+                    </EmptyMedia>
+                    <EmptyTitle className="text-sm">Playground Session</EmptyTitle>
+                    <EmptyDescription className="text-xs">
+                      Enter a prompt below or select an example to test model responses.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
               )}
 
               {/* User Message Turn */}
               {userMessage && (
                 <div className="flex items-start justify-end gap-3 max-w-[85%] self-end">
                   <div className="flex flex-col gap-1 items-end">
-                    <div className="rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-4 py-2.5 text-xs leading-relaxed shadow-sm">
+                    <div className="rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-4 py-2.5 text-xs leading-relaxed">
                       {userMessage}
                     </div>
                   </div>
                   <Avatar className="size-7 rounded-lg border border-primary/30 shrink-0 mt-0.5">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-[11px] font-semibold">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                       U
                     </AvatarFallback>
                   </Avatar>
@@ -731,7 +750,7 @@ export function PlaygroundPage() {
               {(isStreaming || assistantOutput || reasoningOutput) && (
                 <div className="flex items-start gap-3 max-w-[90%]">
                   <Avatar className="size-7 rounded-lg border border-border shrink-0 mt-0.5">
-                    <AvatarFallback className="bg-primary/20 text-primary text-[11px] font-bold">
+                    <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
                       AI
                     </AvatarFallback>
                   </Avatar>
@@ -742,7 +761,7 @@ export function PlaygroundPage() {
                       <Collapsible
                         open={isReasoningOpen}
                         onOpenChange={setIsReasoningOpen}
-                        className="rounded-lg border border-border/80 bg-zinc-950/40 p-2.5 text-xs font-mono"
+                        className="rounded-lg border border-border bg-muted p-2.5 text-xs font-mono"
                       >
                         <CollapsibleTrigger asChild>
                           <Button
@@ -762,7 +781,7 @@ export function PlaygroundPage() {
                           </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
-                          <div className="mt-2 text-zinc-400 whitespace-pre-wrap leading-relaxed text-[11px] border-t border-border/40 pt-2 max-h-48 overflow-y-auto custom-scrollbar">
+                          <div className="mt-2 text-muted-foreground whitespace-pre-wrap leading-relaxed text-xs border-t border-border pt-2 max-h-48 overflow-y-auto custom-scrollbar">
                             {reasoningOutput}
                           </div>
                         </CollapsibleContent>
@@ -770,7 +789,7 @@ export function PlaygroundPage() {
                     )}
 
                     {/* Stream Content Bubble */}
-                    <div className="rounded-2xl rounded-tl-sm bg-muted/60 border border-border/60 px-4 py-3 text-xs text-foreground leading-relaxed shadow-sm font-sans whitespace-pre-wrap">
+                    <div className="rounded-2xl rounded-tl-sm bg-muted border border-border px-4 py-3 text-xs text-foreground leading-relaxed font-sans whitespace-pre-wrap">
                       {assistantOutput ? (
                         <>
                           {assistantOutput}
@@ -780,7 +799,7 @@ export function PlaygroundPage() {
                         </>
                       ) : isStreaming ? (
                         <div className="flex items-center gap-2 text-muted-foreground italic">
-                          <Loader2 className="size-3.5 animate-spin text-primary" />
+                          <Spinner className="size-3.5 text-primary" />
                           <span>Generating tokens...</span>
                         </div>
                       ) : null}
@@ -793,7 +812,7 @@ export function PlaygroundPage() {
 
           {/* Quick Prompt Suggestions */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground font-medium">
+            <span className="text-xs text-muted-foreground font-medium">
               Examples:
             </span>
             {PROMPT_SUGGESTIONS.map((suggestion, idx) => (
@@ -803,7 +822,7 @@ export function PlaygroundPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setPrompt(suggestion)}
-                className="text-[11px] h-7 px-2.5 bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50 font-normal"
+                className="h-7 px-2.5 text-xs font-normal text-muted-foreground hover:text-foreground"
               >
                 {suggestion}
               </Button>
@@ -811,56 +830,58 @@ export function PlaygroundPage() {
           </div>
 
           {/* Prompt Input Box */}
-          <Card className="border-border/80 shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex flex-col gap-2">
-                <Textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  rows={3}
-                  className="w-full rounded-md border-0 bg-transparent p-1 text-sm font-sans focus-visible:ring-0 resize-none leading-relaxed shadow-none"
-                  placeholder="Ask a question or provide instructions (Press Enter to send, Shift+Enter for newline)..."
-                />
-
-                <div className="flex items-center justify-between pt-2 border-t border-border/40">
-                  <span className="text-[11px] text-muted-foreground">
-                    Shift + Enter for new lines
-                  </span>
-                  <Button
-                    onClick={handleSendChat}
-                    disabled={isStreaming || !prompt.trim()}
-                    className="flex items-center gap-1.5 h-8 px-3 text-xs shadow-sm"
-                  >
-                    {isStreaming ? (
-                      <>
-                        <Loader2 className="size-3.5 animate-spin" />
-                        <span>Streaming...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="size-3.5" />
-                        <span>Send Prompt</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Field>
+            <FieldLabel htmlFor="playground-prompt" className="sr-only">
+              Prompt
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupTextarea
+                id="playground-prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={handleKeyDown}
+                rows={3}
+                className="min-h-0 text-sm leading-relaxed"
+                placeholder="Ask a question or provide instructions (Press Enter to send, Shift+Enter for newline)..."
+              />
+              <InputGroupAddon align="block-end" className="justify-between border-t">
+                <span className="text-xs text-muted-foreground">
+                  Shift + Enter for new lines
+                </span>
+                <InputGroupButton
+                  variant="default"
+                  size="sm"
+                  onClick={handleSendChat}
+                  disabled={isStreaming || !prompt.trim()}
+                >
+                  {isStreaming ? (
+                    <>
+                      <Spinner className="size-3.5" />
+                      <span>Streaming...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="size-3.5" />
+                      <span>Send Prompt</span>
+                    </>
+                  )}
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
         </div>
       )}
 
       {/* TTS TAB */}
       {activeTab === 'tts' && (
-        <Card className="border-border/80 shadow-sm">
+        <Card className="border-border">
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Volume2 className="size-4 text-primary" />
                   Text-to-Speech Synthesis
-                  <Badge variant="secondary" className="text-[10px] font-normal">
+                  <Badge variant="secondary" className="text-xs font-normal">
                     Experimental
                   </Badge>
                 </CardTitle>
@@ -870,59 +891,59 @@ export function PlaygroundPage() {
               </div>
 
               {/* Mode Toggle */}
-              <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-lg border border-border/60 self-start sm:self-auto">
-                <Button
-                  variant={ttsMode === 'batch' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setTtsMode('batch')}
-                  className="h-7 text-xs px-2.5"
-                >
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="sm"
+                value={ttsMode}
+                onValueChange={(val) => {
+                  if (val) setTtsMode(val as 'batch' | 'stream-input');
+                }}
+                aria-label="TTS mode"
+                className="self-start sm:self-auto"
+              >
+                <ToggleGroupItem value="batch" className="text-xs px-2.5">
                   Batch (HTTP)
-                </Button>
-                <Button
-                  variant={ttsMode === 'stream-input' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setTtsMode('stream-input')}
-                  className="h-7 text-xs px-2.5 gap-1 text-primary font-semibold"
-                >
-                  <Radio className="size-3 text-rose-500 animate-pulse" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="stream-input" className="text-xs px-2.5 gap-1">
+                  <Radio className="size-3 text-destructive animate-pulse" />
                   Stream-Input (WS)
-                </Button>
-              </div>
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
             {/* Voice & Model Configuration Panel */}
-            <div className="flex flex-col gap-4 p-4 rounded-xl border border-border/80 bg-muted/20">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-4 p-4 rounded-lg border border-border bg-muted">
+              <FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {/* 1. Voice ID Selection */}
-                <div className="flex flex-col gap-1.5">
+                <Field className="gap-1.5">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <FieldLabel htmlFor="tts-voice" className="text-xs font-semibold text-foreground items-center gap-1.5">
                       <AudioLines className="size-3.5 text-primary" />
                       <span>Voice Preset / ID</span>
-                    </Label>
+                    </FieldLabel>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => void refetchVoices()}
                         disabled={isFetchingVoices}
-                        className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+                        className="h-5 px-1.5 text-xs text-muted-foreground hover:text-foreground"
                         title="Sync Voices from ElevenLabs account"
                       >
                         <RefreshCw className={`size-3 mr-1 ${isFetchingVoices ? 'animate-spin' : ''}`} />
                         <span>Sync</span>
                       </Button>
                       {selectedVoice !== 'custom' && (
-                        <span className="text-[10px] text-muted-foreground font-mono">
+                        <span className="text-xs text-muted-foreground font-mono">
                           {selectedVoice}
                         </span>
                       )}
                     </div>
                   </div>
                   <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                    <SelectTrigger className="h-9 text-xs bg-background/50">
+                    <SelectTrigger id="tts-voice" className="h-9 text-xs">
                       <SelectValue placeholder="Select a Voice" />
                     </SelectTrigger>
                     <SelectContent>
@@ -934,7 +955,7 @@ export function PlaygroundPage() {
                           {liveVoices.map((v) => (
                             <SelectItem key={v.id} value={v.id} className="text-xs">
                               <span className="font-medium">{v.name}</span>
-                              <span className="text-muted-foreground ml-2 text-[11px]">
+                              <span className="text-muted-foreground ml-2 text-xs">
                                 — {v.category} {v.isFreeSupported ? '(Free)' : '[Paid Plan]'}
                               </span>
                             </SelectItem>
@@ -949,7 +970,7 @@ export function PlaygroundPage() {
                           {group.voices.map((v) => (
                             <SelectItem key={v.id} value={v.id} className="text-xs">
                               <span className="font-medium">{v.name}</span>
-                              <span className="text-muted-foreground ml-2 text-[11px]">
+                              <span className="text-muted-foreground ml-2 text-xs">
                                 — {v.description}
                               </span>
                             </SelectItem>
@@ -966,16 +987,16 @@ export function PlaygroundPage() {
                       </SelectGroup>
                     </SelectContent>
                   </Select>
-                </div>
+                </Field>
 
                 {/* 2. TTS Model Selection */}
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Field className="gap-1.5">
+                  <FieldLabel htmlFor="tts-model" className="text-xs font-semibold text-foreground items-center gap-1.5">
                     <Sliders className="size-3.5 text-primary" />
                     <span>TTS Synthesis Model</span>
-                  </Label>
+                  </FieldLabel>
                   <Select value={ttsModel} onValueChange={setTtsModel}>
-                    <SelectTrigger className="h-9 text-xs bg-background/50 font-mono">
+                    <SelectTrigger id="tts-model" className="h-9 text-xs font-mono">
                       <SelectValue placeholder="Select TTS Model" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1002,38 +1023,39 @@ export function PlaygroundPage() {
                       </SelectGroup>
                     </SelectContent>
                   </Select>
-                </div>
+                </Field>
 
                 {/* 3. Custom Voice ID Input */}
                 {selectedVoice === 'custom' && (
-                  <div className="flex flex-col gap-1.5 md:col-span-2 pt-2 border-t border-border/40">
+                  <Field className="gap-1.5 md:col-span-2 pt-2 border-t border-border">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                      <FieldLabel htmlFor="tts-custom-voice" className="text-xs font-semibold text-primary items-center gap-1.5">
                         <span>Enter Custom Voice ID</span>
-                      </Label>
-                      <span className="text-[11px] text-muted-foreground">
+                      </FieldLabel>
+                      <span className="text-xs text-muted-foreground">
                         Paste any ElevenLabs voice ID or custom voice identifier
                       </span>
                     </div>
                     <Input
+                      id="tts-custom-voice"
                       placeholder="e.g. 21m00Tcm4TlvDq8ikWAM or custom_voice_slug"
                       value={customVoiceId}
                       onChange={(e) => setCustomVoiceId(e.target.value)}
-                      className="font-mono text-xs bg-background/50 h-9"
+                      className="font-mono text-xs h-9"
                       autoFocus
                     />
-                  </div>
+                  </Field>
                 )}
-              </div>
+              </FieldGroup>
 
               {/* Warning if a Library Voice is Selected */}
               {isSelectedVoiceLibrary && (
-                <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-200">
-                  <AlertTriangle className="size-4 text-amber-400" />
-                  <AlertTitle className="text-xs font-semibold text-amber-300">
+                <Alert>
+                  <AlertTriangle className="size-4 text-chart-3" />
+                  <AlertTitle className="text-xs font-semibold">
                     ElevenLabs Paid Plan Required for this Voice
                   </AlertTitle>
-                  <AlertDescription className="text-amber-200/90 leading-relaxed text-[11px] mt-0.5">
+                  <AlertDescription className="text-muted-foreground leading-relaxed text-xs mt-0.5">
                     This is a community <strong>&quot;Voice Library&quot;</strong> voice requiring a paid ElevenLabs plan.
                   </AlertDescription>
                 </Alert>
@@ -1042,32 +1064,34 @@ export function PlaygroundPage() {
 
             {/* BATCH SYNTHESIS MODE */}
             {ttsMode === 'batch' && (
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
+              <FieldGroup className="gap-4">
+                <Field className="gap-1.5">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-muted-foreground">Text to Speak (HTTP)</Label>
-                    <span className="text-[11px] text-muted-foreground font-mono">
+                    <FieldLabel htmlFor="tts-text" className="text-xs font-semibold text-muted-foreground">
+                      Text to Speak (HTTP)
+                    </FieldLabel>
+                    <span className="text-xs text-muted-foreground font-mono">
                       {ttsText.length} characters
                     </span>
                   </div>
                   <Textarea
+                    id="tts-text"
                     value={ttsText}
                     onChange={(e) => setTtsText(e.target.value)}
                     rows={4}
                     placeholder="Enter text to synthesize into high quality speech..."
-                    className="w-full bg-background/50 p-3 text-sm leading-relaxed"
+                    className="w-full p-3 text-sm leading-relaxed"
                   />
-                </div>
+                </Field>
 
                 <div className="flex items-center gap-3">
                   <Button
                     onClick={handleSynthesizeTts}
                     disabled={isSynthesizing || !ttsText.trim()}
-                    className="flex items-center gap-2 shadow-sm"
                   >
                     {isSynthesizing ? (
                       <>
-                        <Loader2 className="size-4 animate-spin" />
+                        <Spinner />
                         <span>Synthesizing...</span>
                       </>
                     ) : (
@@ -1096,61 +1120,63 @@ export function PlaygroundPage() {
                 </div>
 
                 {audioUrl && (
-                  <div className="p-4 rounded-xl border border-border/80 bg-muted/20 flex flex-col gap-2">
+                  <div className="p-4 rounded-lg border border-border bg-muted flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span className="font-semibold text-foreground flex items-center gap-1.5">
                         <AudioLines className="size-3.5 text-primary" />
                         Generated Audio Output
                       </span>
-                      <span className="font-mono text-[11px]">MP3 Stream</span>
+                      <span className="text-xs">MP3 Stream</span>
                     </div>
                     <audio controls src={audioUrl} className="w-full rounded-lg" autoPlay />
                   </div>
                 )}
-              </div>
+              </FieldGroup>
             )}
 
             {/* STREAM-INPUT WEBSOCKET MODE */}
             {ttsMode === 'stream-input' && (
-              <div className="flex flex-col gap-4">
-                <Alert className="border-border/60 bg-background/40">
-                  <Info className="size-3.5 text-primary" />
-                  <AlertDescription className="text-[11px] text-muted-foreground">
+              <FieldGroup className="gap-4">
+                <Alert>
+                  <Info className="size-4 text-primary" />
+                  <AlertDescription className="text-xs text-muted-foreground">
                     <strong>Stream-Input WebSocket Protocol:</strong> Streams text token-by-token into{' '}
                     <InlineCode>/v1/text-to-speech/:voiceId/stream-input</InlineCode> and plays base64 audio chunks back with sub-100ms latency.
                   </AlertDescription>
                 </Alert>
 
-                <div className="flex flex-col gap-1.5">
+                <Field className="gap-1.5">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-muted-foreground">Text Tokens to Stream</Label>
-                    <Badge variant="outline" className="text-[10px] font-mono">
+                    <FieldLabel htmlFor="tts-stream-tokens" className="text-xs font-semibold text-muted-foreground">
+                      Text Tokens to Stream
+                    </FieldLabel>
+                    <span className="text-xs text-muted-foreground">
                       Simulates streaming LLM tokens
-                    </Badge>
+                    </span>
                   </div>
                   <Textarea
+                    id="tts-stream-tokens"
                     value={ttsStreamInputTokens}
                     onChange={(e) => setTtsStreamInputTokens(e.target.value)}
                     rows={3}
                     placeholder="Enter text to stream in chunk by chunk..."
-                    className="w-full bg-background/50 p-3 text-sm leading-relaxed"
+                    className="w-full p-3 text-sm leading-relaxed"
                   />
-                </div>
+                </Field>
 
                 <div className="flex items-center gap-3">
                   <Button
                     onClick={startTtsTokenStream}
                     disabled={isTtsStreaming || !ttsStreamInputTokens.trim()}
-                    className="flex items-center gap-2 shadow-sm bg-primary text-primary-foreground"
                   >
                     {isTtsStreaming ? (
                       <>
-                        <Loader2 className="size-4 animate-spin" />
+                        <Spinner />
                         <span>Streaming Tokens...</span>
                       </>
                     ) : (
                       <>
-                        <Radio className="size-4 text-rose-400" />
+                        <Radio className="size-4" />
                         <span>Stream Text Chunks</span>
                       </>
                     )}
@@ -1158,21 +1184,21 @@ export function PlaygroundPage() {
                 </div>
 
                 {/* Real-time Streaming Metrics */}
-                <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border border-border/80 bg-muted/20">
+                <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border border-border bg-muted">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] uppercase font-mono text-muted-foreground">Time to First Audio (TTFA)</span>
-                    <span className="text-base font-bold font-mono text-emerald-400">
+                    <span className="text-xs text-muted-foreground">Time to First Audio (TTFA)</span>
+                    <span className="text-base font-semibold font-mono text-chart-2">
                       {ttsFirstChunkLatencyMs !== null ? `${ttsFirstChunkLatencyMs}ms` : '—'}
                     </span>
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] uppercase font-mono text-muted-foreground">Audio Chunks Received</span>
-                    <span className="text-base font-bold font-mono text-foreground">
+                    <span className="text-xs text-muted-foreground">Audio Chunks Received</span>
+                    <span className="text-base font-semibold font-mono text-foreground">
                       {ttsAudioChunksReceived}
                     </span>
                   </div>
                 </div>
-              </div>
+              </FieldGroup>
             )}
           </CardContent>
         </Card>
@@ -1180,14 +1206,14 @@ export function PlaygroundPage() {
 
       {/* STT TAB */}
       {activeTab === 'stt' && (
-        <Card className="border-border/80 shadow-sm">
+        <Card className="border-border">
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Mic className="size-4 text-primary" />
                   Speech-to-Text Transcription
-                  <Badge variant="secondary" className="text-[10px] font-normal">
+                  <Badge variant="secondary" className="text-xs font-normal">
                     Experimental
                   </Badge>
                 </CardTitle>
@@ -1197,45 +1223,51 @@ export function PlaygroundPage() {
               </div>
 
               {/* Mode Toggle */}
-              <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-lg border border-border/60 self-start sm:self-auto">
-                <Button
-                  variant={sttMode === 'batch' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSttMode('batch')}
-                  className="h-7 text-xs px-2.5"
-                >
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="sm"
+                value={sttMode}
+                onValueChange={(val) => {
+                  if (val) setSttMode(val as 'batch' | 'realtime');
+                }}
+                aria-label="STT mode"
+                className="self-start sm:self-auto"
+              >
+                <ToggleGroupItem value="batch" className="text-xs px-2.5">
                   File Upload (HTTP)
-                </Button>
-                <Button
-                  variant={sttMode === 'realtime' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSttMode('realtime')}
-                  className="h-7 text-xs px-2.5 gap-1 text-primary font-semibold"
-                >
-                  <Radio className="size-3 text-rose-500 animate-pulse" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="realtime" className="text-xs px-2.5 gap-1">
+                  <Radio className="size-3 text-destructive animate-pulse" />
                   Realtime Stream (WS)
-                </Button>
-              </div>
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {/* BATCH FILE UPLOAD MODE */}
             {sttMode === 'batch' && (
-              <div className="flex flex-col gap-4">
-                <input
-                  type="file"
-                  accept="audio/*"
-                  onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-                  className="text-xs file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
-                />
+              <FieldGroup className="gap-4">
+                <Field className="gap-1.5">
+                  <FieldLabel htmlFor="stt-audio-file" className="text-xs font-semibold text-muted-foreground">
+                    Audio File
+                  </FieldLabel>
+                  <Input
+                    id="stt-audio-file"
+                    type="file"
+                    accept="audio/*"
+                    onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
+                    className="h-auto cursor-pointer text-xs file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1 file:text-xs file:font-semibold file:text-primary-foreground hover:file:bg-primary/90"
+                  />
+                </Field>
                 <Button
                   onClick={handleTranscribeStt}
                   disabled={!audioFile || isTranscribing}
-                  className="flex items-center gap-2 self-start"
+                  className="self-start"
                 >
                   {isTranscribing ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" />
+                      <Spinner />
                       <span>Transcribing...</span>
                     </>
                   ) : (
@@ -1247,20 +1279,20 @@ export function PlaygroundPage() {
                 </Button>
 
                 {sttText && (
-                  <div className="p-4 rounded-lg bg-black/40 border border-border/80 flex flex-col gap-1">
+                  <div className="p-4 rounded-lg bg-muted border border-border flex flex-col gap-1">
                     <span className="text-xs text-muted-foreground font-semibold">Transcription Result:</span>
                     <p className="text-sm font-sans leading-relaxed">{sttText}</p>
                   </div>
                 )}
-              </div>
+              </FieldGroup>
             )}
 
             {/* REALTIME STREAMING WEBSOCKET MODE */}
             {sttMode === 'realtime' && (
-              <div className="flex flex-col gap-4">
-                <Alert className="border-border/60 bg-background/40">
-                  <Info className="size-3.5 text-primary" />
-                  <AlertDescription className="text-[11px] text-muted-foreground">
+              <FieldGroup className="gap-4">
+                <Alert>
+                  <Info className="size-4 text-primary" />
+                  <AlertDescription className="text-xs text-muted-foreground">
                     <strong>Realtime STT WebSocket Protocol:</strong> Streams microphone chunks into{' '}
                     <InlineCode>/v1/speech-to-text/realtime</InlineCode> and renders live partial &amp; committed transcripts as you speak.
                   </AlertDescription>
@@ -1268,26 +1300,19 @@ export function PlaygroundPage() {
 
                 <div className="flex items-center gap-3">
                   {!isSttStreaming ? (
-                    <Button
-                      onClick={startSttStream}
-                      className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white"
-                    >
+                    <Button onClick={startSttStream}>
                       <Radio className="size-4" />
                       <span>Start Streaming Audio (Mic)</span>
                     </Button>
                   ) : (
-                    <Button
-                      onClick={stopSttStream}
-                      variant="destructive"
-                      className="flex items-center gap-2"
-                    >
+                    <Button onClick={stopSttStream} variant="destructive">
                       <Square className="size-4" />
                       <span>Stop &amp; Commit Speech</span>
                     </Button>
                   )}
                   {isSttStreaming && (
-                    <Badge variant="outline" className="border-emerald-500/40 text-emerald-400 gap-1.5 animate-pulse">
-                      <span className="size-2 rounded-full bg-emerald-400" />
+                    <Badge variant="success" className="gap-1.5">
+                      <span className="size-2 rounded-full bg-chart-2" />
                       Streaming Microphone Audio (PCM16 @ 16kHz)
                     </Badge>
                   )}
@@ -1296,9 +1321,9 @@ export function PlaygroundPage() {
                 {/* Live Interim Partial Transcript */}
                 {isSttStreaming && (
                   <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 flex flex-col gap-1">
-                    <div className="flex items-center justify-between text-[11px] text-primary font-semibold">
+                    <div className="flex items-center justify-between text-xs text-primary font-semibold">
                       <span>Interim Speech (Live Partial)</span>
-                      <span className="font-mono text-[10px] animate-pulse">listening...</span>
+                      <span className="text-xs animate-pulse">listening...</span>
                     </div>
                     <p className="text-sm italic text-foreground">
                       {sttPartialTranscript ? `"${sttPartialTranscript}"` : 'Listening for voice...'}
@@ -1317,7 +1342,7 @@ export function PlaygroundPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setSttCommittedTranscripts([])}
-                        className="h-5 px-1.5 text-[10px] text-muted-foreground"
+                        className="h-5 px-1.5 text-xs text-muted-foreground"
                       >
                         Clear
                       </Button>
@@ -1325,17 +1350,25 @@ export function PlaygroundPage() {
                   </div>
 
                   {sttCommittedTranscripts.length === 0 ? (
-                    <div className="p-4 rounded-lg border border-dashed border-border/80 text-center text-xs text-muted-foreground">
-                      No speech segments committed yet. Click &quot;Start Streaming Audio&quot; and speak.
-                    </div>
+                    <Empty className="border p-4 md:p-6">
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <Mic />
+                        </EmptyMedia>
+                        <EmptyTitle className="text-sm">No transcripts yet</EmptyTitle>
+                        <EmptyDescription className="text-xs">
+                          No speech segments committed yet. Click &quot;Start Streaming Audio&quot; and speak.
+                        </EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
                   ) : (
                     <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar">
                       {sttCommittedTranscripts.map((text, idx) => (
                         <div
                           key={idx}
-                          className="p-3 rounded-lg bg-black/30 border border-border/80 text-xs text-foreground leading-relaxed flex items-start gap-2"
+                          className="p-3 rounded-lg bg-muted border border-border text-xs text-foreground leading-relaxed flex items-start gap-2"
                         >
-                          <Badge variant="secondary" className="text-[10px] font-mono shrink-0">
+                          <Badge variant="secondary" className="text-xs font-mono shrink-0">
                             #{idx + 1}
                           </Badge>
                           <span>{text}</span>
@@ -1344,7 +1377,7 @@ export function PlaygroundPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </FieldGroup>
             )}
           </CardContent>
         </Card>

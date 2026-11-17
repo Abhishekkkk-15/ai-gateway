@@ -8,12 +8,12 @@ import { ThemeToggle } from '../ThemeToggle.js';
 import { ExternalLink } from 'lucide-react';
 
 const ROUTE_TITLES: Record<string, string> = {
-  '/overview': 'Overview & Telemetry',
-  '/providers': 'AI Providers',
-  '/models': 'Models Catalog',
-  '/keys': 'Gateway API Keys',
-  '/playground': 'Interactive Playground',
-  '/logs': 'Telemetry Logs',
+  '/overview': 'Overview',
+  '/providers': 'Providers',
+  '/models': 'Models',
+  '/keys': 'API Keys',
+  '/playground': 'Playground',
+  '/logs': 'Logs',
 };
 
 export function SiteHeader({
@@ -25,45 +25,39 @@ export function SiteHeader({
 }) {
   const location = useLocation();
   const currentTitle =
-    activeTabTitle || ROUTE_TITLES[location.pathname] || 'Overview & Telemetry';
+    activeTabTitle || ROUTE_TITLES[location.pathname] || 'Overview';
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border/80 bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-4">
       <div className="flex w-full items-center justify-between">
         <div className="flex items-center gap-2">
           <SidebarTrigger />
-          <Separator orientation="vertical" className="h-4 mx-1" />
-          <nav className="flex items-center gap-1.5 text-xs">
+          <Separator orientation="vertical" className="mx-1 h-4" />
+          <nav className="flex items-center gap-1.5 text-sm">
             <span className="text-muted-foreground">Gateway</span>
-            <span className="text-muted-foreground/60">/</span>
-            <span className="font-semibold text-foreground">{currentTitle}</span>
+            <span className="text-muted-foreground/50">/</span>
+            <span className="font-medium text-foreground">{currentTitle}</span>
           </nav>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Badge
-            variant="outline"
-            className="hidden sm:flex items-center gap-1.5 py-0.5 text-[11px] font-mono border-border bg-card"
-          >
-            <span className="size-1.5 rounded-full bg-emerald-500" />
-            <span>{loadedModelsCount} Models Live</span>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="hidden font-normal sm:inline-flex">
+            {loadedModelsCount} models enabled
           </Badge>
-
-          <Separator orientation="vertical" className="h-4 hidden sm:block" />
 
           <Button
             variant="ghost"
             size="sm"
             asChild
-            className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            className="hidden text-muted-foreground hover:text-foreground md:inline-flex"
           >
             <a
               href="https://platform.openai.com/docs/api-reference"
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span>API Specs</span>
-              <ExternalLink className="size-3" />
+              API Specs
+              <ExternalLink />
             </a>
           </Button>
 

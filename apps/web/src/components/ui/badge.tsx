@@ -11,7 +11,7 @@ export function Badge({ className, variant = 'default', ...props }: BadgeProps) 
     secondary: 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
     destructive: 'border-transparent bg-destructive/20 text-red-400 hover:bg-destructive/30',
     outline: 'text-foreground border-border',
-    success: 'border-transparent bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+    success: 'border border-chart-2/30 bg-chart-2/10 text-chart-2',
   };
 
   return (

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Shield, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { Shield, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Spinner } from '@/components/ui/spinner';
 import { api } from '@/lib/api';
 
 export interface LoginFormProps extends React.ComponentPropsWithoutRef<'div'> {
@@ -33,79 +35,80 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
   };
 
   return (
-    <div className={cn('flex flex-col gap-6', className)} {...props}>
-      <form onSubmit={handleSubmit}>
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <div className="flex items-center gap-2 font-medium">
-              <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-                <Shield className="size-5" />
-              </div>
-              <span className="text-base font-semibold tracking-tight">AI Gateway</span>
+    <div className={cn('flex flex-col gap-4', className)} {...props}>
+      <Card className="border-border shadow-none">
+        <CardHeader className="items-center gap-4 text-center">
+          <div className="flex items-center gap-2">
+            <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <Shield className="size-4" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight">Welcome back</h1>
-            <p className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold tracking-tight">AI Gateway</span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
+            <p className="text-sm text-muted-foreground">
               Enter your administrator credentials to access the console
             </p>
           </div>
+        </CardHeader>
 
-          {error && (
-            <Alert variant="destructive" className="py-2.5">
-              <AlertCircle className="size-4" />
-              <AlertDescription className="text-xs">{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="flex flex-col gap-4">
-            <div className="grid gap-2">
-              <Label className="text-xs font-medium" htmlFor="username">
-                Admin Username
-              </Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="admin"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium" htmlFor="password">
-                  Admin Password
-                </Label>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoFocus
-              />
-            </div>
-
-            <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-              {isLoading ? (
-                <span>Authenticating...</span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <Lock className="size-4" />
-                  <span>Sign In to Console</span>
-                  <ArrowRight className="size-4" />
-                </span>
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <FieldGroup className="gap-5">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
-            </Button>
-          </div>
-        </div>
-      </form>
 
-      <div className="text-balance text-center text-xs text-muted-foreground font-mono">
-        Self-Hosted OpenAI SDK Gateway · v1.0.0
-      </div>
+              <Field className="gap-1.5" data-invalid={error ? true : undefined}>
+                <FieldLabel htmlFor="username">Admin Username</FieldLabel>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="admin"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+              </Field>
+
+              <Field className="gap-1.5">
+                <FieldLabel htmlFor="password">Admin Password</FieldLabel>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoFocus
+                  disabled={isLoading}
+                />
+              </Field>
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Spinner />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign in to Console'
+                )}
+              </Button>
+            </FieldGroup>
+          </form>
+        </CardContent>
+
+        <CardFooter className="justify-center border-t border-border pt-4">
+          <p className="text-center text-xs text-muted-foreground">
+            Self-Hosted OpenAI SDK Gateway · v1.0.0
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

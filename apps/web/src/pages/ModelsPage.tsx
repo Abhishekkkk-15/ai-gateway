@@ -15,6 +15,21 @@ import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { Switch } from '../components/ui/switch.js';
 import { Skeleton } from '../components/ui/skeleton.js';
+import { Spinner } from '../components/ui/spinner.js';
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from '../components/ui/empty.js';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '../components/ui/input-group.js';
 import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
 import {
   Select,
@@ -51,7 +66,6 @@ import {
   CheckCircle2,
   Filter,
   RotateCcw,
-  Loader2,
   X,
   SlidersHorizontal,
   ChevronsLeft,
@@ -215,17 +229,17 @@ export function ModelsPage() {
   }, [totalPages, safeCurrentPage]);
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
+    <div className="page-shell">
       {/* Header & Stats Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Models Catalog</h1>
-            <Badge variant="outline" className="text-xs font-mono border-border">
+            <h1 className="page-title">Models Catalog</h1>
+            <Badge variant="secondary">
               {activeCount} / {models.length} Enabled
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="page-description">
             Configure available models and set custom aliases to decouple client applications from provider IDs.
           </p>
         </div>
@@ -235,42 +249,46 @@ export function ModelsPage() {
             variant="ghost"
             size="sm"
             onClick={resetFilters}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground self-start sm:self-auto"
+            className="text-xs text-muted-foreground hover:text-foreground self-start sm:self-auto"
           >
-            <RotateCcw className="size-3.5" />
+            <RotateCcw />
             <span>Reset Filters</span>
           </Button>
         )}
       </div>
 
       {/* Filter and Controls Toolbar */}
-      <div className="flex flex-col gap-3 p-4 rounded-xl border border-border/80 bg-card/60 shadow-sm">
+      <div className="flex flex-col gap-3 p-4 rounded-lg border border-border bg-card">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* 1. Search Filter */}
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-            <Input
+          <InputGroup>
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+            <InputGroupInput
               placeholder="Search by slug, alias, provider..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              className="pl-9 pr-8 text-xs font-mono h-9 bg-background/50"
+              className="text-xs font-mono"
             />
             {search && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch('');
-                  setCurrentPage(1);
-                }}
-                className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-4" />
-              </button>
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setSearch('');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <X />
+                </InputGroupButton>
+              </InputGroupAddon>
             )}
-          </div>
+          </InputGroup>
 
           {/* 2. Provider Filter */}
           <Select
@@ -280,7 +298,7 @@ export function ModelsPage() {
               setCurrentPage(1);
             }}
           >
-            <SelectTrigger className="h-9 text-xs bg-background/50 font-mono">
+            <SelectTrigger className="h-9 text-xs font-mono">
               <SelectValue placeholder="Filter by Provider" />
             </SelectTrigger>
             <SelectContent>
@@ -308,7 +326,7 @@ export function ModelsPage() {
               setCurrentPage(1);
             }}
           >
-            <SelectTrigger className="h-9 text-xs bg-background/50">
+            <SelectTrigger className="h-9 text-xs">
               <SelectValue placeholder="Filter by Capability" />
             </SelectTrigger>
             <SelectContent>
@@ -327,7 +345,7 @@ export function ModelsPage() {
 
           {/* 4. Sort By */}
           <Select value={sortBy} onValueChange={(val: 'slug' | 'context' | 'provider') => setSortBy(val)}>
-            <SelectTrigger className="h-9 text-xs bg-background/50">
+            <SelectTrigger className="h-9 text-xs">
               <SelectValue placeholder="Sort Catalog" />
             </SelectTrigger>
             <SelectContent>
@@ -347,9 +365,9 @@ export function ModelsPage() {
         </div>
 
         {/* Status Filter Chips Row */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border text-xs">
           <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground font-medium text-[11px] mr-1">Status:</span>
+            <span className="text-muted-foreground font-medium mr-1">Status:</span>
             <ToggleGroup
               type="single"
               value={statusFilter}
@@ -371,28 +389,28 @@ export function ModelsPage() {
               <ToggleGroupItem
                 value="enabled"
                 aria-label="Enabled models"
-                className="h-7 px-2.5 text-xs data-[state=on]:bg-emerald-600 data-[state=on]:text-white"
+                className="h-7 px-2.5 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
               >
                 Enabled ({activeCount})
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="disabled"
                 aria-label="Disabled models"
-                className="h-7 px-2.5 text-xs data-[state=on]:bg-destructive data-[state=on]:text-destructive-foreground"
+                className="h-7 px-2.5 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
               >
                 Disabled ({models.length - activeCount})
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
 
-          <div className="text-[11px] text-muted-foreground font-mono">
+          <div className="text-xs text-muted-foreground">
             Showing <span className="font-semibold text-foreground">{filteredModels.length}</span> of {models.length} models
           </div>
         </div>
       </div>
 
       {/* Models Data Table */}
-      <div className="rounded-xl border border-border/80 bg-card/60 shadow-sm overflow-hidden">
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -434,26 +452,27 @@ export function ModelsPage() {
               ))
             ) : filteredModels.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-36 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center justify-center gap-2 py-6">
-                    <Layers className="size-7 text-muted-foreground/40" />
-                    <span className="text-sm font-medium text-foreground">No matching models found</span>
-                    <span className="text-xs text-muted-foreground max-w-sm">
-                      {hasActiveFilters
-                        ? 'Try clearing or relaxing your search query and filters.'
-                        : 'Configure a provider and trigger "Sync Models" to populate this catalog.'}
-                    </span>
+                <TableCell colSpan={7} className="p-0">
+                  <Empty>
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <Layers />
+                      </EmptyMedia>
+                      <EmptyTitle>No matching models found</EmptyTitle>
+                      <EmptyDescription>
+                        {hasActiveFilters
+                          ? 'Try clearing or relaxing your search query and filters.'
+                          : 'Configure a provider and trigger "Sync Models" to populate this catalog.'}
+                      </EmptyDescription>
+                    </EmptyHeader>
                     {hasActiveFilters && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={resetFilters}
-                        className="mt-2 text-xs"
-                      >
-                        Reset All Filters
-                      </Button>
+                      <EmptyContent>
+                        <Button variant="outline" size="sm" onClick={resetFilters} className="text-xs">
+                          Reset All Filters
+                        </Button>
+                      </EmptyContent>
                     )}
-                  </div>
+                  </Empty>
                 </TableCell>
               </TableRow>
             ) : (
@@ -470,7 +489,7 @@ export function ModelsPage() {
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center">
                         {isToggling ? (
-                          <Loader2 className="size-4 animate-spin text-primary" />
+                          <Spinner className="text-primary" />
                         ) : (
                           <Switch
                             checked={m.isEnabled}
@@ -489,8 +508,8 @@ export function ModelsPage() {
                         <span className="text-foreground">{m.slug}</span>
                         {m.customAlias && (
                           <Badge
-                            variant="outline"
-                            className="text-[10px] py-0 px-1.5 font-normal border-primary/30 text-primary bg-primary/10"
+                            variant="secondary"
+                            className="font-normal"
                           >
                             alias: {m.customAlias}
                           </Badge>
@@ -500,7 +519,7 @@ export function ModelsPage() {
 
                     {/* Provider Badge */}
                     <TableCell>
-                      <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wide">
+                      <Badge variant="secondary" className="font-mono uppercase">
                         {m.providerId}
                       </Badge>
                     </TableCell>
@@ -511,16 +530,17 @@ export function ModelsPage() {
                         {m.capabilities.map((cap) => (
                           <Badge
                             key={cap}
-                            variant="outline"
-                            className={`px-1.5 py-0 text-[10px] font-mono ${
+                            variant="secondary"
+                            className={cn(
+                              'font-normal',
                               cap === 'chat'
-                                ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                                ? 'text-primary'
                                 : cap === 'tts'
-                                  ? 'bg-purple-500/10 text-purple-400 border-purple-500/30'
+                                  ? 'text-chart-3'
                                   : cap === 'stt'
-                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                    : 'bg-secondary text-secondary-foreground border-border'
-                            }`}
+                                    ? 'text-chart-2'
+                                    : ''
+                            )}
                           >
                             {cap}
                           </Badge>
@@ -537,7 +557,7 @@ export function ModelsPage() {
                     <TableCell>
                       <div className="flex items-center gap-1.5 max-w-[200px] relative">
                         {isSavingAlias ? (
-                          <Loader2 className="size-3.5 animate-spin text-primary shrink-0" />
+                          <Spinner className="size-3.5 text-primary shrink-0" />
                         ) : (
                           <Tag className="size-3.5 text-muted-foreground shrink-0" />
                         )}
@@ -552,7 +572,7 @@ export function ModelsPage() {
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') handleSaveAlias(m.slug);
                           }}
-                          className="h-7 text-xs font-mono py-0 px-2 bg-background/40"
+                          className="h-7 text-xs font-mono py-0 px-2"
                         />
                       </div>
                     </TableCell>
@@ -562,14 +582,14 @@ export function ModelsPage() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="size-8 p-0">
-                            <MoreHorizontal className="size-4" />
+                            <MoreHorizontal />
                             <span className="sr-only">Actions</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel className="text-xs">Model Actions</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => handleCopy(m.customAlias || m.slug)}>
-                            <Copy className="size-3.5 mr-2" />
+                            <Copy />
                             <span>Copy Model Identifier</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -582,7 +602,7 @@ export function ModelsPage() {
                               })
                             }
                           >
-                            <CheckCircle2 className="size-3.5 mr-2" />
+                            <CheckCircle2 />
                             <span>{m.isEnabled ? 'Disable Model' : 'Enable Model'}</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -597,7 +617,7 @@ export function ModelsPage() {
 
         {/* Official shadcn Pagination Component Toolbar */}
         {!isLoading && totalFiltered > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border/40 bg-card/40 text-xs">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border bg-card text-xs">
             {/* Left: Range and Totals */}
             <div className="flex items-center gap-1.5 text-muted-foreground order-2 sm:order-1">
               <span>
@@ -606,7 +626,7 @@ export function ModelsPage() {
                 <span className="font-semibold text-foreground">{totalFiltered}</span> models
               </span>
               {totalFiltered !== models.length && (
-                <span className="text-[11px] text-muted-foreground/80 font-mono">
+                <span className="text-xs text-muted-foreground">
                   (filtered from {models.length})
                 </span>
               )}
@@ -626,7 +646,7 @@ export function ModelsPage() {
                       onClick={() => setCurrentPage(1)}
                       title="First page"
                     >
-                      <ChevronsLeft className="size-4" />
+                      <ChevronsLeft />
                     </Button>
                   </PaginationItem>
 
@@ -690,7 +710,7 @@ export function ModelsPage() {
                       onClick={() => setCurrentPage(totalPages)}
                       title="Last page"
                     >
-                      <ChevronsRight className="size-4" />
+                      <ChevronsRight />
                     </Button>
                   </PaginationItem>
                 </PaginationContent>
@@ -707,7 +727,7 @@ export function ModelsPage() {
                   setCurrentPage(1);
                 }}
               >
-                <SelectTrigger className="h-8 w-[72px] text-xs font-mono bg-background/50">
+                <SelectTrigger className="h-8 w-[72px] text-xs font-mono">
                   <SelectValue placeholder={String(pageSize)} />
                 </SelectTrigger>
                 <SelectContent align="end">
