@@ -54,7 +54,7 @@ These return **`501`** with `error.code = "unsupported_resource"` (after auth), 
 - **Zero-DB Latency on Hot Path**: The `/v1/*` proxy pipeline resolves keys, models, and provider routes from an in-memory `Map` cache. Postgres is never queried on the hot path.
 - **Render Ephemeral Recovery**: On startup, the gateway hydrates its routing cache from Neon Serverless Postgres.
 - **Zero-Buffering Streaming**: Upstream SSE/streams pipe to the client with `AbortSignal` cancellation on disconnect.
-- **Dynamic OpenAI-Compatible Providers**: Groq, NVIDIA NIM, DeepSeek, Together, Mistral, Ollama, Perplexity, vLLM, etc. via presets or custom base URL — `GenericOpenAIAdapter` (fetch), no dedicated packages.
+- **Dynamic OpenAI-Compatible Providers**: Groq, NVIDIA NIM, OpenAI, DeepSeek, OpenRouter, xAI, Mistral, plus custom base URLs (Together, Ollama, Perplexity, vLLM, etc.) — `GenericOpenAIAdapter` (fetch), no dedicated packages.
 - **Dedicated Adapters** (non-standard protocols): Google Gemini; ElevenLabs (experimental audio).
 - **Non-Blocking Telemetry**: Metrics buffered and persisted asynchronously.
 - **Security**: Provider keys AES-256-GCM at rest; gateway keys SHA-256; admin JWT cookies.
@@ -78,8 +78,8 @@ ai-gateway/
 │   ├── provider-elevenlabs/      # ElevenLabs adapter (TTS stream + Scribe STT)
 │   └── tsconfig/                 # Shared TypeScript configurations
 │
-│   # Groq, NVIDIA NIM, DeepSeek, etc. are OpenAI-compatible presets (DB + GenericOpenAIAdapter),
-│   # not dedicated packages — add them in the admin UI like any custom provider.
+│   # Groq, NVIDIA, OpenAI, DeepSeek, OpenRouter, xAI, Mistral are OpenAI-compatible presets
+│   # (DB + GenericOpenAIAdapter), not dedicated packages — enable in admin Providers.
 ├── render.yaml                   # Render 1-click Blueprint
 ├── Dockerfile                    # Multi-stage container build
 └── .env.example

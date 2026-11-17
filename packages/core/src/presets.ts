@@ -38,6 +38,27 @@ export const OPENAI_COMPATIBLE_PRESETS: OpenAICompatiblePreset[] = [
     defaultBaseUrl: 'https://api.deepseek.com/v1',
     supportedCapabilities: ['chat', 'tools'],
   },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    adapterType: 'openai-compatible',
+    defaultBaseUrl: 'https://openrouter.ai/api/v1',
+    supportedCapabilities: ['chat', 'embeddings', 'vision', 'tools'],
+  },
+  {
+    id: 'xai',
+    name: 'xAI',
+    adapterType: 'openai-compatible',
+    defaultBaseUrl: 'https://api.x.ai/v1',
+    supportedCapabilities: ['chat', 'embeddings', 'vision', 'tools'],
+  },
+  {
+    id: 'mistral',
+    name: 'Mistral',
+    adapterType: 'openai-compatible',
+    defaultBaseUrl: 'https://api.mistral.ai/v1',
+    supportedCapabilities: ['chat', 'embeddings', 'vision', 'tools'],
+  },
 ];
 
 export function getOpenAICompatiblePreset(id: string): OpenAICompatiblePreset | undefined {

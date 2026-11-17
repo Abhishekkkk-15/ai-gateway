@@ -20,5 +20,39 @@ describe('OpenAI-compatible presets', () => {
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toContain('openai');
     expect(ids).toContain('deepseek');
+    expect(ids).toContain('openrouter');
+    expect(ids).toContain('xai');
+    expect(ids).toContain('mistral');
+  });
+
+  it('includes openrouter, xai, and mistral with OpenAI-compatible base URLs', () => {
+    const openrouter = getOpenAICompatiblePreset('openrouter');
+    const xai = getOpenAICompatiblePreset('xai');
+    const mistral = getOpenAICompatiblePreset('mistral');
+
+    expect(openrouter).toEqual(
+      expect.objectContaining({
+        id: 'openrouter',
+        name: 'OpenRouter',
+        adapterType: 'openai-compatible',
+        defaultBaseUrl: 'https://openrouter.ai/api/v1',
+      })
+    );
+    expect(xai).toEqual(
+      expect.objectContaining({
+        id: 'xai',
+        name: 'xAI',
+        adapterType: 'openai-compatible',
+        defaultBaseUrl: 'https://api.x.ai/v1',
+      })
+    );
+    expect(mistral).toEqual(
+      expect.objectContaining({
+        id: 'mistral',
+        name: 'Mistral',
+        adapterType: 'openai-compatible',
+        defaultBaseUrl: 'https://api.mistral.ai/v1',
+      })
+    );
   });
 });
