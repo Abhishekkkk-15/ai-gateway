@@ -560,11 +560,11 @@ export function PlaygroundPage() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">Interactive Playground</h1>
             <Badge variant="outline" className="text-[11px] font-mono">
-              Chat &amp; Audio
+              Chat + Experimental Audio
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Test chat completions, text-to-speech, and audio transcriptions directly against configured models.
+            Primary surface: chat completions. TTS and STT are experimental and outside the curated OpenAI-compatible catalog.
           </p>
         </div>
 
@@ -578,10 +578,16 @@ export function PlaygroundPage() {
             <TabsTrigger value="tts" onClick={() => setActiveTab('tts')} className="text-xs gap-1.5 px-3">
               <Volume2 className="size-3.5" />
               <span>TTS</span>
+              <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px] font-normal">
+                Exp
+              </Badge>
             </TabsTrigger>
             <TabsTrigger value="stt" onClick={() => setActiveTab('stt')} className="text-xs gap-1.5 px-3">
               <Mic className="size-3.5" />
               <span>STT</span>
+              <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px] font-normal">
+                Exp
+              </Badge>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -854,9 +860,12 @@ export function PlaygroundPage() {
                 <CardTitle className="text-base flex items-center gap-2">
                   <Volume2 className="size-4 text-primary" />
                   Text-to-Speech Synthesis
+                  <Badge variant="secondary" className="text-[10px] font-normal">
+                    Experimental
+                  </Badge>
                 </CardTitle>
                 <CardDescription>
-                  Decoupled TTS: Generate complete audio via HTTP or stream token chunks via WebSocket.
+                  Experimental audio (outside the curated catalog). Generate complete audio via HTTP or stream token chunks via WebSocket.
                 </CardDescription>
               </div>
 
@@ -1178,9 +1187,12 @@ export function PlaygroundPage() {
                 <CardTitle className="text-base flex items-center gap-2">
                   <Mic className="size-4 text-primary" />
                   Speech-to-Text Transcription
+                  <Badge variant="secondary" className="text-[10px] font-normal">
+                    Experimental
+                  </Badge>
                 </CardTitle>
                 <CardDescription>
-                  Decoupled STT: Transcribe audio files via HTTP or stream raw microphone chunks via WebSocket.
+                  Experimental audio (outside the curated catalog). Transcribe via HTTP or stream microphone chunks via WebSocket.
                 </CardDescription>
               </div>
 

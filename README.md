@@ -21,7 +21,7 @@ This gateway is **stateless for generation**: every chat/responses call carries 
 | Responses (stateless) | `POST /v1/responses` | Full `input` each time; inline `input_image` / content parts. No retrieve/store. |
 | Moderations | `POST /v1/moderations` | Thin proxy when upstream supports it. |
 
-**Vision / documents:** inline images and pasted text yes; multipart on chat/responses and `file_id` uploads **no**.
+**Vision / documents:** inline images and pasted text yes; multipart on chat/responses and `file_id` uploads **no**. Put images in JSON as `image_url` (`https://` or `data:image/...;base64,...`). Gateway JSON `bodyLimit` is **50MB** — base64 inflates payload size by ~33%, so keep images reasonably sized.
 
 ### Experimental (DEFER)
 

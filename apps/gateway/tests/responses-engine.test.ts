@@ -40,6 +40,24 @@ describe('ResponsesEngineService multimodal mapping', () => {
     ]);
   });
 
+  it('keeps text + image in a single multimodal content array', () => {
+    const messages = engine.buildMessagesFromInput([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Caption this' },
+          { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,/9j/4AAQ' } },
+        ],
+      },
+    ]);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0].content).toEqual([
+      { type: 'text', text: 'Caption this' },
+      { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,/9j/4AAQ' } },
+    ]);
+  });
+
   it('rejects file_id / input_file', () => {
     expect(() =>
       engine.buildMessagesFromInput([{ type: 'input_file', file_id: 'file-abc' }])

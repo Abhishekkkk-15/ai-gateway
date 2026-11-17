@@ -27,7 +27,15 @@ This gateway is **stateless** for generation and does **not** support Files, Bat
 
 ## Unsupported (return 501)
 
-Files, Uploads, Batches, Vector Stores, Assistants/Threads, Fine-tuning — demos under those names may exist historically but the gateway rejects these APIs with `unsupported_resource`.
+Historical demos live under [`unsupported/`](unsupported/) and hit `unsupported_resource`. Do not use them against a current gateway.
+
+| Surface | Node.js | Python |
+| :--- | :--- | :--- |
+| Files | [files-demo.ts](unsupported/nodejs/files-demo.ts) | [files_demo.py](unsupported/python/files_demo.py) |
+| Batches | [batches-demo.ts](unsupported/nodejs/batches-demo.ts) | [batches_demo.py](unsupported/python/batches_demo.py) |
+| Assistants | [assistants-v2-demo.ts](unsupported/nodejs/assistants-v2-demo.ts) | [assistants_v2_demo.py](unsupported/python/assistants_v2_demo.py) |
+| Vector stores | [vector-stores-demo.ts](unsupported/nodejs/vector-stores-demo.ts) | [vector_stores_demo.py](unsupported/python/vector_stores_demo.py) |
+| Fine-tuning | [fine-tuning-demo.ts](unsupported/nodejs/fine-tuning-demo.ts) | [fine_tuning_demo.py](unsupported/python/fine_tuning_demo.py) |
 
 ---
 

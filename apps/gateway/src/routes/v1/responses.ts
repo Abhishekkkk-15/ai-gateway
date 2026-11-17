@@ -19,6 +19,7 @@ export const v1ResponsesRoutes: FastifyPluginAsync = async (fastify) => {
       max_output_tokens?: number;
       tools?: unknown[];
       tool_choice?: unknown;
+      response_format?: { type: string; [key: string]: unknown };
     };
   }>(
     '/v1/responses',
@@ -78,6 +79,7 @@ export const v1ResponsesRoutes: FastifyPluginAsync = async (fastify) => {
           maxOutputTokens: body.max_output_tokens,
           tools: body.tools,
           toolChoice: body.tool_choice,
+          responseFormat: body.response_format,
           signal: abortController.signal,
         });
 

@@ -338,7 +338,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
               <div>
                 <CardTitle className="text-base font-semibold">OpenAI SDK Integration</CardTitle>
                 <CardDescription>
-                  Drop the gateway URL directly into your existing OpenAI SDK client code without changing code logic.
+                  Point the official OpenAI SDK at this gateway for chat, responses, embeddings, images, moderations, and models. Files, Assistants, Batches, Vector Stores, and Fine-tuning are not supported — see the root README compatibility catalog.
                 </CardDescription>
               </div>
             </div>

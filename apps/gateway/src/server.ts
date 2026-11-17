@@ -35,11 +35,7 @@ import { v1RealtimeRoutes } from './routes/v1/realtime.js';
 import { v1RealtimeAudioRoutes } from './routes/v1/realtime-audio.js';
 import { v1FineTuningRoutes } from './routes/v1/fine-tuning.js';
 import { v1WebhooksRoutes } from './routes/v1/webhooks.js';
-import { StorageService } from './services/storage.js';
-import { BatchProcessorService } from './services/batch-processor.js';
-import { VectorStoreService } from './services/vector-store.js';
 import { ResponsesEngineService } from './services/responses-engine.js';
-import { AssistantRunnerService } from './services/assistant-runner.js';
 import { adminAuthRoutes } from './routes/admin/auth.js';
 import { adminProvidersRoutes } from './routes/admin/providers.js';
 import { adminModelsRoutes } from './routes/admin/models.js';
@@ -53,11 +49,7 @@ declare module 'fastify' {
     routingCache: RoutingCache;
     telemetryQueue: TelemetryQueue;
     providerRegistry: ProviderRegistry;
-    storageService: StorageService;
-    batchProcessorService: BatchProcessorService;
-    vectorStoreService: VectorStoreService;
     responsesEngineService: ResponsesEngineService;
-    assistantRunnerService: AssistantRunnerService;
   }
 }
 
@@ -74,7 +66,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 
   const app = fastify({
     logger: false,
-    bodyLimit: 50 * 1024 * 1024, // 50MB for audio uploads
+    bodyLimit: 50 * 1024 * 1024, // 50MB for inline vision base64 + audio uploads
   });
 
   // Gracefully handle empty JSON bodies on POST/PUT
@@ -112,21 +104,13 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   }
   app.decorate('db', db);
 
-  // Setup In-Memory Routing Cache, Telemetry Queue, and Storage Service
+  // Setup In-Memory Routing Cache, Telemetry Queue, and Responses engine
   const routingCache = new RoutingCache(db, config.masterSecret, registry);
   const telemetryQueue = new TelemetryQueue(db);
-  const storageService = new StorageService(db);
-  const batchProcessorService = new BatchProcessorService(db, storageService);
-  const vectorStoreService = new VectorStoreService(db, storageService);
   const responsesEngineService = new ResponsesEngineService(db);
-  const assistantRunnerService = new AssistantRunnerService(db);
   app.decorate('routingCache', routingCache);
   app.decorate('telemetryQueue', telemetryQueue);
-  app.decorate('storageService', storageService);
-  app.decorate('batchProcessorService', batchProcessorService);
-  app.decorate('vectorStoreService', vectorStoreService);
   app.decorate('responsesEngineService', responsesEngineService);
-  app.decorate('assistantRunnerService', assistantRunnerService);
 
   // Register Core Middleware
   await app.register(cors, {

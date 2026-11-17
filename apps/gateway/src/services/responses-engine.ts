@@ -193,6 +193,7 @@ export class ResponsesEngineService {
     maxOutputTokens?: number;
     tools?: unknown[];
     toolChoice?: unknown;
+    responseFormat?: { type: string; [key: string]: unknown };
     signal?: AbortSignal;
   }): Promise<
     | { isStream: false; data: OpenAIResponseObject }
@@ -219,6 +220,9 @@ export class ResponsesEngineService {
     }
     if (params.tools !== undefined) chatRequest.tools = params.tools;
     if (params.toolChoice !== undefined) chatRequest.tool_choice = params.toolChoice;
+    if (params.responseFormat !== undefined) {
+      chatRequest.response_format = params.responseFormat as OpenAIChatCompletionRequest['response_format'];
+    }
 
     const upstreamResponse = await params.adapter.chatCompletions(
       chatRequest,
