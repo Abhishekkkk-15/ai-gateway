@@ -2,6 +2,10 @@ import type { FastifyPluginAsync } from 'fastify';
 import crypto from 'node:crypto';
 import { createOpenAIError } from '@ai-gateway/core';
 
+/**
+ * Experimental realtime text WebSocket.
+ * Not a full OpenAI Realtime API peer; outside the curated compatibility catalog.
+ */
 export const v1RealtimeRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     '/v1/realtime',

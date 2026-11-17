@@ -4,11 +4,10 @@ import type { FastifyInstance } from 'fastify';
 import { hashGatewayKey } from '@ai-gateway/db';
 import crypto from 'node:crypto';
 
-describe('Governance, Fine-Tuning & Webhooks API (/v1/fine_tuning/jobs & /v1/webhooks)', () => {
+describe('Governance, Fine-Tuning & Webhooks API', () => {
   let app: FastifyInstance;
   const validKey = 'sk-gw-test-valid-key-governance';
   const keyHash = hashGatewayKey(validKey);
-  let sampleTrainingFileId: string;
 
   beforeAll(async () => {
     app = await buildServer({ skipDbHydration: true });
@@ -22,91 +21,40 @@ describe('Governance, Fine-Tuning & Webhooks API (/v1/fine_tuning/jobs & /v1/web
       createdAt: new Date(),
       isEnabled: true,
     });
-
-    const file = await app.storageService.saveFile({
-      filename: 'training_data.jsonl',
-      purpose: 'fine-tune',
-      mimeType: 'application/jsonl',
-      buffer: Buffer.from('{"messages": [{"role": "user", "content": "hi"}]}\n', 'utf-8'),
-    });
-    sampleTrainingFileId = file.id;
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  describe('/v1/fine_tuning/jobs', () => {
+  describe('/v1/fine_tuning/jobs — unsupported', () => {
     it('rejects unauthenticated request with 401', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/v1/fine_tuning/jobs',
         payload: {
           model: 'gpt-4o-mini-2024-07-18',
-          training_file: sampleTrainingFileId,
+          training_file: 'file-x',
         },
       });
 
       expect(res.statusCode).toBe(401);
-      const body = JSON.parse(res.body);
-      expect(body.error?.code).toBe('invalid_api_key');
+      expect(JSON.parse(res.body).error?.code).toBe('invalid_api_key');
     });
 
-    it('creates, lists, retrieves, and cancels a fine-tuning job', async () => {
-      // 1. Create job
-      const createRes = await app.inject({
+    it('returns 501 unsupported_resource', async () => {
+      const res = await app.inject({
         method: 'POST',
         url: '/v1/fine_tuning/jobs',
         headers: { Authorization: `Bearer ${validKey}` },
         payload: {
           model: 'gpt-4o-mini-2024-07-18',
-          training_file: sampleTrainingFileId,
-          hyperparameters: { n_epochs: 3 },
+          training_file: 'file-x',
         },
       });
 
-      expect(createRes.statusCode).toBe(200);
-      const job = JSON.parse(createRes.body);
-      expect(job.id).toMatch(/^ftjob-[a-zA-Z0-9_-]+$/);
-      expect(job.object).toBe('fine_tuning.job');
-      expect(job.training_file).toBe(sampleTrainingFileId);
-      expect(job.status).toMatch(/validating_files|queued|running|succeeded/);
-
-      const jobId = job.id;
-
-      // 2. List jobs
-      const listRes = await app.inject({
-        method: 'GET',
-        url: '/v1/fine_tuning/jobs',
-        headers: { Authorization: `Bearer ${validKey}` },
-      });
-
-      expect(listRes.statusCode).toBe(200);
-      const list = JSON.parse(listRes.body);
-      expect(list.object).toBe('list');
-      expect(list.data.some((j: any) => j.id === jobId)).toBe(true);
-
-      // 3. Retrieve specific job
-      const getRes = await app.inject({
-        method: 'GET',
-        url: `/v1/fine_tuning/jobs/${jobId}`,
-        headers: { Authorization: `Bearer ${validKey}` },
-      });
-
-      expect(getRes.statusCode).toBe(200);
-      const retrieved = JSON.parse(getRes.body);
-      expect(retrieved.id).toBe(jobId);
-
-      // 4. Cancel job
-      const cancelRes = await app.inject({
-        method: 'POST',
-        url: `/v1/fine_tuning/jobs/${jobId}/cancel`,
-        headers: { Authorization: `Bearer ${validKey}` },
-      });
-
-      expect(cancelRes.statusCode).toBe(200);
-      const cancelled = JSON.parse(cancelRes.body);
-      expect(cancelled.status).toBe('cancelled');
+      expect(res.statusCode).toBe(501);
+      expect(JSON.parse(res.body).error?.code).toBe('unsupported_resource');
     });
   });
 
@@ -121,7 +69,6 @@ describe('Governance, Fine-Tuning & Webhooks API (/v1/fine_tuning/jobs & /v1/web
         data: { id: 'ftjob-abc' },
       });
 
-      // Compute standard Svix/OpenAI signature: v1,t=<timestamp>,v1=<hmac>
       const signedPayload = `${timestamp}.${payloadString}`;
       const hmac = crypto
         .createHmac('sha256', webhookSecret)

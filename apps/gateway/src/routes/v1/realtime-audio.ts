@@ -39,6 +39,10 @@ export function pcm16ToWav(pcmBuffer: Buffer, sampleRate = 16000, numChannels = 
   return Buffer.concat([header, pcmBuffer]);
 }
 
+/**
+ * Experimental streaming STT/TTS WebSockets.
+ * Not part of the curated OpenAI-compatible catalog and not OpenAI Realtime API compatible.
+ */
 export const v1RealtimeAudioRoutes: FastifyPluginAsync = async (fastify) => {
   // Common Gateway API Key validator for WebSocket routes
   const validateAuth = async (req: any, reply: any) => {

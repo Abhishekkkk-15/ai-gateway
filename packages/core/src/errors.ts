@@ -40,3 +40,19 @@ export function createOpenAIError(
     },
   };
 }
+
+/** Product surfaces outside the curated OpenAI-compatible catalog (501). */
+export function createUnsupportedResourceError(
+  resource: string,
+  detail?: string
+): OpenAIErrorEnvelope {
+  const message =
+    detail ??
+    `${resource} is not supported by this gateway. Use the curated surfaces documented in the README (chat, embeddings, images, responses, models, moderations).`;
+  return createOpenAIError(message, 501, 'invalid_request_error', 'unsupported_resource');
+}
+
+/** Stateful / store APIs rejected in stateless mode (400). */
+export function createStatelessUnsupportedError(message: string): OpenAIErrorEnvelope {
+  return createOpenAIError(message, 400, 'invalid_request_error', 'stateless_unsupported');
+}

@@ -29,6 +29,9 @@ export interface OpenAIResponseObject {
   metadata?: Record<string, unknown> | null;
 }
 
+const FILE_ID_UNSUPPORTED =
+  'Uploaded files / file_id are not supported in stateless mode. Inline text or image_url (https or data: base64) in the request instead.';
+
 export class ResponsesEngineService {
   // db kept for server wiring compatibility; intentionally unused (stateless)
   constructor(_db: DbClient | null) {}
@@ -39,6 +42,7 @@ export class ResponsesEngineService {
 
   /**
    * Normalize Responses `input` into chat messages for a single request.
+   * Preserves multimodal parts (text + image_url). Rejects file_id references.
    * Stateful multi-turn (previous_response_id / conversation) is rejected at the route layer.
    */
   buildMessagesFromInput(
@@ -74,16 +78,25 @@ export class ResponsesEngineService {
 
       const obj = item as Record<string, unknown>;
 
-      // OpenAI Responses input item shapes (simplified)
-      if (obj.type === 'message' || obj.role) {
-        const role = (obj.role as OpenAIChatMessage['role']) || 'user';
-        const content = this.extractTextContent(obj.content);
-        messages.push({ role, content });
-        continue;
+      if (obj.type === 'input_file' || obj.file_id != null) {
+        throw new Error(FILE_ID_UNSUPPORTED);
       }
 
       if (obj.type === 'input_text' && typeof obj.text === 'string') {
         messages.push({ role: 'user', content: obj.text });
+        continue;
+      }
+
+      if (obj.type === 'input_image' || obj.type === 'image_url' || obj.type === 'image') {
+        messages.push({ role: 'user', content: this.mapContentParts([obj]) });
+        continue;
+      }
+
+      // OpenAI Responses message / role-shaped items
+      if (obj.type === 'message' || obj.role) {
+        const role = (obj.role as OpenAIChatMessage['role']) || 'user';
+        const content = this.mapContentParts(obj.content);
+        messages.push({ role, content });
         continue;
       }
 
@@ -98,23 +111,75 @@ export class ResponsesEngineService {
     return messages;
   }
 
-  private extractTextContent(content: unknown): string {
+  /**
+   * Map Responses / chat content into chat-completions content (string or parts array).
+   * Inline images become `{ type: 'image_url', image_url: { url } }`.
+   */
+  mapContentParts(content: unknown): string | unknown[] {
     if (typeof content === 'string') return content;
-    if (!Array.isArray(content)) return content == null ? '' : JSON.stringify(content);
+    if (content == null) return '';
 
-    const parts: string[] = [];
-    for (const part of content) {
+    const rawParts = Array.isArray(content) ? content : [content];
+    const parts: unknown[] = [];
+
+    for (const part of rawParts) {
       if (typeof part === 'string') {
-        parts.push(part);
+        parts.push({ type: 'text', text: part });
         continue;
       }
-      if (part && typeof part === 'object') {
-        const p = part as Record<string, unknown>;
-        if (typeof p.text === 'string') parts.push(p.text);
-        else if (typeof p.content === 'string') parts.push(p.content);
+      if (!part || typeof part !== 'object') continue;
+
+      const p = part as Record<string, unknown>;
+
+      if (p.file_id != null || p.type === 'input_file' || p.type === 'file') {
+        throw new Error(FILE_ID_UNSUPPORTED);
       }
+
+      if (
+        p.type === 'input_text' ||
+        p.type === 'text' ||
+        p.type === 'output_text'
+      ) {
+        parts.push({ type: 'text', text: String(p.text ?? '') });
+        continue;
+      }
+
+      if (p.type === 'input_image' || p.type === 'image_url' || p.type === 'image') {
+        const url = this.extractImageUrl(p);
+        if (!url) {
+          throw new Error('input_image requires image_url or url (https or data:).');
+        }
+        parts.push({ type: 'image_url', image_url: { url } });
+        continue;
+      }
+
+      // Pass through already chat-shaped or unknown OpenAI parts
+      parts.push(p);
     }
-    return parts.join('');
+
+    if (parts.length === 0) return '';
+    if (
+      parts.length === 1 &&
+      typeof parts[0] === 'object' &&
+      parts[0] !== null &&
+      (parts[0] as Record<string, unknown>).type === 'text'
+    ) {
+      return String((parts[0] as Record<string, unknown>).text ?? '');
+    }
+    return parts;
+  }
+
+  private extractImageUrl(p: Record<string, unknown>): string | null {
+    if (typeof p.image_url === 'string') return p.image_url;
+    if (
+      p.image_url &&
+      typeof p.image_url === 'object' &&
+      typeof (p.image_url as Record<string, unknown>).url === 'string'
+    ) {
+      return (p.image_url as Record<string, unknown>).url as string;
+    }
+    if (typeof p.url === 'string') return p.url;
+    return null;
   }
 
   async generateResponse(params: {

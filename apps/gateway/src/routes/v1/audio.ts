@@ -3,12 +3,16 @@ import { authenticateGatewayKey } from './auth.js';
 import { createOpenAIError, type OpenAISpeechRequest } from '@ai-gateway/core';
 import { Readable } from 'node:stream';
 
+/** Experimental: audio is outside the curated chat/embeddings/images/responses catalog. */
+const EXPERIMENTAL_AUDIO_HEADER = 'experimental';
+
 export const v1AudioRoutes: FastifyPluginAsync = async (fastify) => {
-  // POST /v1/audio/speech
+  // POST /v1/audio/speech (experimental)
   fastify.post<{ Body: OpenAISpeechRequest }>(
     '/v1/audio/speech',
     { preHandler: authenticateGatewayKey },
     async (request, reply) => {
+      reply.header('X-Gateway-Feature', EXPERIMENTAL_AUDIO_HEADER);
       const startTime = Date.now();
       const body = request.body;
 
@@ -94,11 +98,12 @@ export const v1AudioRoutes: FastifyPluginAsync = async (fastify) => {
     }
   );
 
-  // POST /v1/audio/transcriptions
+  // POST /v1/audio/transcriptions (experimental)
   fastify.post(
     '/v1/audio/transcriptions',
     { preHandler: authenticateGatewayKey },
     async (request, reply) => {
+      reply.header('X-Gateway-Feature', EXPERIMENTAL_AUDIO_HEADER);
       try {
         const parts = request.parts();
         const formData = new FormData();
@@ -153,11 +158,12 @@ export const v1AudioRoutes: FastifyPluginAsync = async (fastify) => {
     }
   );
 
-  // POST /v1/audio/translations
+  // POST /v1/audio/translations (experimental)
   fastify.post(
     '/v1/audio/translations',
     { preHandler: authenticateGatewayKey },
     async (request, reply) => {
+      reply.header('X-Gateway-Feature', EXPERIMENTAL_AUDIO_HEADER);
       try {
         const parts = request.parts();
         const formData = new FormData();

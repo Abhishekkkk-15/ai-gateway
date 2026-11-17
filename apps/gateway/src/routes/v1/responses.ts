@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { authenticateGatewayKey } from './auth.js';
-import { createOpenAIError } from '@ai-gateway/core';
+import { createOpenAIError, createStatelessUnsupportedError } from '@ai-gateway/core';
 
 const STATELESS_MSG =
   'This gateway runs in stateless mode and does not store responses or conversations. Send the full context in `input` on each request. `previous_response_id` and `conversation` are not supported.';
@@ -43,9 +43,7 @@ export const v1ResponsesRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       if (body.previous_response_id || body.conversation) {
-        return reply.status(400).send(
-          createOpenAIError(STATELESS_MSG, 400, 'invalid_request_error', 'stateless_unsupported')
-        );
+        return reply.status(400).send(createStatelessUnsupportedError(STATELESS_MSG));
       }
 
       const route = fastify.routingCache.resolveModel(body.model);
@@ -102,7 +100,13 @@ export const v1ResponsesRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(200).send(result.data);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Responses execution failed';
-        const status = message.includes('Unsupported') || message.includes('required') ? 400 : 500;
+        const status =
+          message.includes('Unsupported') ||
+          message.includes('required') ||
+          message.includes('file_id') ||
+          message.includes('input_image')
+            ? 400
+            : 500;
         return reply
           .status(status)
           .send(
@@ -122,11 +126,8 @@ export const v1ResponsesRoutes: FastifyPluginAsync = async (fastify) => {
     { preHandler: authenticateGatewayKey },
     async (_request, reply) => {
       return reply.status(400).send(
-        createOpenAIError(
-          'This gateway runs in stateless mode and does not store responses. Retrieve is not supported.',
-          400,
-          'invalid_request_error',
-          'stateless_unsupported'
+        createStatelessUnsupportedError(
+          'This gateway runs in stateless mode and does not store responses. Retrieve is not supported.'
         )
       );
     }
@@ -138,11 +139,8 @@ export const v1ResponsesRoutes: FastifyPluginAsync = async (fastify) => {
     { preHandler: authenticateGatewayKey },
     async (_request, reply) => {
       return reply.status(400).send(
-        createOpenAIError(
-          'This gateway runs in stateless mode and does not store responses. Delete is not supported.',
-          400,
-          'invalid_request_error',
-          'stateless_unsupported'
+        createStatelessUnsupportedError(
+          'This gateway runs in stateless mode and does not store responses. Delete is not supported.'
         )
       );
     }

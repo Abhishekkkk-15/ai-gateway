@@ -1,37 +1,64 @@
-# ⚡ OpenAI-Compatible Self-Hosted AI Gateway
+# OpenAI-Compatible Self-Hosted AI Gateway
 
-A production-ready, ultra-low-latency, self-hosted AI Gateway that unifies multiple LLM, Speech-to-Text (STT), and Text-to-Speech (TTS) providers behind a single **OpenAI SDK-compatible API** (`baseURL` + single gateway API key), paired with a single-admin React 19 web console for provider, model, and key management.
+A production-ready, ultra-low-latency, self-hosted AI Gateway that unifies multiple LLM providers behind a curated **OpenAI SDK-compatible API** (`baseURL` + single gateway API key), paired with a single-admin React 19 web console for provider, model, and key management.
 
 Built for **Render** (ephemeral container filesystem) with persistent state in **Neon Serverless Postgres** and **zero-DB latency hot-path routing** via an in-memory synchronized cache.
 
+This gateway is **stateless for generation**: every chat/responses call carries full context. It does **not** claim full OpenAI platform parity (no Conversations store, Assistants, Batches, Vector Stores, Fine-tuning, or Files/`file_id`).
+
 ---
 
-## 🌟 Key Features
+## Compatibility catalog
 
-- **100% Full-Surface OpenAI SDK Parity**: Complete drop-in replacement across the entire OpenAI client surface:
-  - **Chat Completions**: `client.chat.completions.create` (Streamed SSE & Non-Streamed)
-  - **Next-Gen Responses API**: `client.responses.create` & `client.conversations` with built-in `output_text`
-  - **Vector Embeddings**: `client.embeddings.create` with Matryoshka dimensions and base64/float encoding
-  - **Audio Speech (TTS)**: `client.audio.speech.create` (Streamed chunked audio & MP3/WAV/PCM)
-  - **Audio Transcriptions & Translations**: `client.audio.transcriptions.create` & `client.audio.translations.create`
-  - **Images API**: `client.images.generate`, `client.images.edit`, `client.images.createVariation`
-  - **Content Moderations**: `client.moderations.create` with multi-category safety classification
-  - **Persistent Files & Uploads**: `client.files.create`, `list`, `content`, `delete`, and resumable `/v1/uploads`
-  - **Asynchronous Batches API**: `client.batches.create`, `retrieve`, `cancel` (50% cost optimization / 24h window)
-  - **Vector Stores API (RAG)**: `client.vectorStores.create`, `files`, `fileBatches`
-  - **Assistants v2 Stateful Agents**: `client.beta.assistants`, `client.beta.threads`, `client.beta.threads.runs`
-  - **Realtime API (WebSockets)**: `ws://.../v1/realtime` ultra-low latency bidirectional text/audio streaming
-  - **Fine-Tuning Jobs**: `client.fineTuning.jobs.create`, `list`, `retrieve`, `cancel`
-- **Zero-DB Latency on Hot Path**: The `/v1/*` proxy pipeline resolves keys, models, and provider routes strictly from an in-memory `Map` cache (<0.1ms overhead). Postgres is never queried on the hot path.
-- **Render Ephemeral Recovery**: On container startup, the gateway immediately hydrates its in-memory routing cache from Neon Serverless Postgres.
-- **Zero-Buffering Streaming**: Undici `ReadableStream` / SSE chunks pipe directly to client HTTP responses with native `AbortSignal` cancellation upon client disconnect.
-- **Dynamic OpenAI-Compatible Providers**: Connect **any** OpenAI-compatible provider (Groq, NVIDIA NIM, DeepSeek, Together AI, Mistral, Ollama, Perplexity, vLLM, self-hosted LLMs) via presets or custom base URL + API key in the Web UI — all routed through `GenericOpenAIAdapter` (fetch), no dedicated packages required.
-- **Dedicated Adapters** (non-standard protocols):
-  - **Google Gemini**: OpenAI-compatible endpoint with model normalization (`gemini-2.5-flash`, etc.).
-  - **ElevenLabs**: Expressive streaming Text-to-Speech (`/v1/audio/speech`) and Scribe STT (`/v1/audio/transcriptions`).
-- **Non-Blocking Telemetry**: Request metrics (TTFT, latency, status code, model, token usage) are buffered and persisted asynchronously without delaying client responses.
-- **Robust Security**: Upstream provider API keys encrypted at rest with **AES-256-GCM** derived from `MASTER_SECRET`. Gateway API keys hashed with **SHA-256**. Single admin authenticated via signed HttpOnly JWT cookies.
-- **Single-Admin Dashboard**: React 19 + Vite + Tailwind CSS + shadcn/ui console for managing providers, model aliases, gateway keys, code snippets, and live playground testing.
+### Supported (YES)
+
+| Surface | Route(s) | Notes |
+| --- | --- | --- |
+| Chat Completions | `POST /v1/chat/completions` | Stream + non-stream. `store` is stripped. Inline vision via JSON `image_url` (https or `data:`). |
+| Embeddings | `POST /v1/embeddings` | OpenAI-compatible hosts. |
+| Images | `POST /v1/images/generations`, `/edits`, `/variations` | Generate + multipart edit/variation pass-through. |
+| Models | `GET /v1/models` | Gateway registry/catalog. |
+| Responses (stateless) | `POST /v1/responses` | Full `input` each time; inline `input_image` / content parts. No retrieve/store. |
+| Moderations | `POST /v1/moderations` | Thin proxy when upstream supports it. |
+
+**Vision / documents:** inline images and pasted text yes; multipart on chat/responses and `file_id` uploads **no**.
+
+### Experimental (DEFER)
+
+| Surface | Route(s) | Notes |
+| --- | --- | --- |
+| Audio HTTP TTS/STT | `POST /v1/audio/speech`, `/transcriptions`, `/translations` | Works with configured adapters; not part of the core catalog. |
+| Audio WebSockets | `GET /v1/realtime/audio/*` | Gateway-specific; not OpenAI Realtime-compatible. |
+| Realtime text WS | `GET /v1/realtime` | Experimental; not a full OpenAI Realtime peer. |
+
+### Unsupported (NO)
+
+These return **`501`** with `error.code = "unsupported_resource"` (after auth), except stateful Responses/Conversations fields which return **`400`** with `error.code = "stateless_unsupported"`:
+
+| Surface | Why |
+| --- | --- |
+| Conversations API | Stateful |
+| Responses retrieve / delete / list | Requires persisted responses |
+| `previous_response_id` / `conversation` on Responses | Stateful |
+| Files, Uploads, `file_id` in chat/responses | Durable storage |
+| Batches | Async jobs |
+| Fine-tuning | Training jobs |
+| Vector stores / file search | RAG storage |
+| Assistants / Threads | Stateful agents |
+
+---
+
+## Key Features
+
+- **Curated OpenAI-compatible generation**: Chat, Responses (stateless), Embeddings, Images, Moderations, Models — point the official OpenAI SDK at this gateway for those surfaces only.
+- **Zero-DB Latency on Hot Path**: The `/v1/*` proxy pipeline resolves keys, models, and provider routes from an in-memory `Map` cache. Postgres is never queried on the hot path.
+- **Render Ephemeral Recovery**: On startup, the gateway hydrates its routing cache from Neon Serverless Postgres.
+- **Zero-Buffering Streaming**: Upstream SSE/streams pipe to the client with `AbortSignal` cancellation on disconnect.
+- **Dynamic OpenAI-Compatible Providers**: Groq, NVIDIA NIM, DeepSeek, Together, Mistral, Ollama, Perplexity, vLLM, etc. via presets or custom base URL — `GenericOpenAIAdapter` (fetch), no dedicated packages.
+- **Dedicated Adapters** (non-standard protocols): Google Gemini; ElevenLabs (experimental audio).
+- **Non-Blocking Telemetry**: Metrics buffered and persisted asynchronously.
+- **Security**: Provider keys AES-256-GCM at rest; gateway keys SHA-256; admin JWT cookies.
+- **Single-Admin Dashboard**: React 19 + Vite + Tailwind + shadcn/ui.
 
 ---
 

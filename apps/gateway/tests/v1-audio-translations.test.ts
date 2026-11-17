@@ -103,6 +103,7 @@ describe('POST /v1/audio/translations', () => {
     });
 
     expect(res.statusCode).toBe(200);
+    expect(res.headers['x-gateway-feature']).toBe('experimental');
     const body = JSON.parse(res.body);
     expect(body.text).toBe('Hello, this is a translated English message from French.');
 

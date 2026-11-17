@@ -237,4 +237,61 @@ describe('Stateless Responses API (/v1/responses)', () => {
     const body = JSON.parse(createRes.body);
     expect(body.error?.code).toBe('stateless_unsupported');
   });
+
+  it('forwards inline input_image as chat image_url parts', async () => {
+    const originalFetch = globalThis.fetch;
+    let capturedBody: { messages?: unknown[] } | null = null;
+
+    globalThis.fetch = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+      capturedBody = JSON.parse(String(init?.body ?? '{}'));
+      return new Response(
+        JSON.stringify({
+          id: 'chatcmpl-vision',
+          object: 'chat.completion',
+          choices: [{ message: { role: 'assistant', content: 'A cat.' }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/responses',
+      headers: { Authorization: `Bearer ${validKey}` },
+      payload: {
+        model: 'gpt-4o',
+        input: [
+          { type: 'input_text', text: 'What is this?' },
+          { type: 'input_image', image_url: 'data:image/png;base64,abc' },
+        ],
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(capturedBody?.messages).toEqual([
+      { role: 'user', content: 'What is this?' },
+      {
+        role: 'user',
+        content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,abc' } }],
+      },
+    ]);
+
+    globalThis.fetch = originalFetch;
+  });
+
+  it('rejects file_id in responses input', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/responses',
+      headers: { Authorization: `Bearer ${validKey}` },
+      payload: {
+        model: 'gpt-4o',
+        input: [{ type: 'input_file', file_id: 'file-abc' }],
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body).error?.message).toMatch(/file_id/);
+  });
 });
