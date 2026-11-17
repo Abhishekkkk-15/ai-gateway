@@ -84,4 +84,80 @@ describe('GenericOpenAIAdapter', () => {
 
     expect(response.status).toBe(200);
   });
+
+  it('lists Cloudflare Workers AI models via /ai/models/search instead of /v1/models', async () => {
+    const cfConfig: ProviderConfig = {
+      id: 'cloudflare',
+      name: 'Cloudflare Workers AI',
+      adapterType: 'openai-compatible',
+      baseUrl: 'https://api.cloudflare.com/client/v4/accounts/abc123/ai/v1',
+      apiKey: 'cf-token',
+      isEnabled: true,
+    };
+
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        success: true,
+        result: [
+          {
+            name: '@cf/meta/llama-3.1-8b-instruct',
+            task: { name: 'Text Generation' },
+          },
+          {
+            name: '@cf/baai/bge-large-en-v1.5',
+            task: { name: 'Text Embeddings' },
+          },
+          {
+            name: '@cf/blackforestlabs/flux-1-schnell',
+            task: { name: 'Text-to-Image' },
+          },
+        ],
+      }),
+    } as unknown as Response);
+
+    const models = await adapter.listModels(cfConfig);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'https://api.cloudflare.com/client/v4/accounts/abc123/ai/models/search',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer cf-token',
+        }),
+      })
+    );
+
+    expect(models).toEqual([
+      {
+        id: '@cf/meta/llama-3.1-8b-instruct',
+        providerId: 'cloudflare',
+        displayName: '@cf/meta/llama-3.1-8b-instruct',
+        capabilities: ['chat'],
+      },
+      {
+        id: '@cf/baai/bge-large-en-v1.5',
+        providerId: 'cloudflare',
+        displayName: '@cf/baai/bge-large-en-v1.5',
+        capabilities: ['embeddings'],
+      },
+    ]);
+  });
+
+  it('errors clearly when Cloudflare provider has placeholder account_id', async () => {
+    const cfConfig: ProviderConfig = {
+      id: 'cloudflare',
+      name: 'Cloudflare Workers AI',
+      adapterType: 'openai-compatible',
+      baseUrl: 'https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1',
+      apiKey: 'cf-token',
+      isEnabled: true,
+    };
+
+    globalThis.fetch = vi.fn();
+
+    await expect(adapter.listModels(cfConfig)).rejects.toThrow(/Account ID/i);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
 });

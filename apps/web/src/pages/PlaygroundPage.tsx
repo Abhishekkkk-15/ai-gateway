@@ -111,10 +111,14 @@ const PRESET_VOICES = [
   },
 ];
 
+const CUSTOM_MODEL_VALUE = '__custom__';
+const AUTO_MODEL_VALUE = '__auto__';
+
 export function PlaygroundPage() {
   const [activeTab, setActiveTab] = useState<'chat' | 'tts' | 'stt'>('chat');
   const [gatewayKey, setGatewayKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
+  const [selectedModel, setSelectedModel] = useState(AUTO_MODEL_VALUE);
+  const [customModel, setCustomModel] = useState('');
 
   // Chat conversation state
   const [prompt, setPrompt] = useState(
@@ -211,10 +215,20 @@ export function PlaygroundPage() {
     setIsStreaming(true);
 
     const modelToUse =
-      selectedModel ||
-      (enabledModels.length > 0
-        ? enabledModels[0].customAlias || enabledModels[0].slug
-        : 'groq/llama-3.3-70b-versatile');
+      selectedModel === CUSTOM_MODEL_VALUE
+        ? customModel.trim()
+        : selectedModel === AUTO_MODEL_VALUE
+          ? enabledModels.length > 0
+            ? enabledModels[0].customAlias || enabledModels[0].slug
+            : 'groq/llama-3.3-70b-versatile'
+          : selectedModel;
+
+    if (!modelToUse) {
+      toast.error('Enter a custom model slug or select a model from the list.');
+      setIsStreaming(false);
+      return;
+    }
+
     const keyToUse = gatewayKey || (keys.length > 0 ? keys[0].id : 'sk-gw-test-key');
 
     try {
@@ -627,16 +641,16 @@ export function PlaygroundPage() {
               <FieldLabel htmlFor="playground-model" className="text-xs font-semibold text-muted-foreground">
                 Select Model or Routable Alias
               </FieldLabel>
-              <Select
-                value={selectedModel}
-                onValueChange={(val) => setSelectedModel(val)}
-              >
+              <Select value={selectedModel} onValueChange={setSelectedModel}>
                 <SelectTrigger id="playground-model" className="h-9 font-mono text-xs">
                   <SelectValue placeholder="Auto-select first enabled model" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel className="text-xs font-sans">Available Models ({enabledModels.length})</SelectLabel>
+                    <SelectItem value={AUTO_MODEL_VALUE} className="text-xs font-sans">
+                      Auto-select first enabled model
+                    </SelectItem>
                     {enabledModels.map((m) => (
                       <SelectItem
                         key={m.slug}
@@ -647,9 +661,30 @@ export function PlaygroundPage() {
                       </SelectItem>
                     ))}
                   </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel className="text-xs font-sans text-muted-foreground">Custom</SelectLabel>
+                    <SelectItem value={CUSTOM_MODEL_VALUE} className="text-xs font-medium text-primary">
+                      Custom model / slug...
+                    </SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </Field>
+            {selectedModel === CUSTOM_MODEL_VALUE && (
+              <Field className="gap-1.5 md:col-span-2">
+                <FieldLabel htmlFor="playground-custom-model" className="text-xs font-semibold text-muted-foreground">
+                  Custom Model Slug
+                </FieldLabel>
+                <Input
+                  id="playground-custom-model"
+                  value={customModel}
+                  onChange={(e) => setCustomModel(e.target.value)}
+                  placeholder="e.g. cloudflare/@cf/meta/llama-3.1-8b-instruct"
+                  className="font-mono text-xs h-9"
+                  autoFocus
+                />
+              </Field>
+            )}
           </FieldGroup>
         </CardContent>
       </Card>
@@ -664,7 +699,11 @@ export function PlaygroundPage() {
                 <Bot className="size-4 text-primary" />
                 <CardTitle className="text-sm font-semibold">Inference Stream</CardTitle>
                 <span className="text-xs text-muted-foreground font-mono">
-                  {selectedModel || (enabledModels[0]?.customAlias || enabledModels[0]?.slug || 'auto')}
+                  {selectedModel === CUSTOM_MODEL_VALUE
+                    ? customModel.trim() || 'custom'
+                    : selectedModel === AUTO_MODEL_VALUE
+                      ? enabledModels[0]?.customAlias || enabledModels[0]?.slug || 'auto'
+                      : selectedModel}
                 </span>
               </div>
 

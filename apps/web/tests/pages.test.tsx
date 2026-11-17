@@ -70,6 +70,7 @@ function renderWithProviders(ui: React.ReactElement) {
 describe('Feature Pages (Playground, Logs & Models)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it('renders PlaygroundPage with chat tab by default and switches tabs', async () => {
@@ -78,6 +79,14 @@ describe('Feature Pages (Playground, Logs & Models)', () => {
     expect(screen.getByText('Interactive Playground')).toBeDefined();
     expect(screen.getByText('Inference Stream')).toBeDefined();
     expect(screen.getByText('Send Prompt')).toBeDefined();
+
+    // Custom model selection
+    const modelTrigger = screen.getByRole('combobox', { name: /select model or routable alias/i });
+    fireEvent.click(modelTrigger);
+    fireEvent.click(await screen.findByRole('option', { name: /custom model \/ slug/i }));
+    expect(
+      screen.getByPlaceholderText('e.g. cloudflare/@cf/meta/llama-3.1-8b-instruct')
+    ).toBeDefined();
 
     // Switch to TTS
     const ttsButton = screen.getByRole('tab', { name: /tts/i });

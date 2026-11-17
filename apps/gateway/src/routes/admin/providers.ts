@@ -217,6 +217,13 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
         isEnabled: providerRow.isEnabled,
       };
 
+      if (!config.apiKey?.trim()) {
+        return reply.status(400).send({
+          error:
+            `No API key is stored for provider '${id}'. Paste the provider API key into the field, click Save Changes, then Sync Models. (The dots placeholder does not mean a key is loaded into the input.)`,
+        });
+      }
+
       try {
         const discovered = await adapter.listModels(config);
 

@@ -23,6 +23,24 @@ describe('OpenAI-compatible presets', () => {
     expect(ids).toContain('openrouter');
     expect(ids).toContain('xai');
     expect(ids).toContain('mistral');
+    expect(ids).toContain('cloudflare');
+  });
+
+  it('includes cloudflare Workers AI with account-scoped OpenAI-compatible base URL', () => {
+    const cloudflare = getOpenAICompatiblePreset('cloudflare');
+
+    expect(cloudflare).toEqual(
+      expect.objectContaining({
+        id: 'cloudflare',
+        name: 'Cloudflare Workers AI',
+        adapterType: 'openai-compatible',
+        defaultBaseUrl:
+          'https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1',
+      })
+    );
+    expect(cloudflare?.supportedCapabilities).toEqual(
+      expect.arrayContaining(['chat', 'embeddings'])
+    );
   });
 
   it('includes openrouter, xai, and mistral with OpenAI-compatible base URLs', () => {

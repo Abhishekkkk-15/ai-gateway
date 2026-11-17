@@ -59,6 +59,14 @@ export const OPENAI_COMPATIBLE_PRESETS: OpenAICompatiblePreset[] = [
     defaultBaseUrl: 'https://api.mistral.ai/v1',
     supportedCapabilities: ['chat', 'embeddings', 'vision', 'tools'],
   },
+  {
+    id: 'cloudflare',
+    name: 'Cloudflare Workers AI',
+    adapterType: 'openai-compatible',
+    // Replace {account_id} with your Cloudflare Account ID before enabling.
+    defaultBaseUrl: 'https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1',
+    supportedCapabilities: ['chat', 'embeddings'],
+  },
 ];
 
 export function getOpenAICompatiblePreset(id: string): OpenAICompatiblePreset | undefined {
