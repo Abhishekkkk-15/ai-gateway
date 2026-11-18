@@ -2,10 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   type ColumnDef,
-  type FilterFn,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   type PaginationState,
@@ -31,12 +29,6 @@ import {
   EmptyDescription,
   EmptyContent,
 } from '../components/ui/empty.js';
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from '../components/ui/input-group.js';
 import { Button } from '../components/ui/button.js';
 import { Skeleton } from '../components/ui/skeleton.js';
 import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
@@ -63,14 +55,13 @@ import {
   Timer,
   CheckCircle2,
   AlertCircle,
-  Search,
   ChevronsLeft,
   ChevronsRight,
-  X,
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
   ChevronRight,
+  RotateCcw,
 } from 'lucide-react';
 import { cn } from '../lib/utils.js';
 
@@ -123,7 +114,8 @@ const PAGE_SIZE_OPTIONS: SelectOption[] = [
 ];
 
 export function LogsPage() {
-  const [search, setSearch] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState('all');
+  const [selectedModel, setSelectedModel] = useState('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'error'>('all');
   const [sorting, setSorting] = useState<SortingState>([{ id: 'timestamp', desc: true }]);
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
@@ -137,14 +129,6 @@ export function LogsPage() {
 
   const logs = data?.logs || [];
 
-  const statusFilteredLogs = useMemo(() => {
-    if (statusFilter === 'all') return logs;
-    return logs.filter((log) => {
-      const isSuccess = log.statusCode >= 200 && log.statusCode < 300;
-      return statusFilter === 'success' ? isSuccess : !isSuccess;
-    });
-  }, [logs, statusFilter]);
-
   // Aggregate stats over total fetched logs
   const totalCount = logs.length;
   const successCount = logs.filter((l) => l.statusCode >= 200 && l.statusCode < 300).length;
@@ -152,18 +136,65 @@ export function LogsPage() {
   const avgLatency =
     totalCount > 0 ? Math.round(logs.reduce((acc, l) => acc + l.latencyMs, 0) / totalCount) : 0;
 
-  const globalFilterFn = useMemo<FilterFn<RequestLogView>>(
-    () => (row, _columnId, filterValue) => {
-      const query = String(filterValue ?? '').trim().toLowerCase();
-      if (!query) return true;
-      const log = row.original;
-      return (
-        log.modelSlug.toLowerCase().includes(query) ||
-        log.providerId.toLowerCase().includes(query)
-      );
-    },
-    []
-  );
+  // Unique providers found in logs with count
+  const providerFilterOptions = useMemo<SelectOption[]>(() => {
+    const counts = new Map<string, number>();
+    for (const log of logs) {
+      const p = log.providerId || 'unknown';
+      counts.set(p, (counts.get(p) || 0) + 1);
+    }
+    const sortedProviders = Array.from(counts.keys()).sort((a, b) => a.localeCompare(b));
+    return [
+      { label: `All Providers (${logs.length})`, value: 'all' },
+      ...sortedProviders.map((provider) => ({
+        label: `${provider.toUpperCase()} (${counts.get(provider)})`,
+        value: provider,
+      })),
+    ];
+  }, [logs]);
+
+  // Logs scoped to selected provider (for model dropdown)
+  const providerScopedLogs = useMemo(() => {
+    if (selectedProvider === 'all') return logs;
+    return logs.filter((l) => l.providerId.toLowerCase() === selectedProvider.toLowerCase());
+  }, [logs, selectedProvider]);
+
+  // Unique models found in scoped logs with count
+  const modelFilterOptions = useMemo<SelectOption[]>(() => {
+    const counts = new Map<string, number>();
+    for (const log of providerScopedLogs) {
+      counts.set(log.modelSlug, (counts.get(log.modelSlug) || 0) + 1);
+    }
+    const sortedModels = Array.from(counts.keys()).sort((a, b) => a.localeCompare(b));
+    return [
+      { label: `All Models (${providerScopedLogs.length})`, value: 'all' },
+      ...sortedModels.map((slug) => ({
+        label: `${slug} (${counts.get(slug)})`,
+        value: slug,
+      })),
+    ];
+  }, [providerScopedLogs]);
+
+  // Filtered logs by provider, model, and status
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      if (
+        selectedProvider !== 'all' &&
+        log.providerId.toLowerCase() !== selectedProvider.toLowerCase()
+      ) {
+        return false;
+      }
+      if (selectedModel !== 'all' && log.modelSlug !== selectedModel) {
+        return false;
+      }
+      if (statusFilter !== 'all') {
+        const isSuccess = log.statusCode >= 200 && log.statusCode < 300;
+        if (statusFilter === 'success' && !isSuccess) return false;
+        if (statusFilter === 'error' && isSuccess) return false;
+      }
+      return true;
+    });
+  }, [logs, selectedProvider, selectedModel, statusFilter]);
 
   const columns = useMemo<ColumnDef<RequestLogView>[]>(
     () => [
@@ -255,20 +286,17 @@ export function LogsPage() {
   );
 
   const table = useReactTable({
-    data: statusFilteredLogs,
+    data: filteredLogs,
     columns,
-    state: { sorting, globalFilter: search, pagination },
+    state: { sorting, pagination },
     onSortingChange: setSorting,
-    onGlobalFilterChange: setSearch,
     onPaginationChange: setPagination,
-    globalFilterFn,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
 
-  const filteredCount = table.getFilteredRowModel().rows.length;
+  const filteredCount = filteredLogs.length;
   const pageCount = Math.max(1, table.getPageCount());
   const currentPage = Math.min(pagination.pageIndex + 1, pageCount);
   const fromRecord = filteredCount === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1;
@@ -290,18 +318,31 @@ export function LogsPage() {
     return [1, 'ellipsis', currentPage, 'ellipsis', pageCount];
   }, [pageCount, currentPage]);
 
+  const handleProviderChange = (val: string) => {
+    setSelectedProvider(val || 'all');
+    setSelectedModel('all');
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
+  const handleModelChange = (val: string) => {
+    setSelectedModel(val || 'all');
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
   const handleStatusChange = (val: 'all' | 'success' | 'error') => {
     setStatusFilter(val);
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
   const resetFilters = () => {
-    setSearch('');
+    setSelectedProvider('all');
+    setSelectedModel('all');
     setStatusFilter('all');
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
-  const hasFilters = search !== '' || statusFilter !== 'all';
+  const hasFilters =
+    selectedProvider !== 'all' || selectedModel !== 'all' || statusFilter !== 'all';
 
   return (
     <div className="page-shell">
@@ -340,60 +381,75 @@ export function LogsPage() {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Filter Toolbar: Provider & Model Selects + Status Toggle */}
       <Card className="border-border bg-card">
         <CardContent className="p-3">
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <InputGroup className="flex-1 w-full">
-              <InputGroupAddon>
-                <Search />
-              </InputGroupAddon>
-              <InputGroupInput
-                placeholder="Filter by model slug or provider ID..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
+              {/* Provider Select */}
+              <div className="w-full sm:w-56">
+                <ReactSelect
+                  options={providerFilterOptions}
+                  value={selectedProvider}
+                  onValueChange={handleProviderChange}
+                  placeholder="All Providers"
+                  isSearchable={true}
+                />
+              </div>
+
+              {/* Model Select */}
+              <div className="w-full sm:w-72">
+                <ReactSelect
+                  options={modelFilterOptions}
+                  value={selectedModel}
+                  onValueChange={handleModelChange}
+                  placeholder="All Models"
+                  isSearchable={true}
+                />
+              </div>
+
+              {/* Status Filter */}
+              <ToggleGroup
+                type="single"
+                value={statusFilter}
+                onValueChange={(val) => {
+                  if (val) handleStatusChange(val as 'all' | 'success' | 'error');
                 }}
-                className="text-xs font-mono"
-              />
-              {search && (
-                <InputGroupAddon align="inline-end">
-                  <InputGroupButton
-                    size="icon-xs"
-                    aria-label="Clear search"
-                    onClick={() => {
-                      setSearch('');
-                      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-                    }}
-                  >
-                    <X />
-                  </InputGroupButton>
-                </InputGroupAddon>
-              )}
-            </InputGroup>
-            <ToggleGroup
-              type="single"
-              value={statusFilter}
-              onValueChange={(val) => {
-                if (val) handleStatusChange(val as 'all' | 'success' | 'error');
-              }}
-              className="w-full sm:w-auto justify-start"
-            >
-              <ToggleGroupItem value="all" aria-label="All logs" className={STATUS_FILTER_CHIP}>
-                All
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="success"
-                aria-label="Success logs"
-                className={STATUS_FILTER_CHIP}
+                className="w-full sm:w-auto justify-start"
               >
-                2xx Success
-              </ToggleGroupItem>
-              <ToggleGroupItem value="error" aria-label="Error logs" className={STATUS_FILTER_CHIP}>
-                Errors
-              </ToggleGroupItem>
-            </ToggleGroup>
+                <ToggleGroupItem value="all" aria-label="All logs" className={STATUS_FILTER_CHIP}>
+                  All
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="success"
+                  aria-label="Success logs"
+                  className={STATUS_FILTER_CHIP}
+                >
+                  2xx Success
+                </ToggleGroupItem>
+                <ToggleGroupItem value="error" aria-label="Error logs" className={STATUS_FILTER_CHIP}>
+                  Errors
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+
+            {/* Active Filter Summary & Reset Action */}
+            {hasFilters && (
+              <div className="flex items-center gap-2 self-end lg:self-auto shrink-0">
+                <span className="text-xs text-muted-foreground font-mono">
+                  {filteredCount} of {totalCount} logs
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetFilters}
+                  className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                >
+                  <RotateCcw className="size-3" />
+                  Reset Filters
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

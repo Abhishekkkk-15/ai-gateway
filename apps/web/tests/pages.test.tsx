@@ -144,13 +144,14 @@ describe('Feature Pages (Playground, Logs & Models)', () => {
     expect(screen.getByText('Start Streaming Audio (Mic)')).toBeDefined();
   });
 
-  it('renders LogsPage with telemetry headers and search filter', async () => {
+  it('renders LogsPage with telemetry headers and structured filters', async () => {
     renderWithProviders(<LogsPage />);
 
     expect(screen.getByText('Request Telemetry & Logs')).toBeDefined();
-    expect(
-      screen.getByPlaceholderText('Filter by model slug or provider ID...')
-    ).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText(/All Providers/i)).toBeDefined();
+      expect(screen.getByText(/All Models/i)).toBeDefined();
+    });
     expect(screen.getByText('All')).toBeDefined();
     expect(screen.getByText('2xx Success')).toBeDefined();
     expect(screen.getByText('Errors')).toBeDefined();
