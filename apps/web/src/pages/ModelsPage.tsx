@@ -72,6 +72,8 @@ import {
   ChevronsRight,
 } from 'lucide-react';
 import { cn } from '../lib/utils.js';
+import { AddModelDialog } from '../components/models/AddModelDialog.js';
+import { Plus } from 'lucide-react';
 
 export function ModelsPage() {
   const queryClient = useQueryClient();
@@ -88,6 +90,7 @@ export function ModelsPage() {
   // Inline editing state
   const [editingAliases, setEditingAliases] = useState<Record<string, string>>({});
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [isAddingModel, setIsAddingModel] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['models'],
@@ -244,17 +247,29 @@ export function ModelsPage() {
           </p>
         </div>
 
-        {hasActiveFilters && (
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw />
+              <span>Reset Filters</span>
+            </Button>
+          )}
+
           <Button
-            variant="ghost"
             size="sm"
-            onClick={resetFilters}
-            className="text-xs text-muted-foreground hover:text-foreground self-start sm:self-auto"
+            onClick={() => setIsAddingModel(true)}
+            className="text-xs gap-1.5"
+            title="Add model manually to catalog"
           >
-            <RotateCcw />
-            <span>Reset Filters</span>
+            <Plus className="size-3.5" />
+            <span>Add Model</span>
           </Button>
-        )}
+        </div>
       </div>
 
       {/* Filter and Controls Toolbar */}
@@ -742,6 +757,8 @@ export function ModelsPage() {
           </div>
         )}
       </div>
+
+      <AddModelDialog open={isAddingModel} onOpenChange={setIsAddingModel} />
     </div>
   );
 }

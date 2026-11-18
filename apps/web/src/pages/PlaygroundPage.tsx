@@ -28,6 +28,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../componen
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { InlineCode } from '../components/ui/code-block.js';
 import { Avatar, AvatarFallback } from '../components/ui/avatar.js';
+import { ImageLab } from '../components/playground/ImageLab.js';
 import {
   Select,
   SelectTrigger,
@@ -46,7 +47,6 @@ import {
   Send,
   RotateCcw,
   Bot,
-  User,
   Copy,
   Check,
   Brain,
@@ -59,8 +59,7 @@ import {
   Sliders,
   Radio,
   Square,
-  FileAudio,
-  Layers,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 const PROMPT_SUGGESTIONS = [
@@ -115,7 +114,7 @@ const CUSTOM_MODEL_VALUE = '__custom__';
 const AUTO_MODEL_VALUE = '__auto__';
 
 export function PlaygroundPage() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'tts' | 'stt'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'image' | 'tts' | 'stt'>('chat');
   const [gatewayKey, setGatewayKey] = useState('');
   const [selectedModel, setSelectedModel] = useState(AUTO_MODEL_VALUE);
   const [customModel, setCustomModel] = useState('');
@@ -186,6 +185,27 @@ export function PlaygroundPage() {
   const models = modelsData?.models || [];
   const keys = keysData?.keys || [];
   const enabledModels = models.filter((m) => m.isEnabled);
+
+  const visionModels = enabledModels.filter((m) => m.capabilities.includes('vision'));
+  const otherEnabledModels = enabledModels.filter((m) => !m.capabilities.includes('vision'));
+
+  // Prefer an obvious image generator for generation, then any vision model.
+  const looksLikeImageGenerator = (slug: string) =>
+    /(^|[/-])(dall-e|gpt-image|flux|stable-diffusion|sdxl|imagen|midjourney)/i.test(slug);
+  const looksLikeVisionModel = (slug: string) =>
+    /(gpt-4o|gpt-4\.1|gpt-5|claude|gemini|llama-?4|llava|qwen.*vl|pixtral|vision|gemma-?3)/i.test(
+      slug
+    );
+  const autoImageModel =
+    enabledModels.find((m) => looksLikeImageGenerator(m.slug)) ??
+    visionModels[0] ??
+    enabledModels[0] ??
+    null;
+  const autoVisionModel =
+    visionModels.find((m) => !looksLikeImageGenerator(m.slug)) ??
+    enabledModels.find((m) => looksLikeVisionModel(m.slug) && !looksLikeImageGenerator(m.slug)) ??
+    visionModels[0] ??
+    null;
 
   const liveVoices = elevenLabsVoicesData?.voices || [];
 
@@ -358,6 +378,15 @@ export function PlaygroundPage() {
     } finally {
       setIsTranscribing(false);
     }
+  };
+
+  const resolveImageModel = (mode: 'generate' | 'analyze') => {
+    if (selectedModel === CUSTOM_MODEL_VALUE) return customModel.trim();
+    if (selectedModel === AUTO_MODEL_VALUE) {
+      const fallback = mode === 'generate' ? autoImageModel : autoVisionModel;
+      return fallback?.customAlias || fallback?.slug || '';
+    }
+    return selectedModel;
   };
 
   const stopSttStream = () => {
@@ -587,20 +616,25 @@ export function PlaygroundPage() {
           <div className="flex items-center gap-2">
             <h1 className="page-title">Interactive Playground</h1>
             <Badge variant="secondary">
-              Chat + Experimental Audio
+              Chat + Images + Audio
             </Badge>
           </div>
           <p className="page-description">
-            Primary surface: chat completions. TTS and STT are experimental and outside the curated OpenAI-compatible catalog.
+            Chat completions, image generation, and vision analysis. Audio (TTS/STT) is
+            experimental and outside the curated OpenAI-compatible catalog.
           </p>
         </div>
 
         {/* Tab switchers */}
-        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'chat' | 'tts' | 'stt')} className="self-start sm:self-auto">
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'chat' | 'image' | 'tts' | 'stt')} className="self-start sm:self-auto">
           <TabsList className="h-9">
             <TabsTrigger value="chat" onClick={() => setActiveTab('chat')} className="text-xs gap-1.5 px-3">
               <Play className="size-3.5" />
               <span>Chat</span>
+            </TabsTrigger>
+            <TabsTrigger value="image" onClick={() => setActiveTab('image')} className="text-xs gap-1.5 px-3">
+              <ImageIcon className="size-3.5" />
+              <span>Image</span>
             </TabsTrigger>
             <TabsTrigger value="tts" onClick={() => setActiveTab('tts')} className="text-xs gap-1.5 px-3">
               <Volume2 className="size-3.5" />
@@ -639,19 +673,31 @@ export function PlaygroundPage() {
             </Field>
             <Field className="gap-1.5">
               <FieldLabel htmlFor="playground-model" className="text-xs font-semibold text-muted-foreground">
-                Select Model or Routable Alias
+                {activeTab === 'image' ? 'Image / Vision Model' : 'Select Model or Routable Alias'}
               </FieldLabel>
               <Select value={selectedModel} onValueChange={setSelectedModel}>
                 <SelectTrigger id="playground-model" className="h-9 font-mono text-xs">
-                  <SelectValue placeholder="Auto-select first enabled model" />
+                  <SelectValue
+                    placeholder={
+                      activeTab === 'image'
+                        ? 'Auto-select first vision model'
+                        : 'Auto-select first enabled model'
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectLabel className="text-xs font-sans">Available Models ({enabledModels.length})</SelectLabel>
+                    <SelectLabel className="text-xs font-sans">
+                      {activeTab === 'image'
+                        ? `Vision-capable Models (${visionModels.length})`
+                        : `Available Models (${enabledModels.length})`}
+                    </SelectLabel>
                     <SelectItem value={AUTO_MODEL_VALUE} className="text-xs font-sans">
-                      Auto-select first enabled model
+                      {activeTab === 'image'
+                        ? 'Auto-select first vision model'
+                        : 'Auto-select first enabled model'}
                     </SelectItem>
-                    {enabledModels.map((m) => (
+                    {(activeTab === 'image' ? visionModels : enabledModels).map((m) => (
                       <SelectItem
                         key={m.slug}
                         value={m.customAlias || m.slug}
@@ -661,6 +707,22 @@ export function PlaygroundPage() {
                       </SelectItem>
                     ))}
                   </SelectGroup>
+                  {activeTab === 'image' && otherEnabledModels.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-sans text-muted-foreground">
+                        Other Enabled Models
+                      </SelectLabel>
+                      {otherEnabledModels.map((m) => (
+                        <SelectItem
+                          key={m.slug}
+                          value={m.customAlias || m.slug}
+                          className="font-mono text-xs"
+                        >
+                          {m.customAlias ? `${m.customAlias} (${m.slug})` : m.slug}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
                   <SelectGroup>
                     <SelectLabel className="text-xs font-sans text-muted-foreground">Custom</SelectLabel>
                     <SelectItem value={CUSTOM_MODEL_VALUE} className="text-xs font-medium text-primary">
@@ -909,6 +971,15 @@ export function PlaygroundPage() {
             </InputGroup>
           </Field>
         </div>
+      )}
+
+      {/* IMAGE TAB - GENERATION & VISION */}
+      {activeTab === 'image' && (
+        <ImageLab
+          gatewayKey={gatewayKey}
+          visionModelCount={visionModels.length}
+          resolveModel={resolveImageModel}
+        />
       )}
 
       {/* TTS TAB */}

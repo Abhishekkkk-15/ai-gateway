@@ -48,6 +48,69 @@ export interface RequestLogView {
   errorMessage?: string | null;
 }
 
+export interface ImageGenerationPayload {
+  model?: string;
+  prompt: string;
+  n?: number;
+  size?: string;
+  quality?: string;
+  style?: string;
+  response_format?: 'url' | 'b64_json';
+}
+
+export interface ImageGenerationResponse {
+  created?: number;
+  data?: Array<{ url?: string; b64_json?: string; revised_prompt?: string }>;
+  images?: Array<{ url?: string; b64_json?: string }>;
+  result?: { image?: string } | string;
+}
+
+export interface ImageAnalysisResult {
+  content: string;
+  model?: string;
+  latencyMs: number;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+}
+
+interface ChatCompletionLike {
+  model?: string;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+  choices?: Array<{ message?: { content?: unknown } }>;
+  output_text?: string;
+}
+
+function extractAssistantText(payload: ChatCompletionLike): string {
+  const content = payload.choices?.[0]?.message?.content;
+
+  if (typeof content === 'string') {
+    return content.trim();
+  }
+
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (typeof part === 'string') return part;
+        if (part && typeof part === 'object' && 'text' in part) {
+          const text = (part as { text?: unknown }).text;
+          return typeof text === 'string' ? text : '';
+        }
+        return '';
+      })
+      .join('')
+      .trim();
+  }
+
+  return typeof payload.output_text === 'string' ? payload.output_text.trim() : '';
+}
+
 const API_BASE = '';
 
 async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
@@ -99,8 +162,9 @@ export const api = {
   },
 
   // Providers
-  async getProviders() {
-    return fetchJson<{ providers: ProviderView[] }>(`${API_BASE}/api/admin/providers`);
+  async getProviders(params?: { configuredOnly?: boolean }) {
+    const query = params?.configuredOnly ? '?configuredOnly=true' : '';
+    return fetchJson<{ providers: ProviderView[] }>(`${API_BASE}/api/admin/providers${query}`);
   },
 
   async updateProvider(
@@ -129,6 +193,21 @@ export const api = {
   // Models
   async getModels() {
     return fetchJson<{ models: ModelView[] }>(`${API_BASE}/api/admin/models`);
+  },
+
+  async createModel(data: {
+    providerId: string;
+    modelId: string;
+    displayName?: string;
+    capabilities?: string[];
+    contextWindow?: number | null;
+    customAlias?: string | null;
+    isEnabled?: boolean;
+  }) {
+    return fetchJson<{ message: string; model: ModelView }>(`${API_BASE}/api/admin/models`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   async updateModel(slug: string, data: { customAlias?: string | null; isEnabled?: boolean }) {
@@ -254,5 +333,60 @@ export const api = {
     }
 
     return { totalTimeMs: Math.round(performance.now() - startTime) };
+  },
+
+  // Image generation
+  async generateImage(apiKey: string, payload: ImageGenerationPayload) {
+    const startedAt = performance.now();
+    const data = await fetchJson<ImageGenerationResponse>(
+      `${API_BASE}/v1/images/generations`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    return { ...data, latencyMs: Math.round(performance.now() - startedAt) };
+  },
+
+  // Vision / image analysis through chat completions
+  async analyzeImage(
+    apiKey: string,
+    params: {
+      model: string;
+      prompt: string;
+      imageUrl: string;
+      detail?: 'auto' | 'low' | 'high';
+    }
+  ): Promise<ImageAnalysisResult> {
+    const startedAt = performance.now();
+    const data = await fetchJson<ChatCompletionLike>(`${API_BASE}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: params.model,
+        stream: false,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: params.prompt },
+              {
+                type: 'image_url',
+                image_url: { url: params.imageUrl, detail: params.detail ?? 'auto' },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    return {
+      content: extractAssistantText(data),
+      model: data.model,
+      usage: data.usage,
+      latencyMs: Math.round(performance.now() - startedAt),
+    };
   },
 };

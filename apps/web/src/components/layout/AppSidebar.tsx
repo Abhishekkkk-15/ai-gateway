@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
 } from '../ui/dropdown-menu.js';
 import { Avatar, AvatarFallback } from '../ui/avatar.js';
+import { cn } from '../../lib/utils.js';
 import {
   LayoutDashboard,
   Cpu,
@@ -94,7 +95,12 @@ export function AppSidebar({
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
                       <NavLink to={item.path} className="flex items-center gap-3">
-                        <Icon className="size-4 shrink-0" />
+                        <Icon
+                          className={cn(
+                            'size-4 shrink-0',
+                            isActive ? 'text-primary' : 'text-muted-foreground'
+                          )}
+                        />
                         <span>{item.label}</span>
                       </NavLink>
                     </SidebarMenuButton>

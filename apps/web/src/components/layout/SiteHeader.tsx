@@ -5,6 +5,7 @@ import { Separator } from '../ui/separator.js';
 import { Badge } from '../ui/badge.js';
 import { Button } from '../ui/button.js';
 import { ThemeToggle } from '../ThemeToggle.js';
+import { CommandPalette } from './CommandPalette.js';
 import { ExternalLink } from 'lucide-react';
 
 const ROUTE_TITLES: Record<string, string> = {
@@ -28,7 +29,7 @@ export function SiteHeader({
     activeTabTitle || ROUTE_TITLES[location.pathname] || 'Overview';
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-4">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="flex w-full items-center justify-between">
         <div className="flex items-center gap-2">
           <SidebarTrigger />
@@ -41,7 +42,9 @@ export function SiteHeader({
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="hidden font-normal sm:inline-flex">
+          <CommandPalette />
+
+          <Badge variant="secondary" className="hidden font-normal lg:inline-flex">
             {loadedModelsCount} models enabled
           </Badge>
 
@@ -49,7 +52,7 @@ export function SiteHeader({
             variant="ghost"
             size="sm"
             asChild
-            className="hidden text-muted-foreground hover:text-foreground md:inline-flex"
+            className="hidden text-muted-foreground hover:text-foreground xl:inline-flex"
           >
             <a
               href="https://platform.openai.com/docs/api-reference"

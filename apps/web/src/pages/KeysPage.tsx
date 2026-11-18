@@ -43,6 +43,16 @@ import {
   DialogFooter,
 } from '../components/ui/dialog.js';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog.js';
+import {
   KeyRound,
   Plus,
   Trash2,
@@ -59,6 +69,7 @@ export function KeysPage() {
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyRpm, setNewKeyRpm] = useState<number | ''>('');
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<GatewayKeyView | null>(null);
   const [codeTab, setCodeTab] = useState<'python' | 'node' | 'rust' | 'curl'>('python');
 
   const { data, isLoading } = useQuery({
@@ -319,16 +330,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     <Button
                       variant="ghost"
                       size="sm"
-                      disabled={deleteMutation.isPending && deleteMutation.variables === k.id}
-                      onClick={() => deleteMutation.mutate(k.id)}
+                      onClick={() => setRevokeTarget(k)}
                       className="text-destructive hover:bg-destructive/10 size-8 p-0"
                       aria-label={`Revoke ${k.name}`}
                     >
-                      {deleteMutation.isPending && deleteMutation.variables === k.id ? (
-                        <Spinner className="text-destructive" />
-                      ) : (
-                        <Trash2 />
-                      )}
+                      <Trash2 />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -467,6 +473,52 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Revoke confirmation */}
+      <AlertDialog
+        open={Boolean(revokeTarget)}
+        onOpenChange={(open) => {
+          if (!open) setRevokeTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="size-5 text-destructive" />
+              Revoke gateway key?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="leading-relaxed">
+              <span className="font-mono text-foreground">{revokeTarget?.name}</span>{' '}
+              <span className="font-mono">({revokeTarget?.prefix}…)</span> will stop working
+              immediately. Any application using it will receive authentication errors. This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteMutation.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                if (!revokeTarget) return;
+                deleteMutation.mutate(revokeTarget.id, {
+                  onSuccess: () => setRevokeTarget(null),
+                });
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Spinner className="text-destructive-foreground" />
+                  Revoking...
+                </>
+              ) : (
+                'Revoke key'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -23,22 +23,35 @@ export function ThemeProvider({
     return (localStorage.getItem(storageKey) as Theme) || defaultTheme;
   });
 
-  const [isDark, setIsDark] = useState<boolean>(true);
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (theme === 'system') {
+      return typeof window.matchMedia === 'function'
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        : false;
+    }
+    return theme === 'dark';
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
+    const media =
+      typeof window.matchMedia === 'function'
+        ? window.matchMedia('(prefers-color-scheme: dark)')
+        : null;
 
-    let resolvedIsDark = false;
-    if (theme === 'system') {
-      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      resolvedIsDark = systemDark;
-      root.classList.add(systemDark ? 'dark' : 'light');
-    } else {
-      resolvedIsDark = theme === 'dark';
-      root.classList.add(theme);
-    }
-    setIsDark(resolvedIsDark);
+    const applyTheme = () => {
+      const systemDark = media ? media.matches : false;
+      const resolvedIsDark = theme === 'system' ? systemDark : theme === 'dark';
+      root.classList.remove('light', 'dark');
+      root.classList.add(resolvedIsDark ? 'dark' : 'light');
+      setIsDark(resolvedIsDark);
+    };
+
+    applyTheme();
+
+    if (theme !== 'system' || !media) return;
+    media.addEventListener('change', applyTheme);
+    return () => media.removeEventListener('change', applyTheme);
   }, [theme]);
 
   const setTheme = (newTheme: Theme) => {

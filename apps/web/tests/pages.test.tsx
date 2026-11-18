@@ -35,6 +35,25 @@ vi.mock('../src/lib/api.js', () => ({
       ],
     }),
     updateModel: vi.fn().mockResolvedValue({ message: 'Model updated' }),
+    createModel: vi.fn().mockResolvedValue({
+      message: 'Model added to catalog.',
+      model: {
+        slug: 'google/gemini-2.5-pro',
+        modelId: 'gemini-2.5-pro',
+        providerId: 'google',
+        displayName: 'Gemini 2.5 Pro',
+        capabilities: ['chat', 'vision', 'tools'],
+        contextWindow: 2097152,
+        customAlias: null,
+        isEnabled: true,
+      },
+    }),
+    getProviders: vi.fn().mockResolvedValue({
+      providers: [
+        { id: 'groq', name: 'Groq Cloud', isEnabled: true, isConfigured: true },
+        { id: 'google', name: 'Google AI Studio', isEnabled: true, isConfigured: true },
+      ],
+    }),
     getGatewayKeys: vi.fn().mockResolvedValue({
       keys: [{ id: 'k-1', name: 'Test Key', prefix: 'sk-gw-test', createdAt: '2026-11-16' }],
     }),
@@ -87,6 +106,18 @@ describe('Feature Pages (Playground, Logs & Models)', () => {
     expect(
       screen.getByPlaceholderText('e.g. cloudflare/@cf/meta/llama-3.1-8b-instruct')
     ).toBeDefined();
+
+    // Switch to Image generation & vision
+    const imageButton = screen.getByRole('tab', { name: /image/i });
+    fireEvent.click(imageButton);
+    expect(screen.getByText('Image Generation & Vision')).toBeDefined();
+    expect(screen.getByText('Generate Image')).toBeDefined();
+    expect(screen.getByText('No images yet')).toBeDefined();
+
+    fireEvent.click(screen.getByText('Analyze'));
+    expect(screen.getByText('Analyze Image')).toBeDefined();
+    expect(screen.getByText('Drop an image here or click to browse')).toBeDefined();
+    expect(screen.getByText('Nothing analyzed yet')).toBeDefined();
 
     // Switch to TTS
     const ttsButton = screen.getByRole('tab', { name: /tts/i });
@@ -145,5 +176,27 @@ describe('Feature Pages (Playground, Logs & Models)', () => {
 
     expect(screen.getByText('groq/llama-3.3-70b-versatile')).toBeDefined();
     expect(screen.queryByText('nvidia/deepseek-ai/deepseek-v4.1-flash')).toBeNull();
+
+    // Test opening Add Model dialog
+    const addModelBtn = screen.getByRole('button', { name: /add model/i });
+    fireEvent.click(addModelBtn);
+
+    expect(screen.getByText('Add Model to Catalog')).toBeDefined();
+    expect(screen.getByText(/Upstream Provider/i)).toBeDefined();
+    expect(screen.getByText(/Upstream Model ID/i)).toBeDefined();
+    expect(screen.getAllByText(/Capabilities/i).length).toBeGreaterThanOrEqual(1);
+
+    // Verify Upstream Model ID and Display Name are plain text inputs
+    const modelIdInput = screen.getByPlaceholderText(/llama-3.3-70b-versatile/i);
+    expect(modelIdInput).toBeDefined();
+    fireEvent.change(modelIdInput, { target: { value: 'custom-model-v1' } });
+    expect((modelIdInput as HTMLInputElement).value).toBe('custom-model-v1');
+
+    const displayNameInput = screen.getByPlaceholderText(/Llama 3.3 70B Versatile/i);
+    expect(displayNameInput).toBeDefined();
+    fireEvent.change(displayNameInput, { target: { value: 'Custom Model V1' } });
+    expect((displayNameInput as HTMLInputElement).value).toBe('Custom Model V1');
+
+    expect(screen.getByRole('button', { name: /register model/i })).toBeDefined();
   });
 });

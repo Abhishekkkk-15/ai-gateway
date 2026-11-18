@@ -30,4 +30,18 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('recharts') || id.includes('d3-')) return 'charts';
+          if (id.includes('@radix-ui')) return 'radix';
+          if (id.includes('@tanstack')) return 'tanstack';
+          if (id.includes('react-router')) return 'router';
+          if (id.includes('react') || id.includes('scheduler')) return 'react-vendor';
+        },
+      },
+    },
+  },
 });

@@ -72,6 +72,21 @@ describe('Admin REST API (/api/admin/*)', () => {
     expect(body.presets.some((p: { id: string }) => p.id === 'groq')).toBe(true);
   });
 
+  it('filters to configured providers only when configuredOnly=true', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/admin/providers?configuredOnly=true',
+      headers: { cookie: adminCookie },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(Array.isArray(body.providers)).toBe(true);
+    for (const p of body.providers) {
+      expect(p.isConfigured).toBe(true);
+    }
+  });
+
   it('creates and manages gateway keys via /api/admin/gateway-keys', async () => {
     const createRes = await app.inject({
       method: 'POST',

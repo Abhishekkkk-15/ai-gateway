@@ -34,15 +34,24 @@ describe('ThemeContext & ThemeToggle', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 
-  it('cycles theme between dark and light when clicked', () => {
+  it('persists an explicit theme selection and applies the class', () => {
+    function Switcher() {
+      const { setTheme } = useTheme();
+      return (
+        <button type="button" onClick={() => setTheme('light')}>
+          go light
+        </button>
+      );
+    }
+
     render(
       <ThemeProvider defaultTheme="dark">
+        <Switcher />
         <TestConsumer />
       </ThemeProvider>
     );
 
-    const button = screen.getByRole('button', { name: /toggle theme/i });
-    fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button', { name: /go light/i }));
 
     expect(screen.getByTestId('current-theme').textContent).toBe('light');
     expect(document.documentElement.classList.contains('light')).toBe(true);

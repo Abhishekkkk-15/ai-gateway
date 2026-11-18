@@ -16,7 +16,11 @@ import {
 
 export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/admin/providers
-  fastify.get('/api/admin/providers', { preHandler: authenticateAdmin }, async () => {
+  fastify.get<{
+    Querystring: { configuredOnly?: string };
+  }>('/api/admin/providers', { preHandler: authenticateAdmin }, async (request) => {
+    const configuredOnly = request.query?.configuredOnly === 'true' || request.query?.configuredOnly === '1';
+
     // Registered adapters from code (non-OpenAI-compatible dedicated adapters)
     const registeredAdapters = fastify.providerRegistry.list();
 
@@ -37,13 +41,15 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
     // OpenAI-compatible presets (Groq, NVIDIA, etc.) — same path as custom providers
     for (const preset of OPENAI_COMPATIBLE_PRESETS) {
       const stored = dbProvidersMap.get(preset.id);
+      const isConfigured = Boolean(stored?.encryptedApiKey);
+      if (configuredOnly && !isConfigured) continue;
       providersList.push({
         id: preset.id,
         name: stored?.name || preset.name,
         adapterType: 'openai-compatible',
         defaultBaseUrl: preset.defaultBaseUrl,
         baseUrl: stored?.baseUrl || preset.defaultBaseUrl,
-        isConfigured: Boolean(stored?.encryptedApiKey),
+        isConfigured,
         isEnabled: stored ? stored.isEnabled : false,
         supportedCapabilities: preset.supportedCapabilities,
         isBuiltIn: true,
@@ -57,13 +63,15 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
     for (const adapter of registeredAdapters) {
       if (adapter.id === 'openai-compatible' || seenIds.has(adapter.id)) continue;
       const stored = dbProvidersMap.get(adapter.id);
+      const isConfigured = Boolean(stored?.encryptedApiKey);
+      if (configuredOnly && !isConfigured) continue;
       providersList.push({
         id: adapter.id,
         name: stored?.name || adapter.name,
         adapterType: stored?.adapterType || adapter.id,
         defaultBaseUrl: adapter.defaultBaseUrl,
         baseUrl: stored?.baseUrl || adapter.defaultBaseUrl,
-        isConfigured: Boolean(stored?.encryptedApiKey),
+        isConfigured,
         isEnabled: stored ? stored.isEnabled : false,
         supportedCapabilities: adapter.supportedCapabilities,
         isBuiltIn: true,
@@ -75,13 +83,15 @@ export const adminProvidersRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Remaining custom OpenAI-compatible providers from DB
     for (const [, stored] of dbProvidersMap) {
+      const isConfigured = Boolean(stored.encryptedApiKey);
+      if (configuredOnly && !isConfigured) continue;
       providersList.push({
         id: stored.id,
         name: stored.name,
         adapterType: stored.adapterType,
         defaultBaseUrl: stored.baseUrl || '',
         baseUrl: stored.baseUrl || '',
-        isConfigured: Boolean(stored.encryptedApiKey),
+        isConfigured,
         isEnabled: stored.isEnabled,
         supportedCapabilities: ['chat'],
         isBuiltIn: false,

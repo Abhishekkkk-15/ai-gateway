@@ -36,7 +36,7 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
 
   return (
     <div className={cn('flex flex-col gap-4', className)} {...props}>
-      <Card className="border-border shadow-none">
+      <Card className="border-border/70 bg-card/80 backdrop-blur-xl">
         <CardHeader className="items-center gap-4 text-center">
           <div className="flex items-center gap-2">
             <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">

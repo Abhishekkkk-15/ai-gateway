@@ -8,7 +8,7 @@ export interface LoginPageProps {
 
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   return (
-    <div className="relative flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-background">
+    <div className="relative flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="absolute top-4 right-4 z-20">
         <ThemeToggle />
       </div>

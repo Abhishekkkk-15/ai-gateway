@@ -1,6 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api.js';
+import {
+  type ColumnDef,
+  type FilterFn,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  type PaginationState,
+  type SortingState,
+  useReactTable,
+} from '@tanstack/react-table';
+import { api, type RequestLogView } from '../lib/api.js';
 import { Card, CardContent } from '../components/ui/card.js';
 import {
   Table,
@@ -28,6 +40,14 @@ import {
 import { Button } from '../components/ui/button.js';
 import { Skeleton } from '../components/ui/skeleton.js';
 import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
+import { Separator } from '../components/ui/separator.js';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '../components/ui/sheet.js';
 import {
   Pagination,
   PaginationContent,
@@ -53,14 +73,60 @@ import {
   ChevronsLeft,
   ChevronsRight,
   X,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '../lib/utils.js';
+
+const STATUS_FILTER_CHIP =
+  'h-8 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground';
+
+function formatTime(timestamp: string) {
+  return new Date(timestamp).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+function formatFullTimestamp(timestamp: string) {
+  return new Date(timestamp).toLocaleString([], {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+function DetailRow({
+  label,
+  children,
+  mono = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-6 text-sm">
+      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <span className={cn('text-right break-words', mono && 'font-mono text-xs')}>
+        {children}
+      </span>
+    </div>
+  );
+}
 
 export function LogsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'error'>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(10);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'timestamp', desc: true }]);
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+  const [selectedLog, setSelectedLog] = useState<RequestLogView | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['telemetry-logs'],
@@ -70,33 +136,13 @@ export function LogsPage() {
 
   const logs = data?.logs || [];
 
-  const handleSearchChange = (val: string) => {
-    setSearch(val);
-    setCurrentPage(1);
-  };
-
-  const handleStatusChange = (val: 'all' | 'success' | 'error') => {
-    setStatusFilter(val);
-    setCurrentPage(1);
-  };
-
-  const filteredLogs = useMemo(() => {
+  const statusFilteredLogs = useMemo(() => {
+    if (statusFilter === 'all') return logs;
     return logs.filter((log) => {
-      const q = search.trim().toLowerCase();
-      const matchesSearch =
-        q === '' ||
-        log.modelSlug.toLowerCase().includes(q) ||
-        log.providerId.toLowerCase().includes(q);
-
       const isSuccess = log.statusCode >= 200 && log.statusCode < 300;
-      const matchesStatus =
-        statusFilter === 'all' ||
-        (statusFilter === 'success' && isSuccess) ||
-        (statusFilter === 'error' && !isSuccess);
-
-      return matchesSearch && matchesStatus;
+      return statusFilter === 'success' ? isSuccess : !isSuccess;
     });
-  }, [logs, search, statusFilter]);
+  }, [logs, statusFilter]);
 
   // Aggregate stats over total fetched logs
   const totalCount = logs.length;
@@ -105,32 +151,156 @@ export function LogsPage() {
   const avgLatency =
     totalCount > 0 ? Math.round(logs.reduce((acc, l) => acc + l.latencyMs, 0) / totalCount) : 0;
 
-  // Pagination calculation
-  const totalFiltered = filteredLogs.length;
-  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
-  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const globalFilterFn = useMemo<FilterFn<RequestLogView>>(
+    () => (row, _columnId, filterValue) => {
+      const query = String(filterValue ?? '').trim().toLowerCase();
+      if (!query) return true;
+      const log = row.original;
+      return (
+        log.modelSlug.toLowerCase().includes(query) ||
+        log.providerId.toLowerCase().includes(query)
+      );
+    },
+    []
+  );
 
-  const paginatedLogs = useMemo(() => {
-    const start = (safeCurrentPage - 1) * pageSize;
-    return filteredLogs.slice(start, start + pageSize);
-  }, [filteredLogs, safeCurrentPage, pageSize]);
+  const columns = useMemo<ColumnDef<RequestLogView>[]>(
+    () => [
+      {
+        accessorKey: 'timestamp',
+        header: 'Timestamp',
+        size: 112,
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">
+            {formatTime(row.original.timestamp)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'modelSlug',
+        header: 'Model Slug',
+        cell: ({ row }) => (
+          <span className="font-mono text-xs font-semibold">{row.original.modelSlug}</span>
+        ),
+      },
+      {
+        accessorKey: 'providerId',
+        header: 'Provider',
+        size: 112,
+        cell: ({ row }) => (
+          <Badge variant="secondary" className="font-mono uppercase">
+            {row.original.providerId}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: 'statusCode',
+        header: 'Status',
+        size: 80,
+        cell: ({ row }) => {
+          const isSuccess =
+            row.original.statusCode >= 200 && row.original.statusCode < 300;
+          return (
+            <Badge variant={isSuccess ? 'success' : 'destructive'} className="font-mono">
+              {row.original.statusCode}
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: 'isStreaming',
+        header: 'Mode',
+        size: 80,
+        enableSorting: false,
+        cell: ({ row }) =>
+          row.original.isStreaming ? (
+            <Badge variant="secondary" className="font-normal">
+              Stream
+            </Badge>
+          ) : (
+            <span className="text-xs text-muted-foreground">JSON</span>
+          ),
+      },
+      {
+        accessorKey: 'ttftMs',
+        header: 'TTFT',
+        size: 96,
+        cell: ({ row }) =>
+          row.original.ttftMs ? (
+            <span className="font-mono text-xs text-chart-3">{row.original.ttftMs}ms</span>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          ),
+      },
+      {
+        accessorKey: 'latencyMs',
+        header: 'Total Latency',
+        size: 112,
+        cell: ({ row }) => (
+          <span className="font-mono text-xs font-semibold text-primary">
+            {row.original.latencyMs}ms
+          </span>
+        ),
+      },
+      {
+        id: 'details',
+        header: '',
+        size: 40,
+        enableSorting: false,
+        cell: () => <ChevronRight className="size-4 text-muted-foreground/60" />,
+      },
+    ],
+    []
+  );
 
-  const fromRecord = totalFiltered === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
-  const toRecord = Math.min(safeCurrentPage * pageSize, totalFiltered);
+  const table = useReactTable({
+    data: statusFilteredLogs,
+    columns,
+    state: { sorting, globalFilter: search, pagination },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setSearch,
+    onPaginationChange: setPagination,
+    globalFilterFn,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
 
-  // Generate page numbers
+  const filteredCount = table.getFilteredRowModel().rows.length;
+  const pageCount = Math.max(1, table.getPageCount());
+  const currentPage = Math.min(pagination.pageIndex + 1, pageCount);
+  const fromRecord = filteredCount === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1;
+  const toRecord = Math.min(
+    (pagination.pageIndex + 1) * pagination.pageSize,
+    filteredCount
+  );
+
   const pageNumbers = useMemo(() => {
-    if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (pageCount <= 5) {
+      return Array.from({ length: pageCount }, (_, i) => i + 1);
     }
-    if (safeCurrentPage <= 3) {
-      return [1, 2, 3, 'ellipsis', totalPages];
+    if (currentPage <= 3) {
+      return [1, 2, 3, 'ellipsis', pageCount];
     }
-    if (safeCurrentPage >= totalPages - 2) {
-      return [1, 'ellipsis', totalPages - 2, totalPages - 1, totalPages];
+    if (currentPage >= pageCount - 2) {
+      return [1, 'ellipsis', pageCount - 2, pageCount - 1, pageCount];
     }
-    return [1, 'ellipsis', safeCurrentPage, 'ellipsis', totalPages];
-  }, [totalPages, safeCurrentPage]);
+    return [1, 'ellipsis', currentPage, 'ellipsis', pageCount];
+  }, [pageCount, currentPage]);
+
+  const handleStatusChange = (val: 'all' | 'success' | 'error') => {
+    setStatusFilter(val);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
+  const resetFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
+  const hasFilters = search !== '' || statusFilter !== 'all';
 
   return (
     <div className="page-shell">
@@ -180,7 +350,10 @@ export function LogsPage() {
               <InputGroupInput
                 placeholder="Filter by model slug or provider ID..."
                 value={search}
-                onChange={(e) => handleSearchChange(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                }}
                 className="text-xs font-mono"
               />
               {search && (
@@ -188,7 +361,10 @@ export function LogsPage() {
                   <InputGroupButton
                     size="icon-xs"
                     aria-label="Clear search"
-                    onClick={() => handleSearchChange('')}
+                    onClick={() => {
+                      setSearch('');
+                      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                    }}
                   >
                     <X />
                   </InputGroupButton>
@@ -203,25 +379,17 @@ export function LogsPage() {
               }}
               className="w-full sm:w-auto justify-start"
             >
-              <ToggleGroupItem
-                value="all"
-                aria-label="All logs"
-                className="h-8 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-              >
+              <ToggleGroupItem value="all" aria-label="All logs" className={STATUS_FILTER_CHIP}>
                 All
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="success"
                 aria-label="Success logs"
-                className="h-8 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                className={STATUS_FILTER_CHIP}
               >
                 2xx Success
               </ToggleGroupItem>
-              <ToggleGroupItem
-                value="error"
-                aria-label="Error logs"
-                className="h-8 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-              >
+              <ToggleGroupItem value="error" aria-label="Error logs" className={STATUS_FILTER_CHIP}>
                 Errors
               </ToggleGroupItem>
             </ToggleGroup>
@@ -229,19 +397,40 @@ export function LogsPage() {
         </CardContent>
       </Card>
 
-      {/* Logs Table Card (Official shadcn Table Primitive) */}
+      {/* Logs Table Card (TanStack Table + Sheet details) */}
       <Card className="border-border overflow-hidden flex flex-col">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-28">Timestamp</TableHead>
-              <TableHead>Model Slug</TableHead>
-              <TableHead className="w-28">Provider</TableHead>
-              <TableHead className="w-20">Status</TableHead>
-              <TableHead className="w-20">Mode</TableHead>
-              <TableHead className="w-24">TTFT</TableHead>
-              <TableHead className="w-28 text-right">Total Latency</TableHead>
-            </TableRow>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const canSort = header.column.getCanSort();
+                  const sorted = header.column.getIsSorted();
+                  return (
+                    <TableHead
+                      key={header.id}
+                      style={{ width: header.getSize() }}
+                      className={cn(canSort && 'cursor-pointer select-none')}
+                      onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <span className="inline-flex items-center gap-1">
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {canSort &&
+                            (sorted === 'asc' ? (
+                              <ArrowUp className="size-3 text-primary" />
+                            ) : sorted === 'desc' ? (
+                              <ArrowDown className="size-3 text-primary" />
+                            ) : (
+                              <ArrowUpDown className="size-3 opacity-40" />
+                            ))}
+                        </span>
+                      )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
             {isLoading ? (
@@ -265,14 +454,17 @@ export function LogsPage() {
                   <TableCell>
                     <Skeleton className="h-5 w-14" />
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Skeleton className="h-5 w-16 ml-auto" />
+                  <TableCell>
+                    <Skeleton className="h-5 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-4" />
                   </TableCell>
                 </TableRow>
               ))
-            ) : paginatedLogs.length === 0 ? (
+            ) : table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="p-0">
+                <TableCell colSpan={columns.length} className="p-0">
                   <Empty>
                     <EmptyHeader>
                       <EmptyMedia variant="icon">
@@ -280,21 +472,17 @@ export function LogsPage() {
                       </EmptyMedia>
                       <EmptyTitle>No telemetry logs found</EmptyTitle>
                       <EmptyDescription>
-                        {search || statusFilter !== 'all'
+                        {hasFilters
                           ? 'Try clearing your filters to see historical requests.'
                           : 'Run a prompt in the Playground or send an OpenAI SDK request to capture telemetry.'}
                       </EmptyDescription>
                     </EmptyHeader>
-                    {(search || statusFilter !== 'all') && (
+                    {hasFilters && (
                       <EmptyContent>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            setSearch('');
-                            setStatusFilter('all');
-                            setCurrentPage(1);
-                          }}
+                          onClick={resetFilters}
                           className="text-xs"
                         >
                           Reset Filters
@@ -305,48 +493,27 @@ export function LogsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedLogs.map((log) => {
+              table.getRowModel().rows.map((row) => {
+                const log = row.original;
                 const isSuccess = log.statusCode >= 200 && log.statusCode < 300;
                 return (
-                  <TableRow key={log.id} className="hover:bg-muted/40 transition-colors">
-                    <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(log.timestamp).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs font-semibold">{log.modelSlug}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="font-mono uppercase">
-                        {log.providerId}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={isSuccess ? 'success' : 'destructive'}
-                        className="font-mono"
-                      >
-                        {log.statusCode}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        {log.isStreaming ? (
-                          <Badge variant="secondary" className="font-normal">
-                            Stream
-                          </Badge>
-                        ) : (
-                          <span className="text-xs">JSON</span>
-                        )}
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-chart-3">
-                      {log.ttftMs ? `${log.ttftMs}ms` : '—'}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-primary font-semibold text-right">
-                      {log.latencyMs}ms
-                    </TableCell>
+                  <TableRow
+                    key={row.id}
+                    tabIndex={0}
+                    onClick={() => setSelectedLog(log)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setSelectedLog(log);
+                      }
+                    }}
+                    className="cursor-pointer hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:bg-muted/60"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 );
               })
@@ -354,56 +521,51 @@ export function LogsPage() {
           </TableBody>
         </Table>
 
-        {/* Official shadcn Pagination Component Toolbar */}
-        {!isLoading && totalFiltered > 0 && (
+        {/* Pagination toolbar */}
+        {!isLoading && filteredCount > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border bg-card text-xs">
-            {/* Left: Range and Totals */}
             <div className="flex items-center gap-1.5 text-muted-foreground order-2 sm:order-1">
               <span>
                 Showing <span className="font-semibold text-foreground">{fromRecord}</span> to{' '}
                 <span className="font-semibold text-foreground">{toRecord}</span> of{' '}
-                <span className="font-semibold text-foreground">{totalFiltered}</span> logs
+                <span className="font-semibold text-foreground">{filteredCount}</span> logs
               </span>
-              {totalFiltered !== logs.length && (
+              {filteredCount !== logs.length && (
                 <span className="text-xs text-muted-foreground">
                   (filtered from {logs.length})
                 </span>
               )}
             </div>
 
-            {/* Center: shadcn Pagination Links */}
             <div className="order-1 sm:order-2">
               <Pagination>
                 <PaginationContent className="gap-1">
-                  {/* First page button */}
                   <PaginationItem>
                     <Button
                       variant="outline"
                       size="icon"
                       className="size-8 text-muted-foreground hover:text-foreground"
-                      disabled={safeCurrentPage === 1}
-                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                      onClick={() => table.setPageIndex(0)}
                       title="First page"
                     >
                       <ChevronsLeft />
                     </Button>
                   </PaginationItem>
 
-                  {/* Previous page */}
                   <PaginationItem>
                     <PaginationPrevious
                       className={cn(
-                        "h-8 px-2.5 text-xs",
-                        safeCurrentPage === 1 && "pointer-events-none opacity-50"
+                        'h-8 px-2.5 text-xs',
+                        !table.getCanPreviousPage() && 'pointer-events-none opacity-50'
                       )}
                       onClick={(e) => {
                         e.preventDefault();
-                        if (safeCurrentPage > 1) setCurrentPage(safeCurrentPage - 1);
+                        table.previousPage();
                       }}
                     />
                   </PaginationItem>
 
-                  {/* Page numbers with ellipsis */}
                   {pageNumbers.map((p, idx) =>
                     p === 'ellipsis' ? (
                       <PaginationItem key={`ellipsis-${idx}`}>
@@ -412,11 +574,11 @@ export function LogsPage() {
                     ) : (
                       <PaginationItem key={p}>
                         <PaginationLink
-                          isActive={p === safeCurrentPage}
+                          isActive={p === currentPage}
                           className="size-8 text-xs font-mono"
                           onClick={(e) => {
                             e.preventDefault();
-                            setCurrentPage(p as number);
+                            table.setPageIndex((p as number) - 1);
                           }}
                         >
                           {p}
@@ -425,28 +587,26 @@ export function LogsPage() {
                     )
                   )}
 
-                  {/* Next page */}
                   <PaginationItem>
                     <PaginationNext
                       className={cn(
-                        "h-8 px-2.5 text-xs",
-                        safeCurrentPage === totalPages && "pointer-events-none opacity-50"
+                        'h-8 px-2.5 text-xs',
+                        !table.getCanNextPage() && 'pointer-events-none opacity-50'
                       )}
                       onClick={(e) => {
                         e.preventDefault();
-                        if (safeCurrentPage < totalPages) setCurrentPage(safeCurrentPage + 1);
+                        table.nextPage();
                       }}
                     />
                   </PaginationItem>
 
-                  {/* Last page button */}
                   <PaginationItem>
                     <Button
                       variant="outline"
                       size="icon"
                       className="size-8 text-muted-foreground hover:text-foreground"
-                      disabled={safeCurrentPage === totalPages}
-                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === pageCount}
+                      onClick={() => table.setPageIndex(pageCount - 1)}
                       title="Last page"
                     >
                       <ChevronsRight />
@@ -456,18 +616,14 @@ export function LogsPage() {
               </Pagination>
             </div>
 
-            {/* Right: Page Size Selector */}
             <div className="flex items-center gap-2 order-3">
               <span className="text-muted-foreground whitespace-nowrap">Rows per page</span>
               <Select
-                value={String(pageSize)}
-                onValueChange={(val) => {
-                  setPageSize(Number(val));
-                  setCurrentPage(1);
-                }}
+                value={String(pagination.pageSize)}
+                onValueChange={(val) => table.setPageSize(Number(val))}
               >
                 <SelectTrigger className="h-8 w-[72px] text-xs font-mono">
-                  <SelectValue placeholder={String(pageSize)} />
+                  <SelectValue placeholder={String(pagination.pageSize)} />
                 </SelectTrigger>
                 <SelectContent align="end">
                   {[10, 25, 50, 100].map((size) => (
@@ -481,6 +637,86 @@ export function LogsPage() {
           </div>
         )}
       </Card>
+
+      {/* Request detail sheet */}
+      <Sheet open={Boolean(selectedLog)} onOpenChange={(open) => !open && setSelectedLog(null)}>
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto custom-scrollbar sm:max-w-md"
+        >
+          {selectedLog && (
+            <>
+              <SheetHeader>
+                <div className="flex items-center gap-2 pr-6">
+                  <SheetTitle>Request details</SheetTitle>
+                  <Badge
+                    variant={
+                      selectedLog.statusCode >= 200 && selectedLog.statusCode < 300
+                        ? 'success'
+                        : 'destructive'
+                    }
+                    className="font-mono"
+                  >
+                    {selectedLog.statusCode}
+                  </Badge>
+                </div>
+                <SheetDescription className="break-all font-mono text-xs">
+                  {selectedLog.id}
+                </SheetDescription>
+              </SheetHeader>
+
+              <Separator className="my-5" />
+
+              <div className="flex flex-col gap-3">
+                <DetailRow label="Timestamp">
+                  {formatFullTimestamp(selectedLog.timestamp)}
+                </DetailRow>
+                <DetailRow label="Model" mono>
+                  {selectedLog.modelSlug}
+                </DetailRow>
+                <DetailRow label="Provider">
+                  <Badge variant="secondary" className="font-mono uppercase">
+                    {selectedLog.providerId}
+                  </Badge>
+                </DetailRow>
+                <DetailRow label="Mode">
+                  {selectedLog.isStreaming ? 'Streaming (SSE)' : 'Buffered JSON'}
+                </DetailRow>
+                <DetailRow label="TTFT" mono>
+                  {selectedLog.ttftMs ? `${selectedLog.ttftMs}ms` : '—'}
+                </DetailRow>
+                <DetailRow label="Total latency" mono>
+                  {selectedLog.latencyMs}ms
+                </DetailRow>
+                <DetailRow label="Prompt tokens" mono>
+                  {selectedLog.promptTokens ?? '—'}
+                </DetailRow>
+                <DetailRow label="Completion tokens" mono>
+                  {selectedLog.completionTokens ?? '—'}
+                </DetailRow>
+                <DetailRow label="Gateway key" mono>
+                  {selectedLog.gatewayKeyId ?? '—'}
+                </DetailRow>
+              </div>
+
+              {selectedLog.errorMessage && (
+                <>
+                  <Separator className="my-5" />
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+                    <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-destructive">
+                      <AlertCircle className="size-3.5" />
+                      Upstream error
+                    </div>
+                    <p className="break-words font-mono text-xs text-muted-foreground">
+                      {selectedLog.errorMessage}
+                    </p>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

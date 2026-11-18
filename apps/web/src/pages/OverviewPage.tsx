@@ -37,8 +37,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
 } from 'recharts';
+import { ChartContainer, ChartTooltip } from '../components/ui/chart.js';
 import {
   TrendingUp,
   Activity,
@@ -148,7 +148,7 @@ export function OverviewPage({
       {/* KPI Section Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Requests */}
-        <Card className="border-border hover:border-border transition-colors">
+        <Card className="transition-colors hover:border-primary/30">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Requests
@@ -159,7 +159,7 @@ export function OverviewPage({
             {isLoadingLogs ? (
               <Skeleton className="h-8 w-20 my-1" />
             ) : (
-              <div className="text-2xl font-bold tracking-tight">{totalRequests}</div>
+              <div className="text-2xl font-bold tracking-tight tabular-nums">{totalRequests}</div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
               {totalRequests === 1 ? '1 request recorded' : `${totalRequests} requests recorded`}
@@ -168,7 +168,7 @@ export function OverviewPage({
         </Card>
 
         {/* Card 2: Active Models */}
-        <Card className="border-border hover:border-border transition-colors">
+        <Card className="transition-colors hover:border-primary/30">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Active Models
@@ -179,7 +179,7 @@ export function OverviewPage({
             {isLoadingModels ? (
               <Skeleton className="h-8 w-20 my-1" />
             ) : (
-              <div className="text-2xl font-bold tracking-tight">
+              <div className="text-2xl font-bold tracking-tight tabular-nums">
                 {enabledModels.length}
                 <span className="text-xs text-muted-foreground font-normal ml-1">
                   / {models.length} total
@@ -193,7 +193,7 @@ export function OverviewPage({
         </Card>
 
         {/* Card 3: Providers Live */}
-        <Card className="border-border hover:border-border transition-colors">
+        <Card className="transition-colors hover:border-primary/30">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Configured Providers
@@ -204,7 +204,7 @@ export function OverviewPage({
             {isLoadingProviders ? (
               <Skeleton className="h-8 w-20 my-1" />
             ) : (
-              <div className="text-2xl font-bold tracking-tight">
+              <div className="text-2xl font-bold tracking-tight tabular-nums">
                 {enabledProviders.length}
                 <span className="text-xs text-muted-foreground font-normal ml-1">
                   / {providers.length}
@@ -218,7 +218,7 @@ export function OverviewPage({
         </Card>
 
         {/* Card 4: Avg Latency & TTFT */}
-        <Card className="border-border hover:border-border transition-colors">
+        <Card className="transition-colors hover:border-primary/30">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Avg Latency / TTFT
@@ -230,12 +230,12 @@ export function OverviewPage({
               <Skeleton className="h-8 w-24 my-1" />
             ) : totalRequests === 0 ? (
               <div>
-                <div className="text-2xl font-bold tracking-tight text-muted-foreground">—</div>
+                <div className="text-2xl font-bold tracking-tight tabular-nums text-muted-foreground">—</div>
                 <p className="text-xs text-muted-foreground mt-1">No requests recorded</p>
               </div>
             ) : (
               <div className="flex flex-col gap-0.5">
-                <div className="text-2xl font-bold tracking-tight flex items-baseline gap-2">
+                <div className="text-2xl font-bold tracking-tight tabular-nums flex items-baseline gap-2">
                   <span>{avgLatency > 0 ? `${avgLatency}ms` : '—'}</span>
                   {avgTtft > 0 && (
                     <span className="text-sm font-medium font-mono text-chart-3">
@@ -311,9 +311,14 @@ export function OverviewPage({
               </EmptyHeader>
             </Empty>
           ) : (
-            <div className="h-[280px] w-full pt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <ChartContainer
+              config={{
+                latency: { label: 'Total latency', color: 'hsl(var(--chart-2))' },
+                ttft: { label: 'TTFT', color: 'hsl(var(--chart-3))' },
+              }}
+              className="aspect-auto h-[280px] w-full pt-2"
+            >
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="latencyGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.4} />
@@ -340,35 +345,45 @@ export function OverviewPage({
                     tickFormatter={(val) => `${val}ms`}
                   />
                   <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload;
-                        return (
-                          <div className="rounded-lg border border-border bg-popover p-2.5 shadow-md text-xs font-mono">
-                            <p className="font-semibold text-foreground mb-1">{data.time}</p>
-                            <p className="text-chart-2">Total Latency: {data.latency}ms</p>
-                            <p className="text-chart-3">
-                              TTFT: {data.ttft > 0 ? `${data.ttft}ms` : '— (non-streaming)'}
-                            </p>
-                            {data.status && (
-                              <p className="text-muted-foreground mt-0.5">Status: {data.status}</p>
-                            )}
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
+                    cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeOpacity: 0.2 }}
+                    content={
+                      <ChartTooltip
+                        indicator="line"
+                        valueFormatter={(value) => `${value}ms`}
+                        renderFooter={(items) => {
+                          const datum = items[0]?.payload as
+                            | { latency?: number; ttft?: number; status?: number }
+                            | undefined;
+                          if (!datum) return null;
+                          return (
+                            <div className="flex flex-col gap-0.5 text-muted-foreground">
+                              {metricTab === 'latency' ? (
+                                <span>
+                                  TTFT:{' '}
+                                  {datum.ttft ? `${datum.ttft}ms` : '— (non-streaming)'}
+                                </span>
+                              ) : (
+                                <span>Latency: {datum.latency ?? '—'}ms</span>
+                              )}
+                              {datum.status !== undefined && (
+                                <span>Status: {datum.status}</span>
+                              )}
+                            </div>
+                          );
+                        }}
+                      />
+                    }
                   />
                   <Area
                     type="monotone"
+                    name={metricTab === 'latency' ? 'Total latency' : 'TTFT'}
                     dataKey={metricTab === 'latency' ? 'latency' : 'ttft'}
                     stroke={metricTab === 'latency' ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-3))'}
                     strokeWidth={2}
                     fill={metricTab === 'latency' ? 'url(#latencyGradient)' : 'url(#ttftGradient)'}
                   />
                 </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            </ChartContainer>
           )}
         </CardContent>
         <CardFooter className="flex items-center justify-between border-t border-border py-3 text-xs text-muted-foreground">

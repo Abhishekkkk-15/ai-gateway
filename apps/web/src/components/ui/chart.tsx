@@ -37,21 +37,28 @@ export function ChartContainer({
   );
 }
 
+export interface ChartTooltipItem {
+  name?: string;
+  value?: number | string;
+  color?: string;
+  dataKey?: string;
+  payload?: Record<string, unknown>;
+}
+
 export function ChartTooltip({
   active,
   payload,
   label,
   indicator = 'dot',
+  valueFormatter,
+  renderFooter,
 }: {
   active?: boolean;
-  payload?: Array<{
-    name?: string;
-    value?: number | string;
-    color?: string;
-    dataKey?: string;
-  }>;
+  payload?: ChartTooltipItem[];
   label?: string;
   indicator?: 'dot' | 'line';
+  valueFormatter?: (value: number | string) => React.ReactNode;
+  renderFooter?: (payload: ChartTooltipItem[]) => React.ReactNode;
 }) {
   if (!active || !payload || !payload.length) {
     return null;
@@ -70,12 +77,27 @@ export function ChartTooltip({
                   style={{ backgroundColor: item.color }}
                 />
               )}
+              {indicator === 'line' && (
+                <div
+                  className="h-0.5 w-3 rounded-full shrink-0"
+                  style={{ backgroundColor: item.color }}
+                />
+              )}
               <span>{item.name || item.dataKey}</span>
             </div>
-            <span className="font-mono font-medium text-foreground">{item.value}</span>
+            <span className="font-mono font-medium text-foreground">
+              {valueFormatter && item.value !== undefined
+                ? valueFormatter(item.value)
+                : item.value}
+            </span>
           </div>
         ))}
       </div>
+      {renderFooter && payload.length > 0 && (
+        <div className="mt-0.5 border-t border-border/60 pt-1.5 text-[11px]">
+          {renderFooter(payload)}
+        </div>
+      )}
     </div>
   );
 }

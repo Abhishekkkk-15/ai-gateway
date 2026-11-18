@@ -114,8 +114,8 @@ export const CodeBlock = React.forwardRef<HTMLDivElement, CodeBlockProps>(
             >
               {copied ? (
                 <>
-                  <Check className="size-3.5 text-emerald-400" />
-                  <span className="text-emerald-400 font-sans">Copied</span>
+                  <Check className="size-3.5 text-success" />
+                  <span className="text-success font-sans">Copied</span>
                 </>
               ) : (
                 <>
@@ -139,8 +139,8 @@ export const CodeBlock = React.forwardRef<HTMLDivElement, CodeBlockProps>(
             >
               {copied ? (
                 <>
-                  <Check className="size-3.5 text-emerald-400" />
-                  <span className="text-emerald-400 font-sans">Copied</span>
+                  <Check className="size-3.5 text-success" />
+                  <span className="text-success font-sans">Copied</span>
                 </>
               ) : (
                 <>
