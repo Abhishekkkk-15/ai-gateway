@@ -23,14 +23,7 @@ import {
 } from '../../components/ui/empty.js';
 import { Spinner } from '../../components/ui/spinner.js';
 import { Skeleton } from '../../components/ui/skeleton.js';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-  SelectGroup,
-} from '../../components/ui/select.js';
+import { ReactSelect, type SelectOption } from '../../components/ui/react-select.js';
 import { InlineCode } from '../../components/ui/code-block.js';
 import { cn } from '../../lib/utils.js';
 import {
@@ -69,6 +62,27 @@ const ANALYSIS_PROMPT_SUGGESTIONS = [
 ];
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+const IMAGE_SIZE_OPTIONS: SelectOption[] = [
+  { label: '1024x1024 (Square 1:1)', value: '1024x1024' },
+  { label: '1024x1792 (Portrait 9:16)', value: '1024x1792' },
+  { label: '1792x1024 (Landscape 16:9)', value: '1792x1024' },
+  { label: '512x512 (Fast 1:1)', value: '512x512' },
+  { label: '256x256 (Thumbnail 1:1)', value: '256x256' },
+];
+
+const IMAGE_QUALITY_OPTIONS: SelectOption[] = [
+  { label: 'Provider default', value: 'auto' },
+  { label: 'Standard', value: 'standard' },
+  { label: 'HD (High Definition)', value: 'hd' },
+];
+
+const IMAGE_COUNT_OPTIONS: SelectOption[] = [
+  { label: '1 image', value: '1' },
+  { label: '2 images', value: '2' },
+  { label: '3 images', value: '3' },
+  { label: '4 images', value: '4' },
+];
 
 export interface ImageLabProps {
   gatewayKey: string;
@@ -308,20 +322,13 @@ export function ImageLab({ gatewayKey, visionModelCount, resolveModel }: ImageLa
                 >
                   Size
                 </FieldLabel>
-                <Select value={imageSize} onValueChange={setImageSize}>
-                  <SelectTrigger id="image-size" className="h-9 font-mono text-xs">
-                    <SelectValue placeholder="1024x1024" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {['1024x1024', '1024x1792', '1792x1024', '512x512', '256x256'].map((size) => (
-                        <SelectItem key={size} value={size} className="font-mono text-xs">
-                          {size}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                <ReactSelect
+                  options={IMAGE_SIZE_OPTIONS}
+                  value={imageSize}
+                  onValueChange={(val) => setImageSize(val || '1024x1024')}
+                  placeholder="1024x1024"
+                  isSearchable={false}
+                />
               </Field>
 
               <Field className="gap-1.5">
@@ -331,24 +338,13 @@ export function ImageLab({ gatewayKey, visionModelCount, resolveModel }: ImageLa
                 >
                   Quality
                 </FieldLabel>
-                <Select value={imageQuality} onValueChange={setImageQuality}>
-                  <SelectTrigger id="image-quality" className="h-9 text-xs">
-                    <SelectValue placeholder="Provider default" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="auto" className="text-xs">
-                        Provider default
-                      </SelectItem>
-                      <SelectItem value="standard" className="text-xs">
-                        Standard
-                      </SelectItem>
-                      <SelectItem value="hd" className="text-xs">
-                        HD
-                      </SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                <ReactSelect
+                  options={IMAGE_QUALITY_OPTIONS}
+                  value={imageQuality}
+                  onValueChange={(val) => setImageQuality(val || 'auto')}
+                  placeholder="Provider default"
+                  isSearchable={false}
+                />
               </Field>
 
               <Field className="gap-1.5">
@@ -358,23 +354,13 @@ export function ImageLab({ gatewayKey, visionModelCount, resolveModel }: ImageLa
                 >
                   Images
                 </FieldLabel>
-                <Select
+                <ReactSelect
+                  options={IMAGE_COUNT_OPTIONS}
                   value={String(imageCount)}
-                  onValueChange={(val) => setImageCount(Number(val))}
-                >
-                  <SelectTrigger id="image-count" className="h-9 font-mono text-xs">
-                    <SelectValue placeholder="1" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {[1, 2, 3, 4].map((count) => (
-                        <SelectItem key={count} value={String(count)} className="font-mono text-xs">
-                          {count}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                  onValueChange={(val) => setImageCount(Number(val) || 1)}
+                  placeholder="1 image"
+                  isSearchable={false}
+                />
               </Field>
             </FieldGroup>
 

@@ -57,13 +57,7 @@ import {
   PaginationNext,
   PaginationEllipsis,
 } from '../components/ui/pagination.js';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '../components/ui/select.js';
+import { ReactSelect, type SelectOption } from '../components/ui/react-select.js';
 import {
   Activity,
   Timer,
@@ -120,6 +114,13 @@ function DetailRow({
     </div>
   );
 }
+
+const PAGE_SIZE_OPTIONS: SelectOption[] = [
+  { label: '10', value: '10' },
+  { label: '25', value: '25' },
+  { label: '50', value: '50' },
+  { label: '100', value: '100' },
+];
 
 export function LogsPage() {
   const [search, setSearch] = useState('');
@@ -618,21 +619,15 @@ export function LogsPage() {
 
             <div className="flex items-center gap-2 order-3">
               <span className="text-muted-foreground whitespace-nowrap">Rows per page</span>
-              <Select
-                value={String(pagination.pageSize)}
-                onValueChange={(val) => table.setPageSize(Number(val))}
-              >
-                <SelectTrigger className="h-8 w-[72px] text-xs font-mono">
-                  <SelectValue placeholder={String(pagination.pageSize)} />
-                </SelectTrigger>
-                <SelectContent align="end">
-                  {[10, 25, 50, 100].map((size) => (
-                    <SelectItem key={size} value={String(size)} className="text-xs font-mono">
-                      {size}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="w-[80px]">
+                <ReactSelect
+                  options={PAGE_SIZE_OPTIONS}
+                  value={String(pagination.pageSize)}
+                  onValueChange={(val) => table.setPageSize(Number(val))}
+                  size="sm"
+                  isSearchable={false}
+                />
+              </div>
             </div>
           </div>
         )}

@@ -31,14 +31,7 @@ import {
   InputGroupInput,
 } from '../components/ui/input-group.js';
 import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-  SelectGroup,
-} from '../components/ui/select.js';
+import { ReactSelect, type SelectOption } from '../components/ui/react-select.js';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -150,6 +143,43 @@ export function ModelsPage() {
     const caps = new Set(models.flatMap((m) => m.capabilities || []));
     return Array.from(caps).sort();
   }, [models]);
+
+  const providerFilterOptions: SelectOption[] = useMemo(() => {
+    return [
+      { label: `All Providers (${models.length})`, value: 'all' },
+      ...availableProviders.map((p) => {
+        const count = models.filter((m) => m.providerId === p).length;
+        return {
+          label: `${p.toUpperCase()} (${count})`,
+          value: p,
+        };
+      }),
+    ];
+  }, [models, availableProviders]);
+
+  const capabilityFilterOptions: SelectOption[] = useMemo(() => {
+    return [
+      { label: 'All Capabilities', value: 'all' },
+      ...availableCapabilities.map((cap) => ({
+        label: cap,
+        value: cap,
+      })),
+    ];
+  }, [availableCapabilities]);
+
+  const sortCatalogOptions: SelectOption[] = [
+    { label: 'Sort: Slug (A-Z)', value: 'slug' },
+    { label: 'Sort: Context Window (High-Low)', value: 'context' },
+    { label: 'Sort: Upstream Provider', value: 'provider' },
+  ];
+
+  const pageSizeOptions: SelectOption[] = [
+    { label: '10', value: '10' },
+    { label: '15', value: '15' },
+    { label: '25', value: '25' },
+    { label: '50', value: '50' },
+    { label: '100', value: '100' },
+  ];
 
   // Filter and sort execution
   const filteredModels = useMemo(() => {
@@ -306,77 +336,37 @@ export function ModelsPage() {
           </InputGroup>
 
           {/* 2. Provider Filter */}
-          <Select
+          <ReactSelect
+            options={providerFilterOptions}
             value={selectedProvider}
             onValueChange={(val) => {
-              setSelectedProvider(val);
+              setSelectedProvider(val || 'all');
               setCurrentPage(1);
             }}
-          >
-            <SelectTrigger className="h-9 text-xs font-mono">
-              <SelectValue placeholder="Filter by Provider" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="all" className="text-xs font-sans">
-                  All Providers ({models.length})
-                </SelectItem>
-                {availableProviders.map((p) => {
-                  const count = models.filter((m) => m.providerId === p).length;
-                  return (
-                    <SelectItem key={p} value={p} className="text-xs font-mono uppercase">
-                      {p} ({count})
-                    </SelectItem>
-                  );
-                })}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+            placeholder="Filter by Provider"
+            isSearchable={true}
+          />
 
           {/* 3. Capability Filter */}
-          <Select
+          <ReactSelect
+            options={capabilityFilterOptions}
             value={selectedCapability}
             onValueChange={(val) => {
-              setSelectedCapability(val);
+              setSelectedCapability(val || 'all');
               setCurrentPage(1);
             }}
-          >
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="Filter by Capability" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="all" className="text-xs font-sans">
-                  All Capabilities
-                </SelectItem>
-                {availableCapabilities.map((cap) => (
-                  <SelectItem key={cap} value={cap} className="text-xs font-mono">
-                    {cap}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+            placeholder="Filter by Capability"
+            isSearchable={false}
+          />
 
           {/* 4. Sort By */}
-          <Select value={sortBy} onValueChange={(val: 'slug' | 'context' | 'provider') => setSortBy(val)}>
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="Sort Catalog" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="slug" className="text-xs font-sans">
-                  Sort: Slug (A-Z)
-                </SelectItem>
-                <SelectItem value="context" className="text-xs font-sans">
-                  Sort: Context Window (High-Low)
-                </SelectItem>
-                <SelectItem value="provider" className="text-xs font-sans">
-                  Sort: Upstream Provider
-                </SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+          <ReactSelect
+            options={sortCatalogOptions}
+            value={sortBy}
+            onValueChange={(val: 'slug' | 'context' | 'provider') => setSortBy(val)}
+            placeholder="Sort Catalog"
+            isSearchable={false}
+          />
         </div>
 
         {/* Status Filter Chips Row */}
@@ -735,24 +725,18 @@ export function ModelsPage() {
             {/* Right: Page Size Selector */}
             <div className="flex items-center gap-2 order-3">
               <span className="text-muted-foreground whitespace-nowrap">Rows per page</span>
-              <Select
-                value={String(pageSize)}
-                onValueChange={(val) => {
-                  setPageSize(Number(val));
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="h-8 w-[72px] text-xs font-mono">
-                  <SelectValue placeholder={String(pageSize)} />
-                </SelectTrigger>
-                <SelectContent align="end">
-                  {[10, 15, 25, 50, 100].map((size) => (
-                    <SelectItem key={size} value={String(size)} className="text-xs font-mono">
-                      {size}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="w-[80px]">
+                <ReactSelect
+                  options={pageSizeOptions}
+                  value={String(pageSize)}
+                  onValueChange={(val) => {
+                    setPageSize(Number(val));
+                    setCurrentPage(1);
+                  }}
+                  size="sm"
+                  isSearchable={false}
+                />
+              </div>
             </div>
           </div>
         )}

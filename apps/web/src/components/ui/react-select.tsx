@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Select, {
   components,
   type Props as SelectProps,
@@ -33,6 +33,8 @@ export interface BaseCustomSelectProps<
 > {
   className?: string;
   portalMenu?: boolean;
+  size?: 'default' | 'sm';
+  onValueChange?: (value: any) => void;
   classNames?: ClassNamesConfig<Option, IsMulti, Group>;
   styles?: StylesConfig<Option, IsMulti, Group>;
 }
@@ -42,10 +44,11 @@ export type ReactSelectProps<
   IsMulti extends boolean = false,
   Group extends GroupBase<Option> = GroupBase<Option>
 > = (
-  | ({ creatable?: false } & SelectProps<Option, IsMulti, Group>)
-  | ({ creatable: true } & CreatableProps<Option, IsMulti, Group>)
-) &
-  BaseCustomSelectProps<Option, IsMulti, Group>;
+  | ({ creatable?: false } & Omit<SelectProps<Option, IsMulti, Group>, 'value'>)
+  | ({ creatable: true } & Omit<CreatableProps<Option, IsMulti, Group>, 'value'>)
+) & {
+  value?: any;
+} & BaseCustomSelectProps<Option, IsMulti, Group>;
 
 // Custom Dropdown Indicator
 function CustomDropdownIndicator<
@@ -57,7 +60,7 @@ function CustomDropdownIndicator<
     <components.DropdownIndicator {...props}>
       <ChevronDown
         className={cn(
-          'size-4 text-muted-foreground transition-transform duration-200',
+          'size-3.5 text-muted-foreground transition-transform duration-200',
           props.selectProps.menuIsOpen && 'rotate-180 text-foreground'
         )}
       />
@@ -156,6 +159,10 @@ export function ReactSelect<
     creatable = false,
     className,
     portalMenu = false,
+    size = 'default',
+    value,
+    onChange,
+    onValueChange,
     classNames,
     styles,
     components: userComponents,
@@ -164,11 +171,51 @@ export function ReactSelect<
     ...rest
   } = props;
 
+  // Resolve primitive values (e.g. value="chat" or value={10}) to matching option objects
+  const resolvedValue = useMemo(() => {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (value === null || value === '') {
+      return null;
+    }
+    if (typeof value === 'string' || typeof value === 'number') {
+      const valStr = String(value);
+      const flat = (props.options as any[]) || [];
+      for (const item of flat) {
+        if (item && 'options' in item && Array.isArray(item.options)) {
+          const found = item.options.find((opt: any) => String(opt.value) === valStr);
+          if (found) return found;
+        } else if (item && String(item.value) === valStr) {
+          return item;
+        }
+      }
+      return { label: valStr, value };
+    }
+    return value;
+  }, [value, props.options]);
+
+  const valueProps = value !== undefined ? { value: resolvedValue } : {};
+
+  const handleChange = (selected: any, actionMeta: any) => {
+    if (onChange) {
+      onChange(selected, actionMeta);
+    }
+    if (onValueChange) {
+      if (Array.isArray(selected)) {
+        onValueChange(selected.map((s: any) => s.value));
+      } else {
+        onValueChange(selected ? selected.value : undefined);
+      }
+    }
+  };
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mergedClassNames: ClassNamesConfig<Option, IsMulti, Group> = {
     control: (state) =>
       cn(
-        'flex min-h-9 w-full rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-sm transition-colors',
+        'flex w-full rounded-md border border-input bg-background text-xs shadow-sm transition-colors',
+        size === 'sm' ? 'min-h-8 px-2 py-0.5' : 'min-h-9 px-2.5 py-1',
         state.isFocused
           ? 'ring-1 ring-ring border-ring'
           : 'hover:border-input/80',
@@ -329,8 +376,10 @@ export function ReactSelect<
         components={mergedComponents as never}
         menuPlacement={menuPlacement}
         menuShouldScrollIntoView={menuShouldScrollIntoView}
+        {...valueProps}
+        onChange={handleChange}
         {...portalProps}
-        {...(rest as CreatableProps<Option, IsMulti, Group>)}
+        {...(rest as any)}
       />
     );
   }
@@ -343,8 +392,10 @@ export function ReactSelect<
       components={mergedComponents as never}
       menuPlacement={menuPlacement}
       menuShouldScrollIntoView={menuShouldScrollIntoView}
+      {...valueProps}
+      onChange={handleChange}
       {...portalProps}
-      {...(rest as SelectProps<Option, IsMulti, Group>)}
+      {...(rest as any)}
     />
   );
 }

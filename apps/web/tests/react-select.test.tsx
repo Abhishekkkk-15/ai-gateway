@@ -98,4 +98,27 @@ describe('ReactSelect Component', () => {
       menu.dispatchEvent(wheelEvent);
     }
   });
+
+  it('supports primitive string values and onValueChange callback', () => {
+    const onValueChange = vi.fn();
+    render(
+      <ReactSelect
+        options={sampleOptions}
+        value="google"
+        onValueChange={onValueChange}
+      />
+    );
+
+    // Shows label of matching option
+    expect(screen.getByText('Google AI Studio')).toBeDefined();
+
+    // Change value
+    const control = screen.getByText('Google AI Studio');
+    fireEvent.mouseDown(control);
+
+    const elevenLabsOption = screen.getByText('ElevenLabs');
+    fireEvent.click(elevenLabsOption);
+
+    expect(onValueChange).toHaveBeenCalledWith('elevenlabs');
+  });
 });

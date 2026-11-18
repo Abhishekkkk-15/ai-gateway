@@ -29,15 +29,7 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { InlineCode } from '../components/ui/code-block.js';
 import { Avatar, AvatarFallback } from '../components/ui/avatar.js';
 import { ImageLab } from '../components/playground/ImageLab.js';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-  SelectGroup,
-  SelectLabel,
-} from '../components/ui/select.js';
+import { ReactSelect, type SelectOption } from '../components/ui/react-select.js';
 import {
   Play,
   Mic,
@@ -216,6 +208,97 @@ export function PlaygroundPage() {
     const live = liveVoices.find((v) => v.id === selectedVoice);
     return live ? !live.isFreeSupported : false;
   }, [selectedVoice, liveVoices]);
+
+  const modelSelectOptions = useMemo(() => {
+    const primaryModels = activeTab === 'image' ? visionModels : enabledModels;
+    const primaryLabel =
+      activeTab === 'image'
+        ? `Vision-capable Models (${visionModels.length})`
+        : `Available Models (${enabledModels.length})`;
+    const autoLabel =
+      activeTab === 'image'
+        ? 'Auto-select first vision model'
+        : 'Auto-select first enabled model';
+
+    const groups: { label: string; options: SelectOption[] }[] = [
+      {
+        label: primaryLabel,
+        options: [
+          { label: autoLabel, value: AUTO_MODEL_VALUE },
+          ...primaryModels.map((m) => ({
+            label: m.customAlias ? `${m.customAlias} (${m.slug})` : m.slug,
+            value: m.customAlias || m.slug,
+          })),
+        ],
+      },
+    ];
+
+    if (activeTab === 'image' && otherEnabledModels.length > 0) {
+      groups.push({
+        label: 'Other Enabled Models',
+        options: otherEnabledModels.map((m) => ({
+          label: m.customAlias ? `${m.customAlias} (${m.slug})` : m.slug,
+          value: m.customAlias || m.slug,
+        })),
+      });
+    }
+
+    groups.push({
+      label: 'Custom',
+      options: [{ label: 'Custom model / slug...', value: CUSTOM_MODEL_VALUE }],
+    });
+
+    return groups;
+  }, [activeTab, visionModels, enabledModels, otherEnabledModels]);
+
+  const voiceSelectOptions = useMemo(() => {
+    const groups: { label: string; options: SelectOption[] }[] = [];
+
+    if (liveVoices.length > 0) {
+      groups.push({
+        label: 'Your ElevenLabs Account Voices',
+        options: liveVoices.map((v) => ({
+          label: `${v.name} — ${v.category} ${v.isFreeSupported ? '(Free)' : '[Paid Plan]'}`,
+          value: v.id,
+        })),
+      });
+    }
+
+    for (const group of PRESET_VOICES) {
+      groups.push({
+        label: group.category,
+        options: group.voices.map((v) => ({
+          label: `${v.name} — ${v.description}`,
+          value: v.id,
+        })),
+      });
+    }
+
+    groups.push({
+      label: 'Custom Voice',
+      options: [{ label: 'Other / Custom Voice ID...', value: 'custom' }],
+    });
+
+    return groups;
+  }, [liveVoices]);
+
+  const ttsModelOptions: { label: string; options: SelectOption[] }[] = [
+    {
+      label: 'ElevenLabs Models',
+      options: [
+        { label: 'eleven_flash_v2_5 (Ultra-low latency ~75ms)', value: 'eleven_flash_v2_5' },
+        { label: 'eleven_multilingual_v2 (High expressive quality)', value: 'eleven_multilingual_v2' },
+        { label: 'eleven_turbo_v2_5 (Fast streaming)', value: 'eleven_turbo_v2_5' },
+      ],
+    },
+    {
+      label: 'OpenAI Models',
+      options: [
+        { label: 'tts-1 (Standard)', value: 'tts-1' },
+        { label: 'tts-1-hd (High Definition)', value: 'tts-1-hd' },
+      ],
+    },
+  ];
 
   // Auto-scroll chat as tokens stream in
   useEffect(() => {
@@ -675,62 +758,18 @@ export function PlaygroundPage() {
               <FieldLabel htmlFor="playground-model" className="text-xs font-semibold text-muted-foreground">
                 {activeTab === 'image' ? 'Image / Vision Model' : 'Select Model or Routable Alias'}
               </FieldLabel>
-              <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger id="playground-model" className="h-9 font-mono text-xs">
-                  <SelectValue
-                    placeholder={
-                      activeTab === 'image'
-                        ? 'Auto-select first vision model'
-                        : 'Auto-select first enabled model'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel className="text-xs font-sans">
-                      {activeTab === 'image'
-                        ? `Vision-capable Models (${visionModels.length})`
-                        : `Available Models (${enabledModels.length})`}
-                    </SelectLabel>
-                    <SelectItem value={AUTO_MODEL_VALUE} className="text-xs font-sans">
-                      {activeTab === 'image'
-                        ? 'Auto-select first vision model'
-                        : 'Auto-select first enabled model'}
-                    </SelectItem>
-                    {(activeTab === 'image' ? visionModels : enabledModels).map((m) => (
-                      <SelectItem
-                        key={m.slug}
-                        value={m.customAlias || m.slug}
-                        className="font-mono text-xs"
-                      >
-                        {m.customAlias ? `${m.customAlias} (${m.slug})` : m.slug}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                  {activeTab === 'image' && otherEnabledModels.length > 0 && (
-                    <SelectGroup>
-                      <SelectLabel className="text-xs font-sans text-muted-foreground">
-                        Other Enabled Models
-                      </SelectLabel>
-                      {otherEnabledModels.map((m) => (
-                        <SelectItem
-                          key={m.slug}
-                          value={m.customAlias || m.slug}
-                          className="font-mono text-xs"
-                        >
-                          {m.customAlias ? `${m.customAlias} (${m.slug})` : m.slug}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  )}
-                  <SelectGroup>
-                    <SelectLabel className="text-xs font-sans text-muted-foreground">Custom</SelectLabel>
-                    <SelectItem value={CUSTOM_MODEL_VALUE} className="text-xs font-medium text-primary">
-                      Custom model / slug...
-                    </SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              <ReactSelect
+                inputId="playground-model"
+                options={modelSelectOptions}
+                value={selectedModel}
+                onValueChange={(val) => setSelectedModel(val || AUTO_MODEL_VALUE)}
+                placeholder={
+                  activeTab === 'image'
+                    ? 'Auto-select first vision model'
+                    : 'Auto-select first enabled model'
+                }
+                isSearchable={true}
+              />
             </Field>
             {selectedModel === CUSTOM_MODEL_VALUE && (
               <Field className="gap-1.5 md:col-span-2">
@@ -1052,51 +1091,13 @@ export function PlaygroundPage() {
                       )}
                     </div>
                   </div>
-                  <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                    <SelectTrigger id="tts-voice" className="h-9 text-xs">
-                      <SelectValue placeholder="Select a Voice" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {liveVoices.length > 0 && (
-                        <SelectGroup>
-                          <SelectLabel className="text-xs font-sans text-muted-foreground">
-                            Your ElevenLabs Account Voices
-                          </SelectLabel>
-                          {liveVoices.map((v) => (
-                            <SelectItem key={v.id} value={v.id} className="text-xs">
-                              <span className="font-medium">{v.name}</span>
-                              <span className="text-muted-foreground ml-2 text-xs">
-                                — {v.category} {v.isFreeSupported ? '(Free)' : '[Paid Plan]'}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      )}
-                      {PRESET_VOICES.map((group) => (
-                        <SelectGroup key={group.category}>
-                          <SelectLabel className="text-xs font-sans text-muted-foreground">
-                            {group.category}
-                          </SelectLabel>
-                          {group.voices.map((v) => (
-                            <SelectItem key={v.id} value={v.id} className="text-xs">
-                              <span className="font-medium">{v.name}</span>
-                              <span className="text-muted-foreground ml-2 text-xs">
-                                — {v.description}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))}
-                      <SelectGroup>
-                        <SelectLabel className="text-xs font-sans text-muted-foreground">
-                          Custom Voice
-                        </SelectLabel>
-                        <SelectItem value="custom" className="text-xs font-medium text-primary">
-                          Other / Custom Voice ID...
-                        </SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                  <ReactSelect
+                    options={voiceSelectOptions}
+                    value={selectedVoice}
+                    onValueChange={(val) => setSelectedVoice(val || 'JBFqnCBsd6RMkjVDRZzb')}
+                    placeholder="Select a Voice"
+                    isSearchable={true}
+                  />
                 </Field>
 
                 {/* 2. TTS Model Selection */}
@@ -1105,34 +1106,13 @@ export function PlaygroundPage() {
                     <Sliders className="size-3.5 text-primary" />
                     <span>TTS Synthesis Model</span>
                   </FieldLabel>
-                  <Select value={ttsModel} onValueChange={setTtsModel}>
-                    <SelectTrigger id="tts-model" className="h-9 text-xs font-mono">
-                      <SelectValue placeholder="Select TTS Model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel className="text-xs font-sans text-muted-foreground">ElevenLabs Models</SelectLabel>
-                        <SelectItem value="eleven_flash_v2_5" className="text-xs font-mono">
-                          eleven_flash_v2_5 (Ultra-low latency ~75ms)
-                        </SelectItem>
-                        <SelectItem value="eleven_multilingual_v2" className="text-xs font-mono">
-                          eleven_multilingual_v2 (High expressive quality)
-                        </SelectItem>
-                        <SelectItem value="eleven_turbo_v2_5" className="text-xs font-mono">
-                          eleven_turbo_v2_5 (Fast streaming)
-                        </SelectItem>
-                      </SelectGroup>
-                      <SelectGroup>
-                        <SelectLabel className="text-xs font-sans text-muted-foreground">OpenAI Models</SelectLabel>
-                        <SelectItem value="tts-1" className="text-xs font-mono">
-                          tts-1 (Standard)
-                        </SelectItem>
-                        <SelectItem value="tts-1-hd" className="text-xs font-mono">
-                          tts-1-hd (High Definition)
-                        </SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                  <ReactSelect
+                    options={ttsModelOptions}
+                    value={ttsModel}
+                    onValueChange={(val) => setTtsModel(val || 'eleven_flash_v2_5')}
+                    placeholder="Select TTS Model"
+                    isSearchable={false}
+                  />
                 </Field>
 
                 {/* 3. Custom Voice ID Input */}

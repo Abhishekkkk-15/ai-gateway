@@ -101,8 +101,8 @@ describe('Feature Pages (Playground, Logs & Models)', () => {
 
     // Custom model selection
     const modelTrigger = screen.getByRole('combobox', { name: /select model or routable alias/i });
-    fireEvent.click(modelTrigger);
-    fireEvent.click(await screen.findByRole('option', { name: /custom model \/ slug/i }));
+    fireEvent.mouseDown(modelTrigger);
+    fireEvent.click(await screen.findByText(/custom model \/ slug/i));
     expect(
       screen.getByPlaceholderText('e.g. cloudflare/@cf/meta/llama-3.1-8b-instruct')
     ).toBeDefined();
@@ -163,6 +163,9 @@ describe('Feature Pages (Playground, Logs & Models)', () => {
     expect(
       screen.getByPlaceholderText('Search by slug, alias, provider...')
     ).toBeDefined();
+    expect(screen.getByText(/All Providers/i)).toBeDefined();
+    expect(screen.getByText('All Capabilities')).toBeDefined();
+    expect(screen.getByText('Sort: Slug (A-Z)')).toBeDefined();
 
     // Wait for mock models to load
     await waitFor(() => {
